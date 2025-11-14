@@ -297,9 +297,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCatalogStore } from '../stores/catalogStore'
+import type { DatastoreCache } from '../stores/catalogStore'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -310,24 +311,86 @@ import QuickStartCode from './QuickStartCode.vue'
 const route = useRoute()
 const datastoreName = computed(() => route.params.name as string)
 
-// Get access to the catalog store utilities
+// Get access to the catalog store
 const catalogStore = useCatalogStore()
 
-// Reactive state
+// Local reactive state (for UI state not in cache)
 const loading = ref(false)
 const tableLoading = ref(false)
 const error = ref<string | null>(null)
-const totalRecords = ref<number | null>(null)
-const columns = ref<string[]>([])
-const rawData = ref<any[]>([])
-const filterOptions = ref<Record<string, string[]>>({})
 const currentFilters = ref<Record<string, string[]>>({})
 
 // Column management
 const availableColumns = ref<{field: string, header: string}[]>([])
 const selectedColumns = ref<{field: string, header: string}[]>([])
 
-// Computed properties
+// Computed properties that use cached data
+const cachedDatastore = computed(() => 
+  catalogStore.getDatastoreFromCache(datastoreName.value)
+)
+
+const rawData = computed(() => cachedDatastore.value?.data || [])
+const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0)
+const columns = computed(() => cachedDatastore.value?.columns || [])
+const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {})
+
+// Helper functions (defined before watchers to avoid hoisting issues)
+const formatColumnName = (column: string): string => {
+  return column
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+const setupColumns = (dataColumns: string[]) => {
+  availableColumns.value = dataColumns.map(col => ({
+    field: col,
+    header: formatColumnName(col)
+  }))
+  
+  // Select all columns by default
+  selectedColumns.value = [...availableColumns.value]
+}
+
+const onColumnToggle = (value: any[]) => {
+  selectedColumns.value = availableColumns.value.filter(col => value.includes(col))
+}
+
+// Watch for changes in cached data to update UI and loading states
+watch(cachedDatastore, (newCache: DatastoreCache | null) => {
+  if (newCache && newCache.data.length > 0) {
+    setupColumns(newCache.columns)
+    error.value = null
+    loading.value = false
+    tableLoading.value = false
+  } else if (newCache?.error) {
+    error.value = newCache.error
+    loading.value = false
+    tableLoading.value = false
+  } else if (newCache?.loading) {
+    loading.value = true
+    tableLoading.value = true
+  }
+}, { immediate: true })
+
+// Also watch for loading state changes from the store
+watch(
+  () => catalogStore.isDatastoreLoading(datastoreName.value),
+  (isLoading) => {
+    if (isLoading) {
+      loading.value = true
+      tableLoading.value = true
+    } else {
+      // Only set to false if we have data or an error
+      const cached = cachedDatastore.value
+      if (cached && (cached.data.length > 0 || cached.error)) {
+        loading.value = false
+        tableLoading.value = false
+      }
+    }
+  },
+  { immediate: true }
+)
 const filteredData = computed(() => {
   let data = rawData.value
   
@@ -351,119 +414,41 @@ const filteredData = computed(() => {
   return data
 })
 
-// Helper functions
-const formatColumnName = (column: string): string => {
-  return column
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-const setupColumns = (dataColumns: string[]) => {
-  // Filter out the index column from display but keep it for data-key
-  const displayColumns = dataColumns.filter(col => col !== '__index_level_0__')
-  
-  availableColumns.value = displayColumns.map(col => ({
-    field: col,
-    header: formatColumnName(col)
-  }))
-  
-  // Select all columns by default
-  selectedColumns.value = [...availableColumns.value]
-}
-
-const onColumnToggle = (value: any[]) => {
-  selectedColumns.value = availableColumns.value.filter(col => value.includes(col))
-}
-
-const generateFilterOptions = (data: any[]) => {
-  const options: Record<string, Set<string>> = {}
-  
-  data.forEach(row => {
-    for (const [column, value] of Object.entries(row)) {
-      if (!options[column]) {
-        options[column] = new Set()
-      }
-      
-      if (Array.isArray(value)) {
-        value.forEach(item => {
-          if (item != null && String(item).trim()) {
-            options[column]?.add(String(item))
-          }
-        })
-      } else if (value != null && String(value).trim()) {
-        options[column]?.add(String(value))
-      }
-    }
-  })
-  
-  // Convert Sets to sorted arrays
-  const result: Record<string, string[]> = {}
-  for (const [column, optionSet] of Object.entries(options)) {
-    result[column] = Array.from(optionSet).sort()
+// Load datastore information using cached store
+const loadDatastore = async () => {
+  // Check if we already have cached data for this datastore
+  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value)
+  if (existingCache && existingCache.data.length > 0) {
+    console.log(`✅ Using cached data for ${datastoreName.value}`)
+    // Data is already available, just setup columns
+    setupColumns(existingCache.columns)
+    loading.value = false
+    tableLoading.value = false
+    return
   }
   
-  return result
-}
-
-// Load datastore information
-const loadDatastore = async () => {
   loading.value = true
   tableLoading.value = true
   error.value = null
   
-  let db: any = null
-  let conn: any = null
-  
   try {
     console.log(`🚀 Loading ESM datastore: ${datastoreName.value}`)
     
-    // Construct the parquet file URL for this specific datastore
-    const parquetUrl = process.env.NODE_ENV === 'production'
-      ? `https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName.value}.parquet`
-      : `/api/parquet/source/${datastoreName.value}.parquet`
-    console.log(`📦 Fetching parquet file from: ${parquetUrl}`)
+    // Use the store's caching system
+    const datastoreCache = await catalogStore.loadDatastore(datastoreName.value)
     
-    // Fetch parquet file for this specific datastore
-    const response = await fetch(parquetUrl)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch datastore parquet file: ${response.status}`)
+    // The cache data will automatically update through computed properties
+    // Just need to setup columns if we have data
+    if (datastoreCache.data.length > 0) {
+      setupColumns(datastoreCache.columns)
     }
     
-    const arrayBuffer = await response.arrayBuffer()
-    const uint8Array = new Uint8Array(arrayBuffer)
-    console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName.value}`)
-    
-    // Initialize DuckDB using store utilities
-    const dbConnection = await catalogStore.initializeDuckDB()
-    db = dbConnection.db
-    conn = dbConnection.conn
-    
-    // Query the ESM datastore data
-    const datastoreData = await catalogStore.queryEsmDatastore(
-      db, 
-      conn, 
-      uint8Array, 
-      datastoreName.value
-    )
-    
-    rawData.value = datastoreData
-    totalRecords.value = datastoreData.length
-    columns.value = Object.keys(datastoreData[0] || {})
-    setupColumns(columns.value)
-    filterOptions.value = generateFilterOptions(datastoreData)
-    
-    console.log(`✅ Loaded ${datastoreData.length} records for ${datastoreName.value}`)
-    console.log('📋 Available columns:', columns.value)
-    console.log('🔍 Generated filter options:', filterOptions.value)
+    console.log(`✅ Loaded datastore ${datastoreName.value}`)
     
   } catch (err) {
     console.error('❌ Error loading datastore:', err)
     error.value = err instanceof Error ? err.message : 'Failed to load datastore'
   } finally {
-    // Cleanup DuckDB resources
-    if (conn) await conn.close()
-    if (db) await db.terminate()
     loading.value = false
     tableLoading.value = false
   }
@@ -480,9 +465,47 @@ const clearFilters = () => {
   console.log('Filters cleared')
 }
 
+// Cleanup function for memory management
+const cleanup = () => {
+  // Clear the cache for this specific datastore when navigating away
+  catalogStore.clearDatastoreCache(datastoreName.value)
+  console.log(`🗑️ Cleaned up cache for ${datastoreName.value}`)
+}
+
 // Load data on component mount
 onMounted(() => {
-  loadDatastore()
+  // Check if we already have data cached (e.g., from prefetching)
+  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value)
+  if (existingCache && existingCache.data.length > 0) {
+    console.log(`🎯 Found prefetched data for ${datastoreName.value}`)
+    setupColumns(existingCache.columns)
+    loading.value = false
+    tableLoading.value = false
+  } else {
+    loadDatastore()
+  }
+})
+
+// Watch for route changes to handle navigation between different datastores
+const stopWatcher = watch(
+  () => route.params.name,
+  (newName, oldName) => {
+    if (oldName && newName !== oldName) {
+      // Clean up cache for the old datastore
+      catalogStore.clearDatastoreCache(oldName as string)
+      console.log(`🗑️ Cleaned up cache for ${oldName} due to navigation`)
+    }
+    if (newName) {
+      // Load the new datastore
+      loadDatastore()
+    }
+  }
+)
+
+// Cleanup on unmount
+onUnmounted(() => {
+  cleanup()
+  stopWatcher() // Stop the route watcher
 })
 </script>
 

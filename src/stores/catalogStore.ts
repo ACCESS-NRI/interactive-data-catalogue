@@ -21,6 +21,16 @@ export interface CatalogRow {
   searchableVariable?: string
 }
 
+export interface DatastoreCache {
+  data: any[]
+  totalRecords: number
+  columns: string[]
+  filterOptions: Record<string, string[]>
+  loading: boolean
+  error: string | null
+  lastFetched: Date
+}
+
 const PARQUET_URL = process.env.NODE_ENV === 'production' 
   ? 'https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
   : '/api/parquet/metacatalog.parquet'
@@ -43,6 +53,9 @@ export const useCatalogStore = defineStore('catalog', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const rawDataSample = ref<any[]>([]) // For debugging - store clean sample
+  
+  // Datastore cache state
+  const datastoreCache = ref<Record<string, DatastoreCache>>({})
   
   // Getters
   const catalogCount = computed(() => data.value.length)
@@ -77,12 +90,6 @@ export const useCatalogStore = defineStore('catalog', () => {
   async function queryMetaCatalogPq(db: duckdb.AsyncDuckDB, conn: duckdb.AsyncDuckDBConnection, uint8Array: Uint8Array): Promise<CatalogRow[]> {
     // Register the parquet file
     await db.registerFileBuffer('metacatalog.parquet', uint8Array)
-    
-    // First, let's inspect the schema
-    const schemaResult = await conn.query(`
-      DESCRIBE SELECT * FROM read_parquet('metacatalog.parquet') LIMIT 1
-    `)
-    console.log('📊 Parquet schema:', schemaResult.toArray())
     
     // Query with explicit array handling
     const queryResult = await conn.query(`
@@ -269,6 +276,12 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Actions
   async function fetchCatalogData() {
+    // If we already have data and no error, don't fetch again
+    if (data.value.length > 0 && !error.value) {
+      console.log('✅ Using cached metacatalog data')
+      return
+    }
+    
     loading.value = true
     error.value = null
     
@@ -278,12 +291,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     try {
       console.log('🚀 Fetching catalog data...')
       
-      // Fetch parquet file
-      const uint8Array = await fetchParquetFile()
-      console.log(`📦 Downloaded ${uint8Array.length} bytes`)
+      // Fetch parquet file and initialize DuckDB concurrently
+      const [uint8Array, dbConnection] = await Promise.all([
+        fetchParquetFile(),
+        initializeDuckDB()
+      ])
       
-      // Initialize DuckDB
-      const dbConnection = await initializeDuckDB()
+      console.log(`📦 Downloaded ${uint8Array.length} bytes`)
       db = dbConnection.db
       conn = dbConnection.conn
       
@@ -308,12 +322,179 @@ export const useCatalogStore = defineStore('catalog', () => {
     error.value = null
   }
 
+  // Helper functions for datastore management
+  function generateFilterOptions(data: any[]): Record<string, string[]> {
+    const options: Record<string, Set<string>> = {}
+    
+    data.forEach(row => {
+      for (const [column, value] of Object.entries(row)) {
+        if (!options[column]) {
+          options[column] = new Set()
+        }
+        
+        if (Array.isArray(value)) {
+          value.forEach(item => {
+            if (item != null && String(item).trim()) {
+              options[column]?.add(String(item))
+            }
+          })
+        } else if (value != null && String(value).trim()) {
+          options[column]?.add(String(value))
+        }
+      }
+    })
+    
+    // Convert Sets to sorted arrays
+    const result: Record<string, string[]> = {}
+    for (const [column, optionSet] of Object.entries(options)) {
+      result[column] = Array.from(optionSet).sort()
+    }
+    
+    return result
+  }
+
+  function setupColumns(dataColumns: string[]): string[] {
+    // Filter out the index column from display but keep it for data-key
+    return dataColumns.filter(col => col !== '__index_level_0__')
+  }
+
+  // Datastore management functions
+  async function loadDatastore(datastoreName: string): Promise<DatastoreCache> {
+    // Check if already cached and not loading
+    const cached = datastoreCache.value[datastoreName]
+    if (cached && cached.data.length > 0 && !cached.loading) {
+      console.log(`✅ Using cached data for ${datastoreName}`)
+      return cached
+    }
+
+    // If currently loading, wait for it to complete
+    if (cached?.loading) {
+      console.log(`⏳ Already loading ${datastoreName}, waiting...`)
+      // Poll until loading is complete
+      while (datastoreCache.value[datastoreName]?.loading) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      return datastoreCache.value[datastoreName] || createEmptyCache()
+    }
+
+    // Initialize cache entry
+    datastoreCache.value[datastoreName] = {
+      data: [],
+      totalRecords: 0,
+      columns: [],
+      filterOptions: {},
+      loading: true,
+      error: null,
+      lastFetched: new Date()
+    }
+
+    let db: duckdb.AsyncDuckDB | null = null
+    let conn: duckdb.AsyncDuckDBConnection | null = null
+
+    try {
+      console.log(`🚀 Loading datastore: ${datastoreName}`)
+
+      // Construct the parquet file URL for this specific datastore
+      const parquetUrl = process.env.NODE_ENV === 'production'
+        ? `https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
+        : `/api/parquet/source/${datastoreName}.parquet`
+
+      // Fetch parquet file and initialize DuckDB concurrently
+      const [response, dbConnection] = await Promise.all([
+        fetch(parquetUrl),
+        initializeDuckDB()
+      ])
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch datastore parquet file: ${response.status}`)
+      }
+
+      const arrayBuffer = await response.arrayBuffer()
+      const uint8Array = new Uint8Array(arrayBuffer)
+      console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`)
+
+      db = dbConnection.db
+      conn = dbConnection.conn
+
+      // Query the ESM datastore data
+      const datastoreData = await queryEsmDatastore(db, conn, uint8Array, datastoreName)
+      const columns = Object.keys(datastoreData[0] || {})
+      const displayColumns = setupColumns(columns)
+      const filterOptions = generateFilterOptions(datastoreData)
+
+      // Update cache with loaded data
+      datastoreCache.value[datastoreName] = {
+        data: datastoreData,
+        totalRecords: datastoreData.length,
+        columns: displayColumns,
+        filterOptions,
+        loading: false,
+        error: null,
+        lastFetched: new Date()
+      }
+
+      console.log(`✅ Loaded ${datastoreData.length} records for ${datastoreName}`)
+      return datastoreCache.value[datastoreName]
+
+    } catch (err) {
+      console.error('❌ Error loading datastore:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load datastore'
+      
+      datastoreCache.value[datastoreName] = {
+        data: [],
+        totalRecords: 0,
+        columns: [],
+        filterOptions: {},
+        loading: false,
+        error: errorMessage,
+        lastFetched: new Date()
+      }
+      
+      throw err
+    } finally {
+      // Cleanup DuckDB resources
+      if (conn) await conn.close()
+      if (db) await db.terminate()
+    }
+  }
+
+  function createEmptyCache(): DatastoreCache {
+    return {
+      data: [],
+      totalRecords: 0,
+      columns: [],
+      filterOptions: {},
+      loading: false,
+      error: 'Datastore not found',
+      lastFetched: new Date()
+    }
+  }
+
+  function getDatastoreFromCache(datastoreName: string): DatastoreCache | null {
+    return datastoreCache.value[datastoreName] || null
+  }
+
+  function isDatastoreLoading(datastoreName: string): boolean {
+    return datastoreCache.value[datastoreName]?.loading || false
+  }
+
+  function clearDatastoreCache(datastoreName?: string) {
+    if (datastoreName) {
+      delete datastoreCache.value[datastoreName]
+      console.log(`🗑️ Cleared cache for datastore: ${datastoreName}`)
+    } else {
+      datastoreCache.value = {}
+      console.log('🗑️ Cleared all datastore cache')
+    }
+  }
+
   return {
     // State
     data,
     loading,
     error,
     rawDataSample,
+    datastoreCache,
     
     // Getters
     catalogCount,
@@ -325,9 +506,17 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchCatalogData,
     clearData,
     
+    // Datastore management
+    loadDatastore,
+    getDatastoreFromCache,
+    isDatastoreLoading,
+    clearDatastoreCache,
+    
     // Utility functions for other components
     fetchParquetFile,
     initializeDuckDB,
-    queryEsmDatastore
+    queryEsmDatastore,
+    generateFilterOptions,
+    setupColumns
   }
 })

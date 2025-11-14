@@ -151,12 +151,14 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 </template>
 
 <script setup lang="ts">
+import { watch } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import type { CatalogRow } from '../stores/catalogStore'
+import { useCatalogStore } from '../stores/catalogStore'
 
 // Props
-defineProps<{
+const props = defineProps<{
   visible: boolean
   rowData: CatalogRow | null
 }>()
@@ -165,6 +167,24 @@ defineProps<{
 defineEmits<{
   hide: []
 }>()
+
+// Get catalog store for prefetching
+const catalogStore = useCatalogStore()
+
+// Watch for modal visibility and rowData to prefetch datastore
+watch(
+  () => [props.visible, props.rowData?.name],
+  ([visible, datastoreName]) => {
+    if (visible && datastoreName) {
+      console.log(`🔄 Prefetching datastore for modal: ${datastoreName}`)
+      // Use loadDatastore which handles caching automatically
+      catalogStore.loadDatastore(datastoreName as string).catch(err => {
+        console.warn('Failed to prefetch datastore:', err)
+      })
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

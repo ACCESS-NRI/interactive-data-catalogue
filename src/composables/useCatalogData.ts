@@ -55,14 +55,8 @@ async function queryParquetData(db: duckdb.AsyncDuckDB, conn: duckdb.AsyncDuckDB
   // Register the parquet file
   await db.registerFileBuffer('metacatalog.parquet', uint8Array)
   
-  // First, let's inspect the schema
-  const schemaResult = await conn.query(`
-    DESCRIBE SELECT * FROM read_parquet('metacatalog.parquet') LIMIT 1
-  `)
-  console.log('Parquet schema:', schemaResult.toArray())
-  
-    // Query with explicit array handling - cast everything to VARCHAR[]
-    const queryResult = await conn.query(`
+  // Query with explicit array handling - cast everything to VARCHAR[]
+  const queryResult = await conn.query(`
     SELECT 
       name,
       CASE 
@@ -90,11 +84,6 @@ async function queryParquetData(db: duckdb.AsyncDuckDB, conn: duckdb.AsyncDuckDB
     LIMIT 10
   `)
   
-  // Debug: Log first few rows to see the raw data structure
-  const rawData = queryResult.toArray()
-  console.log('Raw data sample:', rawData.slice(0, 2))
-  console.log('First row types:', rawData[0] && Object.entries(rawData[0]).map(([k, v]) => [k, typeof v, Array.isArray(v)]))
-  
   // Transform to our interface with proper array handling
   return queryResult.toArray().map((row: any) => {
     const processListField = (value: any): string[] => {
@@ -111,9 +100,7 @@ async function queryParquetData(db: duckdb.AsyncDuckDB, conn: duckdb.AsyncDuckDB
         }
       }
       return [String(value)]
-    }
-
-    return {
+    }  return {
       name: row.name || '',
       model: processListField(row.model),
       description: row.description || '',
@@ -139,12 +126,13 @@ export function useCatalogData() {
     try {
       console.log('Fetching catalog data...')
       
-      // Fetch parquet file
-      const uint8Array = await fetchParquetFile()
-      console.log(`Downloaded ${uint8Array.length} bytes`)
+      // Fetch parquet file and initialize DuckDB concurrently
+      const [uint8Array, dbConnection] = await Promise.all([
+        fetchParquetFile(),
+        initializeDuckDB()
+      ])
       
-      // Initialize DuckDB
-      const dbConnection = await initializeDuckDB()
+      console.log(`Downloaded ${uint8Array.length} bytes`)
       db = dbConnection.db
       conn = dbConnection.conn
       
