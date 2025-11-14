@@ -84,19 +84,20 @@ const hasActiveFilters = computed(() => {
 const requiredProjects = computed(() => {
   const projects = new Set<string>()
   
+  // We always require 'xp65' 
+  projects.add('xp65')
+  
   // Look for path fields in the data
   props.rawData.forEach(row => {
     // Check various possible path field names
-    const pathFields = ['path', 'file_path', 'filepath', 'file_id']
+    const field = 'path';
     
-    for (const field of pathFields) {
-      if (row[field]) {
-        const pathValue = row[field]
-        // Match pattern /g/data/{PROJECT}/...
-        const match = pathValue.match(/\/g\/data\/([^\/]+)\//)
-        if (match) {
-          projects.add(match[1])
-        }
+    if (row[field]) {
+      const pathValue = row[field]
+      // Match pattern /g/data/{PROJECT}/...
+      const match = pathValue.match(/\/g\/data\/([^\/]+)\//)
+      if (match) {
+        projects.add(match[1])
       }
     }
   })
@@ -104,8 +105,22 @@ const requiredProjects = computed(() => {
   return Array.from(projects).sort()
 })
 
+const numDatasets = computed(() => {
+  // Use a Set to count unique datasets - one fileId per dataset
+  const fileIds = new Set<string>()
+
+  props.rawData.forEach(row => {
+    if (row['file_id']) {
+      fileIds.add(row['file_id'])
+    }
+  })
+
+  return fileIds.size
+})
+
 const quickStartCode = computed(() => {
-  let code = `import intake
+  let code = `# In an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
+import intake
 datastore = intake.cat.access_nri["${props.datastoreName}"]`
   
   if (hasActiveFilters.value) {
@@ -123,7 +138,14 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`
   
   // Add XArray conversion if in XArray mode
   if (isXArrayMode.value) {
+
+    if (numDatasets.value > 1) {
+      code += `\n# Search contains ${numDatasets.value} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`
+      code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`
+      code += `\ndataset_dict = datastore.to_dataset_dict()`
+    } else {
     code += `\ndataset = datastore.to_dask()`
+    }
   }
   
   return code
