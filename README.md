@@ -17,7 +17,7 @@ https://charles-turner-1.github.io/catalog-viewer-spa/
 
 - Currently appears to be blocked on ANU wifi.
 - You will still require Gadi access to get your hands on the data.
-- NCI managed datastores (eg. `era5`_rt52`, `cmip6_fs38`) currently unsupported.
+- NCI managed datastores (eg. `era5_rt52`, `cmip6_fs38`) currently unsupported.
 
 ## Development
 
