@@ -43,7 +43,7 @@
 
     <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ quickStartCode }}</code></pre>
 
-    <div class="mt-3">
+    <div class="mt-3 relative inline-block">
       <Button
         label="Copy Query Link"
         icon="pi pi-share"
@@ -52,6 +52,18 @@
         size="small"
         class="text-blue-600 border-blue-600 hover:bg-blue-50"
       />
+
+      <!-- Small ephemeral copied badge -->
+      <transition name="copied">
+        <span
+          v-if="showCopied"
+          role="status"
+          aria-live="polite"
+          class="copied-badge"
+        >
+          Copied!
+        </span>
+      </transition>
     </div>
     <!-- Long URL confirmation dialog -->
     <Dialog v-model:visible="showLongUrlDialog" header="Long link warning" modal>
@@ -126,6 +138,8 @@ const confirmCopyLongUrl = async () => {
     await navigator.clipboard.writeText(pendingLongUrl.value);
     showLongUrlDialog.value = false;
     console.log('Query link copied to clipboard (long):', pendingLongUrl.value);
+    // show ephemeral confirmation
+    triggerCopiedBadge()
   } catch (err) {
     console.error('Failed to copy long link:', err);
   }
@@ -291,11 +305,34 @@ const copyQueryLink = async (): Promise<void> => {
     await navigator.clipboard.writeText(fullUrl);
     // TODO: Show toast notification
     console.log('Query link copied to clipboard:', fullUrl);
+    // show ephemeral confirmation
+    triggerCopiedBadge()
   } catch (err) {
     console.error('Failed to copy link:');
     console.error(err);
   }
 };
+
+/**
+ * Ephemeral "Copied!" badge state and helper.
+ * Shows a small unobtrusive badge for a short time after a successful
+ * clipboard write. Accessible via `aria-live` so screen readers are
+ * informed of the change.
+ */
+const showCopied = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
+
+function triggerCopiedBadge(timeout = 1400) {
+  if (copiedTimer) {
+    clearTimeout(copiedTimer)
+    copiedTimer = null
+  }
+  showCopied.value = true
+  copiedTimer = setTimeout(() => {
+    showCopied.value = false
+    copiedTimer = null
+  }, timeout)
+}
 </script>
 
 <style scoped>
@@ -303,5 +340,36 @@ const copyQueryLink = async (): Promise<void> => {
 pre code {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.4;
+}
+
+/* Copied badge styles */
+.copied-badge {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.12); /* green-500 at 12% */
+  color: #065f46; /* green-800 */
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px; /* pill */
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.08);
+  margin-left: 0.5rem;
+  transform-origin: center right;
+}
+
+/* small fade + pop animation */
+.copied-enter-from,
+.copied-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+}
+.copied-enter-active,
+.copied-leave-active {
+  transition: all 180ms cubic-bezier(.2,.8,.2,1);
+}
+.copied-enter-to,
+.copied-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 </style>
