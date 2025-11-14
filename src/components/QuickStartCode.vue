@@ -265,7 +265,6 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`
  */
 const copyQueryLink = async (): Promise<void> => {
   const query: Record<string, string> = {}
-  const url = new URL(window.location.href)
 
   // Add filter parameters to URL
   for (const [column, values] of Object.entries(props.currentFilters)) {

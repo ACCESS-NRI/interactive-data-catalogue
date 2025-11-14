@@ -163,7 +163,6 @@
               :showClear="true"
               :maxSelectedLabels="2"
               selectedItemsLabel="{0} items selected"
-              @change="applyFilters"
               class="w-full"
               display="chip"
             />
@@ -339,35 +338,88 @@ import Button from 'primevue/button'
 import MultiSelect from 'primevue/multiselect'
 import QuickStartCode from './QuickStartCode.vue'
 
-// Get the datastore name from route params
+/**
+ * Route and router instances used to read route params and update query
+ * parameters without performing full navigation.
+ */
 const route = useRoute()
 const router = useRouter()
+
+/**
+ * Datastore name extracted from the route parameters.
+ * Example: for route path "/datastore/:name" this will be the `name` param.
+ */
 const datastoreName = computed(() => route.params.name as string)
 
-// Get access to the catalog store
+/**
+ * Access to the central catalog Pinia store which contains the
+ * metacatalog and datastore loading utilities and caches.
+ */
 const catalogStore = useCatalogStore()
 
-// Local reactive state (for UI state not in cache)
+// ---------------------------------------------------------------------------
+// Local reactive UI state
+// ---------------------------------------------------------------------------
+/** Whether the component-level loading indicator (page) is active. */
 const loading = ref(false)
+
+/** Whether the table-level loading indicator is active. */
 const tableLoading = ref(false)
+
+/** Human-readable error message, or null when there's no error. */
 const error = ref<string | null>(null)
+
+/**
+ * Current active filter selections. Keys are column names and values are
+ * arrays of selected filter strings for that column.
+ */
 const currentFilters = ref<Record<string, string[]>>({})
 
-// Column management
+// ---------------------------------------------------------------------------
+// Column management state
+// ---------------------------------------------------------------------------
+/**
+ * Available columns for display in the table. Each entry contains the raw
+ * field name and a human friendly header label.
+ */
 const availableColumns = ref<{field: string, header: string}[]>([])
+
+/** Currently selected columns (subset of `availableColumns`). */
 const selectedColumns = ref<{field: string, header: string}[]>([])
 
-// Computed properties that use cached data
+// ---------------------------------------------------------------------------
+// Derived state (computed) from the store cache
+// ---------------------------------------------------------------------------
+/**
+ * The cached datastore object pulled from the catalog store for the
+ * currently selected `datastoreName`.
+ */
 const cachedDatastore = computed(() => 
   catalogStore.getDatastoreFromCache(datastoreName.value)
 )
 
+/** Raw data rows from the cached datastore or an empty array. */
 const rawData = computed(() => cachedDatastore.value?.data || [])
+
+/** Total number of records reported by the cached datastore, or 0. */
 const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0)
+
+/** Column names (string[]) available for this datastore. */
 const columns = computed(() => cachedDatastore.value?.columns || [])
+
+/** Filter options generated for each column by the store. */
 const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {})
 
-// Helper functions (defined before watchers to avoid hoisting issues)
+// ---------------------------------------------------------------------------
+// Helper utilities
+// ---------------------------------------------------------------------------
+/**
+ * Convert a snake_case or underscore_separated column name to a human
+ * friendly title. Example: "variable_long_name" -> "Variable Long Name".
+ *
+ * @param column - raw column name
+ * @returns formatted header string
+ */
 const formatColumnName = (column: string): string => {
   return column
     .split('_')
@@ -375,6 +427,12 @@ const formatColumnName = (column: string): string => {
     .join(' ')
 }
 
+/**
+ * Initialize `availableColumns` and `selectedColumns` from a list of
+ * data column names. This also prepares the header labels.
+ *
+ * @param dataColumns - array of column names returned from the store
+ */
 const setupColumns = (dataColumns: string[]) => {
   availableColumns.value = dataColumns.map(col => ({
     field: col,
@@ -385,11 +443,24 @@ const setupColumns = (dataColumns: string[]) => {
   selectedColumns.value = [...availableColumns.value]
 }
 
+/**
+ * Update `selectedColumns` based on the MultiSelect value. The MultiSelect
+ * returns a list of option objects; we filter our availableColumns to match.
+ *
+ * @param value - array of selected option objects from the MultiSelect control
+ */
 const onColumnToggle = (value: any[]) => {
   selectedColumns.value = availableColumns.value.filter(col => value.includes(col))
 }
 
-// Watch for changes in cached data to update UI and loading states
+// ---------------------------------------------------------------------------
+// Watchers: keep UI state in sync with the store/cache
+// ---------------------------------------------------------------------------
+/**
+ * Watch the cached datastore entry and update UI state (columns, loading,
+ * error) whenever the cache changes. Runs immediately to reflect current
+ * cache state on mount.
+ */
 watch(cachedDatastore, (newCache: DatastoreCache | null) => {
   if (newCache && newCache.data.length > 0) {
     setupColumns(newCache.columns)
@@ -406,7 +477,11 @@ watch(cachedDatastore, (newCache: DatastoreCache | null) => {
   }
 }, { immediate: true })
 
-// Also watch for loading state changes from the store
+/**
+ * Watch the store's loading indicator for the current datastore and reflect
+ * it in the local UI state. Using immediate ensures the UI is correct on
+ * first render.
+ */
 watch(
   () => catalogStore.isDatastoreLoading(datastoreName.value),
   (isLoading) => {
@@ -424,6 +499,11 @@ watch(
   },
   { immediate: true }
 )
+
+/**
+ * Computed view of the raw data with current `currentFilters` applied.
+ * The filter logic supports values that are strings or arrays.
+ */
 const filteredData = computed(() => {
   let data = rawData.value
   
@@ -447,7 +527,14 @@ const filteredData = computed(() => {
   return data
 })
 
-// Load datastore information using cached store
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+/**
+ * Load datastore information using the store cache. If the data is already
+ * cached the method will reuse it; otherwise it will call into the store's
+ * `loadDatastore` action which fetches, transforms and caches the data.
+ */
 const loadDatastore = async () => {
   // Check if we already have cached data for this datastore
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value)
@@ -487,7 +574,13 @@ const loadDatastore = async () => {
   }
 }
 
-// Filter methods
+// ---------------------------------------------------------------------------
+// Filter helpers and URL sync
+// ---------------------------------------------------------------------------
+/**
+ * Parse the current route query parameters and initialize
+ * `currentFilters` from any params that end with "_filter".
+ */
 const initializeFiltersFromUrl = () => {
   const filters: Record<string, string[]> = {}
   
@@ -503,6 +596,11 @@ const initializeFiltersFromUrl = () => {
   console.log('Initialized filters from URL:', filters)
 }
 
+/**
+ * Push the current `currentFilters` to the route query parameters using
+ * `router.replace` so the URL reflects the selected filters without
+ * navigating away.
+ */
 const updateUrlWithFilters = () => {
   const query: Record<string, string> = {}
   
@@ -521,25 +619,26 @@ const updateUrlWithFilters = () => {
   })
 }
 
-const applyFilters = () => {
-  // Filters are applied automatically via computed property
-  // URL updates are handled automatically by the watcher
-  console.log('Filters applied:', currentFilters.value)
-}
-
+/** Clear all active filters. */
 const clearFilters = () => {
   currentFilters.value = {}
   console.log('Filters cleared')
 }
 
-// Cleanup function for memory management
+/**
+ * Cleanup resources for this component; currently clears the datastore
+ * cache for the active datastore so memory can be reclaimed when the
+ * user navigates away.
+ */
 const cleanup = () => {
   // Clear the cache for this specific datastore when navigating away
   catalogStore.clearDatastoreCache(datastoreName.value)
   console.log(`🗑️ Cleaned up cache for ${datastoreName.value}`)
 }
 
-// Load data on component mount
+// ---------------------------------------------------------------------------
+// Lifecycle: mount, route watcher, filter watcher and unmount
+// ---------------------------------------------------------------------------
 onMounted(() => {
   // Initialize filters from URL query parameters first
   initializeFiltersFromUrl()
@@ -556,7 +655,10 @@ onMounted(() => {
   }
 })
 
-// Watch for route changes to handle navigation between different datastores
+/**
+ * Watch for route parameter changes (datastore name) and react by
+ * cleaning up the old cache and loading the new datastore.
+ */
 const stopWatcher = watch(
   () => route.params.name,
   (newName, oldName) => {
@@ -573,7 +675,10 @@ const stopWatcher = watch(
   }
 )
 
-// Watch for filter changes to update URL automatically
+/**
+ * Watch filter changes and keep the URL in sync. The watcher returns a
+ * stop handle which we call on unmount to avoid leaks.
+ */
 const stopFilterWatcher = watch(
   currentFilters,
   () => {
