@@ -1,21 +1,21 @@
-import { createRouter, createWebHashHistory } from "vue-router";
-import CatalogTable from "../components/CatalogTable.vue";
+import { createRouter, createWebHashHistory } from 'vue-router';
+import CatalogTable from '../components/CatalogTable.vue';
 
 const routes = [
   {
-    path: "/",
-    name: "Home",
+    path: '/',
+    name: 'Home',
     component: CatalogTable,
     meta: {
-      title: "ACCESS-NRI Intake",
+      title: 'ACCESS-NRI Intake',
     },
   },
   {
-    path: "/datastore/:name",
-    name: "DatastoreDetail",
-    component: () => import("../components/DatastoreDetail.vue"),
+    path: '/datastore/:name',
+    name: 'DatastoreDetail',
+    component: () => import('../components/DatastoreDetail.vue'),
     meta: {
-      title: "ESM Datastore Details",
+      title: 'ESM Datastore Details',
     },
   },
   // Future routes can be added here

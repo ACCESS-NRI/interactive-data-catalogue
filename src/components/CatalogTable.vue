@@ -1,30 +1,18 @@
 <template>
   <div class="catalog-table-container">
-    <div
-      class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
-    >
+    <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <!-- Left side - Title and description -->
       <div class="flex-1">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          ACCESS-NRI Interactive Intake Catalog
-        </h1>
-        <p class="text-gray-600 dark:text-gray-300">
-          Explore the ACCESS-NRI Intake Catalog
-        </p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ACCESS-NRI Interactive Intake Catalog</h1>
+        <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Intake Catalog</p>
       </div>
 
       <!-- Vertical divider (hidden on mobile) -->
-      <div
-        class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"
-      ></div>
+      <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
 
       <!-- Right side - Documentation links -->
       <div class="flex-shrink-0">
-        <div
-          class="text-sm text-gray-500 dark:text-gray-400 mb-2 lg:text-right"
-        >
-          Documentation
-        </div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 lg:text-right">Documentation</div>
         <div class="flex flex-col space-y-2">
           <a
             href="https://intake-esm.readthedocs.io/"
@@ -49,16 +37,9 @@
     </div>
 
     <!-- Loading State -->
-    <div
-      v-if="catalogStore.loading"
-      class="flex justify-center items-center py-12"
-    >
-      <div
-        class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
-      ></div>
-      <span class="ml-3 text-lg text-gray-600 dark:text-gray-300"
-        >Loading catalog data...</span
-      >
+    <div v-if="catalogStore.loading" class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <span class="ml-3 text-lg text-gray-600 dark:text-gray-300">Loading catalog data...</span>
     </div>
 
     <!-- Error State -->
@@ -68,9 +49,7 @@
     >
       <div class="flex items-center">
         <i class="pi pi-exclamation-triangle text-red-500 mr-2"></i>
-        <span class="text-red-700 dark:text-red-300 font-medium"
-          >Error loading catalog:</span
-        >
+        <span class="text-red-700 dark:text-red-300 font-medium">Error loading catalog:</span>
       </div>
       <p class="text-red-600 dark:text-red-400 mt-1">
         {{ catalogStore.error }}
@@ -122,9 +101,7 @@
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <!-- Global Search -->
               <div class="relative">
-                <i
-                  class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                ></i>
+                <i class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 <InputText
                   v-model="globalSearchValue"
                   placeholder="Search all fields..."
@@ -153,9 +130,7 @@
         <template #empty>
           <div class="text-center py-8">
             <i class="pi pi-inbox text-gray-400 text-4xl mb-3 block"></i>
-            <p class="text-gray-500 dark:text-gray-400">
-              No catalog entries found
-            </p>
+            <p class="text-gray-500 dark:text-gray-400">No catalog entries found</p>
           </div>
         </template>
 
@@ -210,12 +185,8 @@
     <!-- No Data State -->
     <div v-else class="text-center py-12">
       <i class="pi pi-database text-gray-400 text-6xl mb-4 block"></i>
-      <p class="text-xl text-gray-500 dark:text-gray-400 mb-2">
-        No catalog data available
-      </p>
-      <p class="text-gray-400 dark:text-gray-500">
-        The catalog appears to be empty
-      </p>
+      <p class="text-xl text-gray-500 dark:text-gray-400 mb-2">No catalog data available</p>
+      <p class="text-gray-400 dark:text-gray-500">The catalog appears to be empty</p>
     </div>
 
     <!-- Array Modal -->
@@ -237,41 +208,30 @@
           >
             {{ index + 1 }}
           </div>
-          <span class="text-gray-900 dark:text-gray-100 font-medium">{{
-            item
-          }}</span>
+          <span class="text-gray-900 dark:text-gray-100 font-medium">{{ item }}</span>
         </div>
       </div>
 
       <template #footer>
-        <Button
-          label="Close"
-          icon="pi pi-times"
-          @click="arrayModalVisible = false"
-          autofocus
-        />
+        <Button label="Close" icon="pi pi-times" @click="arrayModalVisible = false" autofocus />
       </template>
     </Dialog>
 
     <!-- Row Detail Modal -->
-    <CatalogRowDetailModal
-      :visible="detailModalVisible"
-      :row-data="selectedRowData"
-      @hide="hideRowDetail"
-    />
+    <CatalogRowDetailModal :visible="detailModalVisible" :row-data="selectedRowData" @hide="hideRowDetail" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import InputText from "primevue/inputtext";
-import Button from "primevue/button";
-import MultiSelect from "primevue/multiselect";
-import Dialog from "primevue/dialog";
-import CatalogRowDetailModal from "./CatalogRowDetailModal.vue";
-import { useCatalogStore } from "../stores/catalogStore";
+import { ref, computed } from 'vue';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
+import MultiSelect from 'primevue/multiselect';
+import Dialog from 'primevue/dialog';
+import CatalogRowDetailModal from './CatalogRowDetailModal.vue';
+import { useCatalogStore } from '../stores/catalogStore';
 
 /**
  * Catalog table uses the catalog store to fetch and display catalog entries.
@@ -289,7 +249,7 @@ catalogStore.fetchCatalogData();
 /**
  * Global search string used to filter catalog rows client-side.
  */
-const globalSearchValue = ref("");
+const globalSearchValue = ref('');
 
 /**
  * Filtered data derived from the store's data and `globalSearchValue`.
@@ -323,12 +283,12 @@ const filteredData = computed(() => {
  * MultiSelect component can bind to them.
  */
 const columns = ref([
-  { field: "name", header: "Name" },
-  { field: "model", header: "Model/ Data Source" },
-  { field: "description", header: "Description" },
-  { field: "realm", header: "Realm" },
-  { field: "frequency", header: "Frequency" },
-  { field: "variable", header: "Variable" },
+  { field: 'name', header: 'Name' },
+  { field: 'model', header: 'Model/ Data Source' },
+  { field: 'description', header: 'Description' },
+  { field: 'realm', header: 'Realm' },
+  { field: 'frequency', header: 'Frequency' },
+  { field: 'variable', header: 'Variable' },
 ]);
 
 /** Selected columns (initially all columns). */
@@ -338,7 +298,7 @@ const selectedColumns = ref([...columns.value]);
 /** Whether the small modal showing all array items is visible. */
 const arrayModalVisible = ref(false);
 /** Title for the array modal (usually the column header). */
-const arrayModalTitle = ref("");
+const arrayModalTitle = ref('');
 /** Items shown in the array modal. */
 const arrayModalItems = ref<string[]>([]);
 
@@ -352,7 +312,7 @@ const selectedRowData = ref<any | null>(null);
  * Set of fields which are considered array-valued in the data.
  * Used by `isArrayField` to decide rendering strategy.
  */
-const arrayFields = ["model", "realm", "frequency", "variable"];
+const arrayFields = ['model', 'realm', 'frequency', 'variable'];
 const isArrayField = (fieldName: string) => arrayFields.includes(fieldName);
 
 /**
@@ -363,11 +323,11 @@ const isArrayField = (fieldName: string) => arrayFields.includes(fieldName);
  */
 const getArrayPreview = (value: string[] | string) => {
   if (Array.isArray(value)) {
-    if (value.length === 0) return "None";
+    if (value.length === 0) return 'None';
     if (value.length === 1) return value[0];
     return `${value[0]} (+${value.length - 1} more)`;
   }
-  return value || "";
+  return value || '';
 };
 
 /**

@@ -1,8 +1,8 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import * as duckdb from "@duckdb/duckdb-wasm";
-import duckdb_wasm from "@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url";
-import mvp_worker from "@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import * as duckdb from '@duckdb/duckdb-wasm';
+import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
+import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
 
 /**
  * A single normalized catalog row returned by querying the metacatalog
@@ -61,9 +61,9 @@ export interface DatastoreCache {
  * and a local API path in development.
  */
 const METACAT_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet"
-    : "/api/parquet/metacatalog.parquet";
+  process.env.NODE_ENV === 'production'
+    ? 'https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
+    : '/api/parquet/metacatalog.parquet';
 
 /** DuckDB WASM bundles used by the client; selectBundle picks the best one. */
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
@@ -107,7 +107,7 @@ SELECT
 FROM read_parquet('metacatalog.parquet')
 `;
 
-export const useCatalogStore = defineStore("catalog", () => {
+export const useCatalogStore = defineStore('catalog', () => {
   // State
   const data = ref<CatalogRow[]>([]);
   const loading = ref(false);
@@ -171,7 +171,7 @@ export const useCatalogStore = defineStore("catalog", () => {
     uint8Array: Uint8Array,
   ): Promise<CatalogRow[]> {
     // Register the parquet file
-    await db.registerFileBuffer("metacatalog.parquet", uint8Array);
+    await db.registerFileBuffer('metacatalog.parquet', uint8Array);
 
     // Query with explicit array handling
     const queryResult = await conn.query(METACAT_PARQUET_QUERY);
@@ -198,10 +198,7 @@ export const useCatalogStore = defineStore("catalog", () => {
 
     // Store clean sample for debugging
     rawDataSample.value = cleanRawSample;
-    console.log(
-      "🔍 Clean raw data sample (check store.rawDataSample):",
-      cleanRawSample,
-    );
+    console.log('🔍 Clean raw data sample (check store.rawDataSample):', cleanRawSample);
 
     // Transform to our interface with proper array handling
     const transformedData = rawData.map((row: any) => {
@@ -209,23 +206,20 @@ export const useCatalogStore = defineStore("catalog", () => {
         if (value === null || value === undefined) return [];
 
         // Handle DuckDB Vector objects
-        if (value && typeof value.toArray === "function") {
+        if (value && typeof value.toArray === 'function') {
           return value
             .toArray()
             .filter((v: any) => v !== null && v !== undefined)
             .map(String);
         }
 
-        if (Array.isArray(value))
-          return value.filter((v) => v !== null && v !== undefined).map(String);
+        if (Array.isArray(value)) return value.filter((v) => v !== null && v !== undefined).map(String);
 
-        if (typeof value === "string") {
+        if (typeof value === 'string') {
           // Handle potential JSON strings or comma-separated values
           try {
             const parsed = JSON.parse(value);
-            return Array.isArray(parsed)
-              ? parsed.map(String)
-              : [String(parsed)];
+            return Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
           } catch {
             // If not JSON, treat as single value
             return [value];
@@ -235,22 +229,22 @@ export const useCatalogStore = defineStore("catalog", () => {
       };
 
       return {
-        name: row.name || "",
+        name: row.name || '',
         model: processListField(row.model),
-        description: row.description || "",
+        description: row.description || '',
         realm: processListField(row.realm),
         frequency: processListField(row.frequency),
         variable: processListField(row.variable),
-        yaml: row.yaml || "", // Add YAML field
+        yaml: row.yaml || '', // Add YAML field
         // Add searchable versions for better search
-        searchableModel: processListField(row.model).join(", "),
-        searchableRealm: processListField(row.realm).join(", "),
-        searchableFrequency: processListField(row.frequency).join(", "),
-        searchableVariable: processListField(row.variable).join(", "),
+        searchableModel: processListField(row.model).join(', '),
+        searchableRealm: processListField(row.realm).join(', '),
+        searchableFrequency: processListField(row.frequency).join(', '),
+        searchableVariable: processListField(row.variable).join(', '),
       };
     });
 
-    console.log("✅ Transformed data sample:", transformedData.slice(0, 2));
+    console.log('✅ Transformed data sample:', transformedData.slice(0, 2));
     return transformedData;
   }
 
@@ -281,11 +275,11 @@ export const useCatalogStore = defineStore("catalog", () => {
     `);
 
     const schemaData = schemaResult.toArray();
-    console.log("📊 ESM Datastore schema:", schemaData);
+    console.log('📊 ESM Datastore schema:', schemaData);
 
     // Get all column names from the schema
     const columns = schemaData.map((row: any) => row.column_name);
-    console.log("📋 Available columns:", columns);
+    console.log('📋 Available columns:', columns);
 
     // Build dynamic query - handle arrays for all columns dynamically
     const selectClauses = columns
@@ -297,14 +291,14 @@ export const useCatalogStore = defineStore("catalog", () => {
           ELSE []::VARCHAR[]
         END as ${column}`;
       })
-      .join(",");
+      .join(',');
 
     const dynamicQuery = `
       SELECT ${selectClauses}
       FROM read_parquet('${fileName}')
     `;
 
-    console.log("🔍 Dynamic query:", dynamicQuery);
+    console.log('🔍 Dynamic query:', dynamicQuery);
 
     // Execute the query
     const queryResult = await conn.query(dynamicQuery);
@@ -316,22 +310,14 @@ export const useCatalogStore = defineStore("catalog", () => {
         if (value === null || value === undefined) return null;
 
         // Handle DuckDB Vector objects for arrays
-        if (value && typeof value.toArray === "function") {
-          const arrayValue = value
-            .toArray()
-            .filter((v: any) => v !== null && v !== undefined);
-          return arrayValue.length > 1
-            ? arrayValue.map(String)
-            : arrayValue[0]
-              ? String(arrayValue[0])
-              : null;
+        if (value && typeof value.toArray === 'function') {
+          const arrayValue = value.toArray().filter((v: any) => v !== null && v !== undefined);
+          return arrayValue.length > 1 ? arrayValue.map(String) : arrayValue[0] ? String(arrayValue[0]) : null;
         }
 
         // Handle regular arrays
         if (Array.isArray(value)) {
-          const filteredArray = value.filter(
-            (v) => v !== null && v !== undefined,
-          );
+          const filteredArray = value.filter((v) => v !== null && v !== undefined);
           return filteredArray.length > 1
             ? filteredArray.map(String)
             : filteredArray[0]
@@ -340,15 +326,11 @@ export const useCatalogStore = defineStore("catalog", () => {
         }
 
         // Handle string values
-        if (typeof value === "string") {
+        if (typeof value === 'string') {
           try {
             const parsed = JSON.parse(value);
             if (Array.isArray(parsed)) {
-              return parsed.length > 1
-                ? parsed.map(String)
-                : parsed[0]
-                  ? String(parsed[0])
-                  : null;
+              return parsed.length > 1 ? parsed.map(String) : parsed[0] ? String(parsed[0]) : null;
             }
             return String(parsed);
           } catch {
@@ -367,11 +349,8 @@ export const useCatalogStore = defineStore("catalog", () => {
       return transformedRow;
     });
 
-    console.log(
-      "✅ ESM Datastore transformed data sample:",
-      transformedData.slice(0, 2),
-    );
-    console.log("📊 Total records:", transformedData.length);
+    console.log('✅ ESM Datastore transformed data sample:', transformedData.slice(0, 2));
+    console.log('📊 Total records:', transformedData.length);
 
     return transformedData;
   }
@@ -385,7 +364,7 @@ export const useCatalogStore = defineStore("catalog", () => {
   async function fetchCatalogData() {
     // If we already have data and no error, don't fetch again
     if (data.value.length > 0 && !error.value) {
-      console.log("✅ Using cached metacatalog data");
+      console.log('✅ Using cached metacatalog data');
       return;
     }
 
@@ -396,13 +375,10 @@ export const useCatalogStore = defineStore("catalog", () => {
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     try {
-      console.log("🚀 Fetching catalog data...");
+      console.log('🚀 Fetching catalog data...');
 
       // Fetch parquet file and initialize DuckDB concurrently
-      const [uint8Array, dbConnection] = await Promise.all([
-        fetchMetaCatFile(),
-        initializeDuckDB(),
-      ]);
+      const [uint8Array, dbConnection] = await Promise.all([fetchMetaCatFile(), initializeDuckDB()]);
 
       console.log(`📦 Downloaded ${uint8Array.length} bytes`);
       db = dbConnection.db;
@@ -412,9 +388,8 @@ export const useCatalogStore = defineStore("catalog", () => {
       data.value = await queryMetaCatalogPq(db, conn, uint8Array);
       console.log(`📚 Loaded ${data.value.length} catalog entries`);
     } catch (err) {
-      console.error("❌ Error loading catalog data:", err);
-      error.value =
-        err instanceof Error ? err.message : "An unknown error occurred";
+      console.error('❌ Error loading catalog data:', err);
+      error.value = err instanceof Error ? err.message : 'An unknown error occurred';
     } finally {
       // Cleanup
       if (conn) await conn.close();
@@ -470,7 +445,7 @@ export const useCatalogStore = defineStore("catalog", () => {
 
   function setupColumns(dataColumns: string[]): string[] {
     // Filter out the index column from display but keep it for data-key
-    return dataColumns.filter((col) => col !== "__index_level_0__");
+    return dataColumns.filter((col) => col !== '__index_level_0__');
   }
 
   // Datastore management functions
@@ -518,38 +493,26 @@ export const useCatalogStore = defineStore("catalog", () => {
 
       // Construct the parquet file URL for this specific datastore
       const datastoreUrl =
-        process.env.NODE_ENV === "production"
+        process.env.NODE_ENV === 'production'
           ? `https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
           : `/api/parquet/source/${datastoreName}.parquet`;
 
       // Fetch parquet file and initialize DuckDB concurrently
-      const [response, dbConnection] = await Promise.all([
-        fetch(datastoreUrl),
-        initializeDuckDB(),
-      ]);
+      const [response, dbConnection] = await Promise.all([fetch(datastoreUrl), initializeDuckDB()]);
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch datastore parquet file: ${response.status}`,
-        );
+        throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      console.log(
-        `📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`,
-      );
+      console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
 
       db = dbConnection.db;
       conn = dbConnection.conn;
 
       // Query the ESM datastore data
-      const datastoreData = await queryEsmDatastore(
-        db,
-        conn,
-        uint8Array,
-        datastoreName,
-      );
+      const datastoreData = await queryEsmDatastore(db, conn, uint8Array, datastoreName);
       const columns = Object.keys(datastoreData[0] || {});
       const displayColumns = setupColumns(columns);
       const filterOptions = generateFilterOptions(datastoreData);
@@ -565,14 +528,11 @@ export const useCatalogStore = defineStore("catalog", () => {
         lastFetched: new Date(),
       };
 
-      console.log(
-        `✅ Loaded ${datastoreData.length} records for ${datastoreName}`,
-      );
+      console.log(`✅ Loaded ${datastoreData.length} records for ${datastoreName}`);
       return datastoreCache.value[datastoreName];
     } catch (err) {
-      console.error("❌ Error loading datastore:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load datastore";
+      console.error('❌ Error loading datastore:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load datastore';
 
       datastoreCache.value[datastoreName] = {
         data: [],
@@ -599,7 +559,7 @@ export const useCatalogStore = defineStore("catalog", () => {
       columns: [],
       filterOptions: {},
       loading: false,
-      error: "Datastore not found",
+      error: 'Datastore not found',
       lastFetched: new Date(),
     };
   }
@@ -618,7 +578,7 @@ export const useCatalogStore = defineStore("catalog", () => {
       console.log(`🗑️ Cleared cache for datastore: ${datastoreName}`);
     } else {
       datastoreCache.value = {};
-      console.log("🗑️ Cleared all datastore cache");
+      console.log('🗑️ Cleared all datastore cache');
     }
   }
 

@@ -13,29 +13,16 @@
         <div class="lg:col-span-2 space-y-6">
           <!-- Basic Information -->
           <div>
-            <h6
-              class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200"
-            >
-              Basic Information
-            </h6>
+            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Basic Information</h6>
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <div class="space-y-2">
                 <div class="grid grid-cols-4 gap-2">
-                  <span class="font-medium text-gray-700 dark:text-gray-300"
-                    >Name:</span
-                  >
-                  <span
-                    class="col-span-3 text-gray-900 dark:text-gray-100 font-mono text-sm"
-                    >{{ rowData.name }}</span
-                  >
+                  <span class="font-medium text-gray-700 dark:text-gray-300">Name:</span>
+                  <span class="col-span-3 text-gray-900 dark:text-gray-100 font-mono text-sm">{{ rowData.name }}</span>
                 </div>
                 <div class="grid grid-cols-4 gap-2">
-                  <span class="font-medium text-gray-700 dark:text-gray-300"
-                    >Description:</span
-                  >
-                  <span class="col-span-3 text-gray-900 dark:text-gray-100">{{
-                    rowData.description
-                  }}</span>
+                  <span class="font-medium text-gray-700 dark:text-gray-300">Description:</span>
+                  <span class="col-span-3 text-gray-900 dark:text-gray-100">{{ rowData.description }}</span>
                 </div>
               </div>
             </div>
@@ -43,11 +30,7 @@
 
           <!-- Models -->
           <div>
-            <h6
-              class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200"
-            >
-              Models
-            </h6>
+            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Models</h6>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="model in rowData.model"
@@ -61,11 +44,7 @@
 
           <!-- Realms -->
           <div>
-            <h6
-              class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200"
-            >
-              Realms
-            </h6>
+            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Realms</h6>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="realm in rowData.realm"
@@ -79,11 +58,7 @@
 
           <!-- Frequencies -->
           <div>
-            <h6
-              class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200"
-            >
-              Frequencies
-            </h6>
+            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Frequencies</h6>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="frequency in rowData.frequency"
@@ -97,17 +72,9 @@
 
           <!-- Access Information -->
           <div>
-            <div
-              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
-            >
-              <h6
-                class="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200"
-              >
-                Open Catalog
-              </h6>
-              <pre
-                class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3"
-              ><code>import intake
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h6 class="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200">Open Catalog</h6>
+              <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3"><code>import intake
 intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
               <RouterLink
                 :to="{
@@ -127,9 +94,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
         <div class="lg:col-span-3">
           <!-- Variables -->
           <div class="mb-6">
-            <h6
-              class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200"
-            >
+            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
               Variables ({{ rowData.variable.length }} total)
             </h6>
             <div
@@ -149,11 +114,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 
           <!-- Configuration YAML -->
           <div v-if="rowData.yaml">
-            <h6
-              class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200"
-            >
-              Configuration (YAML)
-            </h6>
+            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Configuration (YAML)</h6>
             <div class="border border-gray-200 dark:border-gray-600 rounded-lg">
               <div class="bg-gray-50 dark:bg-gray-700 p-4">
                 <pre
@@ -170,9 +131,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
           >
             <div class="flex items-center">
               <i class="pi pi-info-circle text-yellow-600 mr-2"></i>
-              <span class="text-yellow-700 dark:text-yellow-300"
-                >YAML configuration not available for this entry.</span
-              >
+              <span class="text-yellow-700 dark:text-yellow-300">YAML configuration not available for this entry.</span>
             </div>
           </div>
         </div>
@@ -194,11 +153,11 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import type { CatalogRow } from "../stores/catalogStore";
-import { useCatalogStore } from "../stores/catalogStore";
+import { watch } from 'vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import type { CatalogRow } from '../stores/catalogStore';
+import { useCatalogStore } from '../stores/catalogStore';
 
 // Props
 const props = defineProps<{
@@ -222,7 +181,7 @@ watch(
       console.log(`🔄 Prefetching datastore for modal: ${datastoreName}`);
       // Use loadDatastore which handles caching automatically
       catalogStore.loadDatastore(datastoreName as string).catch((err) => {
-        console.warn("Failed to prefetch datastore:", err);
+        console.warn('Failed to prefetch datastore:', err);
       });
     }
   },
@@ -267,7 +226,7 @@ watch(
 
 /* Code formatting */
 pre code {
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.4;
 }
 
