@@ -22,7 +22,7 @@ export interface CatalogRow {
 }
 
 const PARQUET_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
+  ? 'https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
   : '/api/parquet/metacatalog.parquet'
 
 // DuckDB bundle configuration
