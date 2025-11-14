@@ -56,13 +56,27 @@
         class="text-blue-600 border-blue-600 hover:bg-blue-50"
       />
     </div>
+    <!-- Long URL confirmation dialog -->
+    <Dialog v-model:visible="showLongUrlDialog" header="Long link warning" modal>
+      <p class="text-sm text-gray-700 dark:text-gray-200">
+        The generated link is <strong>{{ pendingUrlLength }}</strong> characters long and may not work
+        in some browsers, servers, or when pasted into email clients.
+      </p>
+      <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Do you want to copy it to the clipboard anyway?</p>
+      <div class="mt-4 flex justify-end space-x-2">
+        <Button label="Cancel" class="p-button-text" @click="cancelCopyLongUrl" />
+        <Button label="Copy anyway" icon="pi pi-copy" @click="confirmCopyLongUrl" />
+      </div>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import ToggleSwitch from 'primevue/toggleswitch'
+import Dialog from 'primevue/dialog'
 
 // Props
 interface Props {
@@ -73,8 +87,34 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// Vue Router
+const router = useRouter()
+
 // Reactive state
 const isXArrayMode = ref(false)
+
+// Dialog / long-URL state
+const MAX_URL_LENGTH = 2083 // conservative legacy-safe limit (IE)
+const showLongUrlDialog = ref(false)
+const pendingLongUrl = ref('')
+const pendingUrlLength = ref(0)
+
+const confirmCopyLongUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(pendingLongUrl.value)
+    showLongUrlDialog.value = false
+    console.log('Query link copied to clipboard (long):', pendingLongUrl.value)
+  } catch (err) {
+    console.error('Failed to copy long link:', err)
+  }
+}
+
+const cancelCopyLongUrl = () => {
+  showLongUrlDialog.value = false
+  pendingLongUrl.value = ''
+  pendingUrlLength.value = 0
+  console.log('User cancelled copying long URL')
+}
 
 // Computed properties
 const hasActiveFilters = computed(() => {
@@ -152,20 +192,39 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`
 })
 
 // Methods
+
 const copyQueryLink = async () => {
-  const url = new URL(window.location.href)
+  // Build query parameters from current filters
+  const query: Record<string, string> = {}
   
-  // Add filter parameters to URL
   for (const [column, values] of Object.entries(props.currentFilters)) {
     if (values && values.length > 0) {
-      url.searchParams.set(`${column}_filter`, values.join(','))
+      query[`${column}_filter`] = values.join(',')
     }
   }
   
+  // Use Vue Router's resolve to get the full URL
+  const route = router.resolve({
+    name: 'DatastoreDetail',
+    params: { name: props.datastoreName },
+    query
+  })
+  
+  // Get the full URL by combining the origin with the resolved route
+  const fullUrl = new URL(route.href, window.location.origin).toString()
+  
+  // If URL is long, show dialog to confirm before copying
+  if (fullUrl.length > MAX_URL_LENGTH) {
+    pendingLongUrl.value = fullUrl
+    pendingUrlLength.value = fullUrl.length
+    showLongUrlDialog.value = true
+    return
+  }
+
   try {
-    await navigator.clipboard.writeText(url.toString())
+    await navigator.clipboard.writeText(fullUrl)
     // TODO: Show toast notification
-    console.log('Query link copied to clipboard')
+    console.log('Query link copied to clipboard:', fullUrl)
   } catch (err) {
     console.error('Failed to copy link:', err)
   }
