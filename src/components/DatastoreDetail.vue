@@ -330,7 +330,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '../stores/catalogStore'
 import type { DatastoreCache } from '../stores/catalogStore'
 import DataTable from 'primevue/datatable'
@@ -341,6 +341,7 @@ import QuickStartCode from './QuickStartCode.vue'
 
 // Get the datastore name from route params
 const route = useRoute()
+const router = useRouter()
 const datastoreName = computed(() => route.params.name as string)
 
 // Get access to the catalog store
@@ -487,8 +488,42 @@ const loadDatastore = async () => {
 }
 
 // Filter methods
+const initializeFiltersFromUrl = () => {
+  const filters: Record<string, string[]> = {}
+  
+  // Parse query parameters that end with '_filter'
+  for (const [key, value] of Object.entries(route.query)) {
+    if (key.endsWith('_filter') && typeof value === 'string') {
+      const column = key.replace('_filter', '')
+      filters[column] = value.split(',').filter(v => v.trim())
+    }
+  }
+  
+  currentFilters.value = filters
+  console.log('Initialized filters from URL:', filters)
+}
+
+const updateUrlWithFilters = () => {
+  const query: Record<string, string> = {}
+  
+  // Convert filters to query parameters
+  for (const [column, values] of Object.entries(currentFilters.value)) {
+    if (values && values.length > 0) {
+      query[`${column}_filter`] = values.join(',')
+    }
+  }
+  
+  // Update the route query parameters without triggering navigation
+  router.replace({
+    name: route.name || 'DatastoreDetail',
+    params: route.params,
+    query
+  })
+}
+
 const applyFilters = () => {
   // Filters are applied automatically via computed property
+  // URL updates are handled automatically by the watcher
   console.log('Filters applied:', currentFilters.value)
 }
 
@@ -506,6 +541,9 @@ const cleanup = () => {
 
 // Load data on component mount
 onMounted(() => {
+  // Initialize filters from URL query parameters first
+  initializeFiltersFromUrl()
+  
   // Check if we already have data cached (e.g., from prefetching)
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value)
   if (existingCache && existingCache.data.length > 0) {
@@ -528,16 +566,27 @@ const stopWatcher = watch(
       console.log(`🗑️ Cleaned up cache for ${oldName} due to navigation`)
     }
     if (newName) {
-      // Load the new datastore
+      // Load the new datastore and reinitialize filters from URL
+      initializeFiltersFromUrl()
       loadDatastore()
     }
   }
+)
+
+// Watch for filter changes to update URL automatically
+const stopFilterWatcher = watch(
+  currentFilters,
+  () => {
+    updateUrlWithFilters()
+  },
+  { deep: true }
 )
 
 // Cleanup on unmount
 onUnmounted(() => {
   cleanup()
   stopWatcher() // Stop the route watcher
+  stopFilterWatcher() // Stop the filter watcher
 })
 </script>
 
