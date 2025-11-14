@@ -419,7 +419,9 @@ const loadDatastore = async () => {
     console.log(`🚀 Loading ESM datastore: ${datastoreName.value}`)
     
     // Construct the parquet file URL for this specific datastore
-    const parquetUrl = `/api/parquet/source/${datastoreName.value}.parquet`
+    const parquetUrl = process.env.NODE_ENV === 'production'
+      ? `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/${datastoreName.value}.parquet`
+      : `/api/parquet/${datastoreName.value}.parquet`
     console.log(`📦 Fetching parquet file from: ${parquetUrl}`)
     
     // Fetch parquet file for this specific datastore
