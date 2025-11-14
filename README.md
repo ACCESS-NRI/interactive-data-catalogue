@@ -13,6 +13,11 @@ https://charles-turner-1.github.io/catalog-viewer-spa/
 - **Quick Start Code**: Generate Python code snippets for accessing datasets via intake
 - **Dark Mode Support**: Toggle between light and dark themes
 
+## Limitations
+
+- Currently appears to be blocked on ANU wifi.
+- You will still require Gadi access to get your hands on the data.
+
 ## Development
 
 ```bash
