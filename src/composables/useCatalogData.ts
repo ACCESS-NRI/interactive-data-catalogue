@@ -100,7 +100,9 @@ async function queryParquetData(db: duckdb.AsyncDuckDB, conn: duckdb.AsyncDuckDB
         }
       }
       return [String(value)]
-    }  return {
+    }
+    
+    return {
       name: row.name || '',
       model: processListField(row.model),
       description: row.description || '',
