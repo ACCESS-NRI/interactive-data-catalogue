@@ -55,14 +55,7 @@
 
       <!-- Small ephemeral copied badge -->
       <transition name="copied">
-        <span
-          v-if="showCopied"
-          role="status"
-          aria-live="polite"
-          class="copied-badge"
-        >
-          Copied!
-        </span>
+        <span v-if="showCopied" role="status" aria-live="polite" class="copied-badge"> Copied! </span>
       </transition>
     </div>
     <!-- Long URL confirmation dialog -->
@@ -139,7 +132,7 @@ const confirmCopyLongUrl = async () => {
     showLongUrlDialog.value = false;
     console.log('Query link copied to clipboard (long):', pendingLongUrl.value);
     // show ephemeral confirmation
-    triggerCopiedBadge()
+    triggerCopiedBadge();
   } catch (err) {
     console.error('Failed to copy long link:', err);
   }
@@ -306,7 +299,7 @@ const copyQueryLink = async (): Promise<void> => {
     // TODO: Show toast notification
     console.log('Query link copied to clipboard:', fullUrl);
     // show ephemeral confirmation
-    triggerCopiedBadge()
+    triggerCopiedBadge();
   } catch (err) {
     console.error('Failed to copy link:');
     console.error(err);
@@ -319,19 +312,19 @@ const copyQueryLink = async (): Promise<void> => {
  * clipboard write. Accessible via `aria-live` so screen readers are
  * informed of the change.
  */
-const showCopied = ref(false)
-let copiedTimer: ReturnType<typeof setTimeout> | null = null
+const showCopied = ref(false);
+let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
 function triggerCopiedBadge(timeout = 1400) {
   if (copiedTimer) {
-    clearTimeout(copiedTimer)
-    copiedTimer = null
+    clearTimeout(copiedTimer);
+    copiedTimer = null;
   }
-  showCopied.value = true
+  showCopied.value = true;
   copiedTimer = setTimeout(() => {
-    showCopied.value = false
-    copiedTimer = null
-  }, timeout)
+    showCopied.value = false;
+    copiedTimer = null;
+  }, timeout);
 }
 </script>
 
@@ -352,7 +345,7 @@ pre code {
   border-radius: 9999px; /* pill */
   font-weight: 600;
   font-size: 0.85rem;
-  box-shadow: 0 6px 18px rgba(2,6,23,0.08);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.08);
   margin-left: 0.5rem;
   transform-origin: center right;
 }
@@ -365,7 +358,7 @@ pre code {
 }
 .copied-enter-active,
 .copied-leave-active {
-  transition: all 180ms cubic-bezier(.2,.8,.2,1);
+  transition: all 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .copied-enter-to,
 .copied-leave-from {
