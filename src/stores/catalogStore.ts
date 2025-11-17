@@ -276,9 +276,10 @@ export const useCatalogStore = defineStore('catalog', () => {
 
     const schemaData = schemaResult.toArray();
     console.log('📊 ESM Datastore schema:', schemaData);
-
     // Get all column names from the schema
-    const columns = schemaData.map((row: any) => row.column_name);
+    const columns = schemaData
+      .map((row: any) => row.column_name)
+      .filter((col: string) => col !== 'filename' && col !== 'path');
     console.log('📋 Available columns:', columns);
 
     // Build dynamic query - handle arrays for all columns dynamically
