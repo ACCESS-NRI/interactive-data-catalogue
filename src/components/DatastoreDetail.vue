@@ -432,7 +432,7 @@ const setupColumns = (dataColumns: string[]) => {
     header: formatColumnName(col),
   }));
 
-  // Select all columns by default
+  // Select all columns by default (we've already excluded filename/path when we read the table)
   selectedColumns.value = [...availableColumns.value];
 };
 
