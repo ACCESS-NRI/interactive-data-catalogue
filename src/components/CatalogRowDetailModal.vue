@@ -229,16 +229,4 @@ pre code {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.4;
 }
-
-/* Badge animations */
-.px-3,
-.px-2 {
-  transition: all 0.2s ease;
-}
-
-.px-3:hover,
-.px-2:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
 </style>
