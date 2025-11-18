@@ -1,0 +1,8 @@
+# GitHub issue templates configuration
+# Disable creating blank issues and add a contact link that opens the
+# feedback template in the repository's new-issue UI.
+blank_issues_enabled: true
+contact_links:
+  - name: 'Submit user feedback'
+    about: 'Open a pre-filled feedback issue to report bugs or suggest improvements.'
+    url: 'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.md'
