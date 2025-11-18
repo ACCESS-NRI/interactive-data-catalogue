@@ -85,14 +85,33 @@
         <div
           class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6"
         >
-          <div class="flex items-center">
-            <i class="pi pi-exclamation-triangle text-yellow-600 mr-2"></i>
-            <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <div class="flex items-center">
+                <i class="pi pi-exclamation-triangle text-yellow-600 mr-2"></i>
+                <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
+              </div>
+              <p class="text-yellow-700 dark:text-yellow-300 mt-1">
+                The intake catalog interface is currently in alpha and under active development. Features and
+                functionality may change in future releases.
+              </p>
+            </div>
+
+            <!-- Vertical divider (hidden on mobile) -->
+            <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
+
+            <!-- Right side - Actions -->
+            <div class="flex-shrink-0 flex items-center space-x-3 lg:justify-end">
+              <Button
+                type="button"
+                icon="pi pi-github"
+                label="Give us feedback"
+                class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                title="Open a new issue pre-filled with the feedback template"
+                @click="openFeedbackIssue"
+              />
+            </div>
           </div>
-          <p class="text-yellow-700 dark:text-yellow-300 mt-1">
-            The intake catalog interface is currently in alpha and under active development. Features and functionality
-            may change in future releases.
-          </p>
         </div>
 
         <QuickStartCode
@@ -245,6 +264,13 @@ const clearFilters = () => {
 
 const cleanup = () => {
   catalogStore.clearDatastoreCache(datastoreName.value);
+};
+
+// Open the repository's issue creation page using the feedback issue template
+const openFeedbackIssue = () => {
+  const url = 'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.md';
+  const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+  if (newWin) newWin.opener = null;
 };
 
 onMounted(() => {
