@@ -41,91 +41,99 @@
     </div>
 
     <div v-else>
-    <!-- Content -->
-    <div v-if="!loading && !error">
-      <!-- Header -->
-      <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div class="mb-6">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ESM Datastore: {{ datastoreName }}</h1>
-          <p class="text-gray-600 dark:text-gray-300">
-            Detailed view of the {{ datastoreName }} ESM datastore containing
-            {{ totalRecords?.toLocaleString() }} records.
+      <!-- Content -->
+      <div v-if="!loading && !error">
+        <!-- Header -->
+        <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ESM Datastore: {{ datastoreName }}</h1>
+            <p class="text-gray-600 dark:text-gray-300">
+              Detailed view of the {{ datastoreName }} ESM datastore containing
+              {{ totalRecords?.toLocaleString() }} records.
+            </p>
+          </div>
+
+          <!-- Vertical divider (hidden on mobile) -->
+          <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
+
+          <!-- Right side - Documentation links -->
+          <div class="flex-shrink-0">
+            <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 lg:text-right">Documentation</div>
+            <div class="flex flex-col space-y-2">
+              <a
+                href="https://intake-esm.readthedocs.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-sm font-medium"
+              >
+                <i class="pi pi-external-link text-xs"></i>
+                intake-esm Documentation
+              </a>
+              <a
+                href="https://access-nri-intake-catalog.readthedocs.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-sm font-medium"
+              >
+                <i class="pi pi-external-link text-xs"></i>
+                ACCESS-NRI Intake Documentation
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- Alpha Warning -->
+        <div
+          class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6"
+        >
+          <div class="flex items-center">
+            <i class="pi pi-exclamation-triangle text-yellow-600 mr-2"></i>
+            <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
+          </div>
+          <p class="text-yellow-700 dark:text-yellow-300 mt-1">
+            The intake catalog interface is currently in alpha and under active development. Features and functionality
+            may change in future releases.
           </p>
         </div>
 
-        <!-- Vertical divider (hidden on mobile) -->
-        <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
+        <QuickStartCode
+          :datastore-name="datastoreName"
+          :current-filters="currentFilters"
+          :raw-data="filteredData"
+          class="mb-6"
+        />
 
-        <!-- Right side - Documentation links -->
-        <div class="flex-shrink-0">
-          <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 lg:text-right">Documentation</div>
-          <div class="flex flex-col space-y-2">
-            <a
-              href="https://intake-esm.readthedocs.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-sm font-medium"
-            >
-              <i class="pi pi-external-link text-xs"></i>
-              intake-esm Documentation
-            </a>
-            <a
-              href="https://access-nri-intake-catalog.readthedocs.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors text-sm font-medium"
-            >
-              <i class="pi pi-external-link text-xs"></i>
-              ACCESS-NRI Intake Documentation
-            </a>
+        <section class="bg-white rounded-lg shadow p-6 mb-6">
+          <h6 class="font-semibold mb-4">Filters</h6>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="(options, column) in filterOptions" :key="column">
+              <label class="block text-sm font-medium mb-1">{{ formatColumnName(column) }}</label>
+              <MultiSelect
+                v-model="currentFilters[column]"
+                :options="options"
+                display="chip"
+                class="w-full"
+                filter
+                showClear
+                placeholder="No filters applied"
+              />
+            </div>
           </div>
-        </div>
-      </div>
-      <!-- Alpha Warning -->
-      <div
-        class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6"
-      >
-        <div class="flex items-center">
-          <i class="pi pi-exclamation-triangle text-yellow-600 mr-2"></i>
-          <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
-        </div>
-        <p class="text-yellow-700 dark:text-yellow-300 mt-1">
-          The intake catalog interface is currently in alpha and under active development. Features and functionality
-          may change in future releases.
-        </p>
-      </div>
-
-      <QuickStartCode
-        :datastore-name="datastoreName"
-        :current-filters="currentFilters"
-        :raw-data="filteredData"
-        class="mb-6"
-      />
-
-      <section class="bg-white rounded-lg shadow p-6 mb-6">
-        <h6 class="font-semibold mb-4">Filters</h6>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div v-for="(options, column) in filterOptions" :key="column">
-            <label class="block text-sm font-medium mb-1">{{ formatColumnName(column) }}</label>
-            <MultiSelect v-model="currentFilters[column]" :options="options" display="chip" class="w-full" filter showClear placeholder="No filters applied"/>
+          <div class="mt-4">
+            <Button label="Clear Filters" icon="pi pi-times" @click="clearFilters" size="small" />
           </div>
-        </div>
-        <div class="mt-4">
-          <Button label="Clear Filters" icon="pi pi-times" @click="clearFilters" size="small" />
-        </div>
-      </section>
+        </section>
 
-      <DatastoreTable
-        :filtered-data="filteredData"
-        :table-loading="tableLoading"
-        v-model:selectedColumns="selectedColumns"
-        :available-columns="availableColumns"
-        :columns="columns"
-        :datastore-name="datastoreName"
-        @refresh="loadDatastore"
-      />
+        <DatastoreTable
+          :filtered-data="filteredData"
+          :table-loading="tableLoading"
+          v-model:selectedColumns="selectedColumns"
+          :available-columns="availableColumns"
+          :columns="columns"
+          :datastore-name="datastoreName"
+          @refresh="loadDatastore"
+        />
+      </div>
     </div>
-  </div>
   </div>
 </template>
 
