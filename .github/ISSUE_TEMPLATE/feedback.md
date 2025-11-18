@@ -14,9 +14,11 @@ assignees: ''
 ---
 
 ## Summary
+
 One-line summary of the feedback.
 
 ## Feedback Type
+
 - [ ] Bug report
 - [ ] Usability / UX feedback
 - [ ] Feature request
@@ -24,6 +26,7 @@ One-line summary of the feedback.
 - [ ] Other
 
 ## Describe the Feedback (required)
+
 Where did the user encounter this, their environment (browser/OS), and any attachments/screenshots.
 
 <details>
@@ -36,10 +39,12 @@ Where did the user encounter this, their environment (browser/OS), and any attac
 </details>
 
 ## Expected vs Actual
+
 - Expected:
 - Actual:
 
 ## Suggested Priority
+
 - [ ] Low
 - [ ] Medium
 - [ ] High
