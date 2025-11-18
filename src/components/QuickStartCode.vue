@@ -118,7 +118,7 @@ const router = useRouter();
  * When true, generate xarray/dask conversion calls in the quick-start code.
  * Default: false (generate datastore access/search only).
  */
-const isXArrayMode = ref(false);
+const isXArrayMode = ref(true);
 
 // Dialog / long-URL state
 const MAX_URL_LENGTH = 2083; // conservative legacy-safe limit (IE)
