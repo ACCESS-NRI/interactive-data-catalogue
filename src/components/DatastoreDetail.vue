@@ -107,7 +107,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="(options, column) in filterOptions" :key="column">
             <label class="block text-sm font-medium mb-1">{{ formatColumnName(column) }}</label>
-            <MultiSelect v-model="currentFilters[column]" :options="options" display="chip" class="w-full" />
+            <MultiSelect v-model="currentFilters[column]" :options="options" display="chip" class="w-full" filter showClear placeholder="No filters applied"/>
           </div>
         </div>
         <div class="mt-4">
