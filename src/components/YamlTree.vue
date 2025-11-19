@@ -12,8 +12,7 @@
 <script setup lang="ts">
 import YamlNode from './YamlNode.vue';
 defineProps<{ data: any }>();
-// expose component registration for template
-const components = { YamlNode };
+
 </script>
 
 <style scoped>
