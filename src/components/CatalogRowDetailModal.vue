@@ -47,47 +47,23 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
             </div>
           </div>
 
-          <!-- Models -->
-          <div>
-            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Models</h6>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="model in rowData.model"
-                :key="model"
-                class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium"
-              >
-                {{ model }}
-              </span>
-            </div>
-          </div>
+          <TagList
+            title="Models"
+            :items="rowData.model"
+            chipClass="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium"
+          />
 
-          <!-- Realms -->
-          <div>
-            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Realms</h6>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="realm in rowData.realm"
-                :key="realm"
-                class="px-3 py-1 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-full text-sm font-medium"
-              >
-                {{ realm }}
-              </span>
-            </div>
-          </div>
+          <TagList
+            title="Realms"
+            :items="rowData.realm"
+            chipClass="px-3 py-1 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-full text-sm font-medium"
+          />
 
-          <!-- Frequencies -->
-          <div>
-            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Frequencies</h6>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="frequency in rowData.frequency"
-                :key="frequency"
-                class="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-medium"
-              >
-                {{ frequency }}
-              </span>
-            </div>
-          </div>
+          <TagList
+            title="Frequencies"
+            :items="rowData.frequency"
+            chipClass="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-medium"
+          />
         </div>
 
         <!-- Right Column - Variables -->
@@ -156,6 +132,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 import { watch } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
+import TagList from './TagList.vue';
 import type { CatalogRow } from '../stores/catalogStore';
 import { useCatalogStore } from '../stores/catalogStore';
 
