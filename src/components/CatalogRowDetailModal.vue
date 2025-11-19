@@ -3,9 +3,10 @@
     :visible="visible"
     :header="rowData?.name || 'Catalog Entry Details'"
     :modal="true"
+    :dismissableMask="true"
     :style="{ width: '90vw', maxWidth: '1200px' }"
     :closable="true"
-    @update:visible="$emit('hide')"
+    @update:visible="(v) => { if (!v) $emit('hide') }"
   >
     <div v-if="rowData" class="catalog-detail-content">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
