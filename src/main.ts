@@ -8,6 +8,7 @@ import Aura from '@primeuix/themes/aura';
 // PrimeVue imports
 import PrimeVue from 'primevue/config';
 import 'primeicons/primeicons.css';
+import ToastService from 'primevue/toastservice';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -19,6 +20,9 @@ app.use(PrimeVue, {
     preset: Aura,
   },
 });
+
+// PrimeVue ToastService provides the context used by `useToast()`.
+app.use(ToastService);
 
 app.mount('#app');
 
