@@ -93,23 +93,23 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
             <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Configuration (YAML)</h6>
             <div class="border border-gray-200 dark:border-gray-600 rounded-lg">
               <div class="bg-gray-50 dark:bg-gray-700 p-4">
-                <pre
-                  class="text-sm max-h-80 overflow-y-auto text-gray-800 dark:text-gray-200 whitespace-pre-wrap"
-                ><code>{{ rowData.yaml || 'No YAML configuration available' }}</code></pre>
+                <div v-if="parsedYaml">
+                  <YamlTree :data="parsedYaml" />
+                </div>
+                <div v-else-if="yamlParseError" class="text-sm text-red-600 dark:text-red-300">
+                  <div class="font-medium mb-2">Error parsing YAML:</div>
+                  <div class="whitespace-pre-wrap">{{ yamlParseError }}</div>
+                  <div class="mt-3">
+                    <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ rowData.yaml }}</code></pre>
+                  </div>
+                </div>
+                <div v-else class="text-sm max-h-80 overflow-y-auto text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                  <pre><code>{{ rowData.yaml || 'No YAML configuration available' }}</code></pre>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Placeholder for when no YAML -->
-          <div
-            v-else
-            class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4"
-          >
-            <div class="flex items-center">
-              <i class="pi pi-info-circle text-yellow-600 mr-2"></i>
-              <span class="text-yellow-700 dark:text-yellow-300">YAML configuration not available for this entry.</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -129,10 +129,12 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
+import { ref, watch } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import TagList from './TagList.vue';
+import YamlTree from './YamlTree.vue';
+import { load as loadYaml } from 'js-yaml';
 import type { CatalogRow } from '../stores/catalogStore';
 import { useCatalogStore } from '../stores/catalogStore';
 
@@ -149,6 +151,27 @@ defineEmits<{
 
 // Get catalog store for prefetching
 const catalogStore = useCatalogStore();
+
+// Parsed YAML state
+const parsedYaml = ref<any>(null);
+const yamlParseError = ref<string | null>(null);
+
+// Watch and parse YAML when rowData changes
+watch(
+  () => props.rowData?.yaml,
+  (yaml) => {
+    parsedYaml.value = null;
+    yamlParseError.value = null;
+    if (!yaml) return;
+    try {
+      parsedYaml.value = loadYaml(yaml as string);
+    } catch (err: any) {
+      yamlParseError.value = err?.message || String(err);
+      console.warn('YAML parse error', err);
+    }
+  },
+  { immediate: true },
+);
 
 // Watch for modal visibility and rowData to prefetch datastore
 watch(
