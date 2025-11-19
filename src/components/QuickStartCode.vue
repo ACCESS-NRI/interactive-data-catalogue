@@ -44,19 +44,26 @@
     <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ quickStartCode }}</code></pre>
 
     <div class="mt-3 relative inline-block">
+      <Toast position="top-right" />
       <Button
-        label="Copy Query Link"
+        label="Copy Code"
         icon="pi pi-share"
-        @click="copyQueryLink"
+        @click="copyCodeToClipboard"
+        outlined
+        size="small"
+        class="text-blue-600 border-blue-600 hover:bg-blue-50 mr-3"
+      />
+
+      <Button
+        label="Copy Link to Search"
+        icon="pi pi-share"
+        @click="copySearchLink"
         outlined
         size="small"
         class="text-blue-600 border-blue-600 hover:bg-blue-50"
       />
 
-      <!-- Small ephemeral copied badge -->
-      <transition name="copied">
-        <span v-if="showCopied" role="status" aria-live="polite" class="copied-badge"> Copied! </span>
-      </transition>
+      <!-- PrimeVue toast will show copy confirmations -->
     </div>
     <!-- Long URL confirmation dialog -->
     <Dialog v-model:visible="showLongUrlDialog" header="Long link warning" modal>
@@ -79,6 +86,8 @@ import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Dialog from 'primevue/dialog';
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 
 // Props
 /**
@@ -257,6 +266,21 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`;
 });
 
 /**
+ * Copy a the code currently in the quickStartCode to the clipboard.
+ */
+const copyCodeToClipboard = async (): Promise<void> => {
+  try {
+    await navigator.clipboard.writeText(quickStartCode.value);
+    console.log('Quick-start code copied to clipboard');
+    // show ephemeral confirmation
+    triggerCopiedBadge();
+  } catch (err) {
+    console.error('Failed to copy quick-start code:');
+    console.error(err);
+  }
+};
+
+/**
  * Copy a link to the current page including active filters to the clipboard.
  *
  * The URL query parameters will use the convention `<column>_filter` with
@@ -266,7 +290,7 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`;
  *
  * @returns Promise<void> that resolves when the clipboard write completes.
  */
-const copyQueryLink = async (): Promise<void> => {
+const copySearchLink = async (): Promise<void> => {
   const query: Record<string, string> = {};
 
   // Add filter parameters to URL
@@ -312,19 +336,10 @@ const copyQueryLink = async (): Promise<void> => {
  * clipboard write. Accessible via `aria-live` so screen readers are
  * informed of the change.
  */
-const showCopied = ref(false);
-let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+const toast = useToast();
 
 function triggerCopiedBadge(timeout = 1400) {
-  if (copiedTimer) {
-    clearTimeout(copiedTimer);
-    copiedTimer = null;
-  }
-  showCopied.value = true;
-  copiedTimer = setTimeout(() => {
-    showCopied.value = false;
-    copiedTimer = null;
-  }, timeout);
+  toast.add({ severity: 'success', summary: 'Copied', detail: 'Copied to clipboard', life: timeout });
 }
 </script>
 
@@ -335,34 +350,5 @@ pre code {
   line-height: 1.4;
 }
 
-/* Copied badge styles */
-.copied-badge {
-  display: inline-block;
-  background: rgba(16, 185, 129, 0.12); /* green-500 at 12% */
-  color: #065f46; /* green-800 */
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px; /* pill */
-  font-weight: 600;
-  font-size: 0.85rem;
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.08);
-  margin-left: 0.5rem;
-  transform-origin: center right;
-}
-
-/* small fade + pop animation */
-.copied-enter-from,
-.copied-leave-to {
-  opacity: 0;
-  transform: translateY(-6px) scale(0.96);
-}
-.copied-enter-active,
-.copied-leave-active {
-  transition: all 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.copied-enter-to,
-.copied-leave-from {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
+/* Copy confirmations are handled by PrimeVue Toast (see template/script) */
 </style>
