@@ -308,7 +308,7 @@ const copySearchLink = async (): Promise<void> => {
   });
 
   // Get the full URL by combining the origin with the resolved route
-  const fullUrl = new URL(route.href, window.location.origin).toString();
+  const fullUrl = new URL(route.href, window.location.href).toString();
 
   // If URL is long, show dialog to confirm before copying
   if (fullUrl.length > MAX_URL_LENGTH) {
