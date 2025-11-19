@@ -6,7 +6,11 @@
     :dismissableMask="true"
     :style="{ width: '90vw', maxWidth: '1200px' }"
     :closable="true"
-    @update:visible="(v) => { if (!v) $emit('hide') }"
+    @update:visible="
+      (v) => {
+        if (!v) $emit('hide');
+      }
+    "
   >
     <div v-if="rowData" class="catalog-detail-content">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -101,16 +105,20 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
                   <div class="font-medium mb-2">Error parsing YAML:</div>
                   <div class="whitespace-pre-wrap">{{ yamlParseError }}</div>
                   <div class="mt-3">
-                    <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ rowData.yaml }}</code></pre>
+                    <pre
+                      class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"
+                    ><code>{{ rowData.yaml }}</code></pre>
                   </div>
                 </div>
-                <div v-else class="text-sm max-h-80 overflow-y-auto text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                <div
+                  v-else
+                  class="text-sm max-h-80 overflow-y-auto text-gray-800 dark:text-gray-200 whitespace-pre-wrap"
+                >
                   <pre><code>{{ rowData.yaml || 'No YAML configuration available' }}</code></pre>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
