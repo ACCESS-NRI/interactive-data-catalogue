@@ -12,7 +12,6 @@
 <script setup lang="ts">
 import YamlNode from './YamlNode.vue';
 defineProps<{ data: any }>();
-
 </script>
 
 <style scoped>
