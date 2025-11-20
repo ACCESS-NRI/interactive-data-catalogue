@@ -63,13 +63,16 @@
               <span
                 v-for="variable in data[column.field].slice(0, 3)"
                 :key="variable"
-                class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs"
+                class="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-sm font-medium"
               >
                 {{ variable }}
               </span>
               <span
                 v-if="data[column.field].length > 3"
-                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs"
+                @click.prevent.stop="openArrayModal(column.header, data[column.field])"
+                role="button"
+                tabindex="0"
+                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs cursor-pointer hover:bg-gray-200"
               >
                 +{{ data[column.field].length - 3 }} more
               </span>
@@ -87,7 +90,10 @@
               </span>
               <span
                 v-if="data[column.field].length > 2"
-                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs"
+                @click.prevent.stop="openArrayModal(column.header, data[column.field])"
+                role="button"
+                tabindex="0"
+                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs cursor-pointer hover:bg-gray-200"
               >
                 +{{ data[column.field].length - 2 }} more
               </span>
@@ -124,7 +130,14 @@
                 <span v-else class="text-gray-700 dark:text-gray-300">{{ item || '-' }}</span>
               </div>
               <span v-if="data[column.field].length > 2" class="text-xs text-gray-500">
-                +{{ data[column.field].length - 2 }} more
+                <span
+                  @click.prevent.stop="openArrayModal(column.header, data[column.field])"
+                  role="button"
+                  tabindex="0"
+                  class="cursor-pointer text-xs text-gray-500 hover:text-gray-700"
+                >
+                  +{{ data[column.field].length - 2 }} more
+                </span>
               </span>
             </div>
             <span v-else class="text-gray-700 dark:text-gray-300">{{ data[column.field] || '-' }}</span>
@@ -137,6 +150,7 @@
         </template>
       </Column>
     </DataTable>
+    <ArrayModal v-model="showArrayModal" :title="modalTitle" :items="modalItems" />
   </div>
 </template>
 
@@ -145,6 +159,8 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
+import { ref } from 'vue';
+import ArrayModal from './ArrayModal.vue';
 
 defineProps<{
   filteredData: any[];
@@ -163,6 +179,17 @@ const onColumnToggle = (value: any[]) => {
 
 const onRefresh = () => {
   emit('refresh');
+};
+
+// Modal state for showing full array/field contents
+const showArrayModal = ref(false);
+const modalTitle = ref('');
+const modalItems = ref<any>([]);
+
+const openArrayModal = (title: string, items: any) => {
+  modalTitle.value = title || 'Details';
+  modalItems.value = Array.isArray(items) ? items : [items];
+  showArrayModal.value = true;
 };
 </script>
 
