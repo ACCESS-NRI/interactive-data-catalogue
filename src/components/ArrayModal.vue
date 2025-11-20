@@ -17,7 +17,9 @@
           />
         </div>
 
-        <div class="overflow-auto max-h-80">
+        <div
+          class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 max-h-64 overflow-y-auto"
+        >
           <div v-if="filteredItems.length">
             <div class="flex flex-wrap gap-2">
               <span v-for="(item, i) in filteredItems" :key="i" :class="chipClassComputed" :title="formatItem(item)">
