@@ -73,39 +73,10 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
   },
 };
 
-/**
- * SQL query used to normalize the metacatalog parquet into a predictable
- * shape. This attempts to coerce scalar and array encodings into
- * VARCHAR[] where possible so client-side code can treat the fields
- * consistently.
- */
-const METACAT_PARQUET_QUERY = `
-SELECT 
-  name,
-  CASE 
-    WHEN typeof(model) LIKE '%[]%' THEN model::VARCHAR[]
-    WHEN model IS NOT NULL THEN [model::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as model,
-  description,
-  CASE 
-    WHEN typeof(realm) LIKE '%[]%' THEN realm::VARCHAR[]
-    WHEN realm IS NOT NULL THEN [realm::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as realm,
-  CASE 
-    WHEN typeof(frequency) LIKE '%[]%' THEN frequency::VARCHAR[]
-    WHEN frequency IS NOT NULL THEN [frequency::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as frequency,
-  CASE 
-    WHEN typeof(variable) LIKE '%[]%' THEN variable::VARCHAR[]
-    WHEN variable IS NOT NULL THEN [variable::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as variable,
-  yaml
-FROM read_parquet('metacatalog.parquet')
-`;
+// We'll read the raw parquet rows and normalize them in JS instead
+// of using a large SQL CASE expression. This keeps the coercion
+// logic in a single place and works better with DuckDB WASM's
+// JavaScript-oriented usage patterns.
 
 export const useCatalogStore = defineStore('catalog', () => {
   // State
@@ -173,8 +144,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     // Register the parquet file
     await db.registerFileBuffer('metacatalog.parquet', uint8Array);
 
-    // Query with explicit array handling
-    const queryResult = await conn.query(METACAT_PARQUET_QUERY);
+    // Read the parquet as raw rows and normalize in JavaScript
+    const queryResult = await conn.query("SELECT * FROM read_parquet('metacatalog.parquet')");
 
     // Get raw data for inspection
     const rawData = queryResult.toArray();
@@ -282,9 +253,10 @@ export const useCatalogStore = defineStore('catalog', () => {
       .filter((col: string) => col !== 'filename' && col !== 'path');
     console.log('📋 Available columns:', columns);
 
-    // Simpler approach: read all columns directly and normalize rows
-    // using the same array-normalization logic we use for the metacatalog.
+    // Read all columns directly and normalize rows using the same 
+    // array-normalization logic we use for the metacatalog.
     const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
+
     const rawData = queryResult.toArray();
 
     // Transform the data using the same normalization used by
