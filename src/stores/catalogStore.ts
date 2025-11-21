@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
+import type { get } from 'http';
 
 /**
  * A single normalized catalog row returned by querying the metacatalog
@@ -54,6 +55,7 @@ export interface DatastoreCache {
   error: string | null;
   /** Timestamp when the datastore was last fetched. */
   lastFetched: Date;
+  project?: string | null;
 }
 
 /**
@@ -73,39 +75,6 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
   },
 };
 
-/**
- * SQL query used to normalize the metacatalog parquet into a predictable
- * shape. This attempts to coerce scalar and array encodings into
- * VARCHAR[] where possible so client-side code can treat the fields
- * consistently.
- */
-const METACAT_PARQUET_QUERY = `
-SELECT 
-  name,
-  CASE 
-    WHEN typeof(model) LIKE '%[]%' THEN model::VARCHAR[]
-    WHEN model IS NOT NULL THEN [model::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as model,
-  description,
-  CASE 
-    WHEN typeof(realm) LIKE '%[]%' THEN realm::VARCHAR[]
-    WHEN realm IS NOT NULL THEN [realm::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as realm,
-  CASE 
-    WHEN typeof(frequency) LIKE '%[]%' THEN frequency::VARCHAR[]
-    WHEN frequency IS NOT NULL THEN [frequency::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as frequency,
-  CASE 
-    WHEN typeof(variable) LIKE '%[]%' THEN variable::VARCHAR[]
-    WHEN variable IS NOT NULL THEN [variable::VARCHAR]
-    ELSE []::VARCHAR[]
-  END as variable,
-  yaml
-FROM read_parquet('metacatalog.parquet')
-`;
 
 export const useCatalogStore = defineStore('catalog', () => {
   // State
@@ -174,7 +143,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     await db.registerFileBuffer('metacatalog.parquet', uint8Array);
 
     // Query with explicit array handling
-    const queryResult = await conn.query(METACAT_PARQUET_QUERY);
+    const queryResult = await conn.query("select * from read_parquet('metacatalog.parquet')");
 
     // Get raw data for inspection
     const rawData = queryResult.toArray();
@@ -260,19 +229,14 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param datastoreName - Logical name used to register the buffer
    */
   async function queryEsmDatastore(
-    db: duckdb.AsyncDuckDB,
     conn: duckdb.AsyncDuckDBConnection,
-    uint8Array: Uint8Array,
-    datastoreName: string,
+    fileName: string,
   ): Promise<any[]> {
-    // Register the parquet file with a dynamic name
-    const fileName = `${datastoreName}.parquet`;
-    await db.registerFileBuffer(fileName, uint8Array);
-
+    // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
-    const schemaResult = await conn.query(`
-      DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1
-    `);
+    const schemaResult = await conn.query(
+      `DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1`
+    );
 
     const schemaData = schemaResult.toArray();
     console.log('📊 ESM Datastore schema:', schemaData);
@@ -282,27 +246,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       .filter((col: string) => col !== 'filename' && col !== 'path');
     console.log('📋 Available columns:', columns);
 
-    // Build dynamic query - handle arrays for all columns dynamically
-    const selectClauses = columns
-      .map((column) => {
-        return `
-        CASE 
-          WHEN typeof(${column}) LIKE '%[]%' THEN ${column}::VARCHAR[]
-          WHEN ${column} IS NOT NULL THEN [${column}::VARCHAR]
-          ELSE []::VARCHAR[]
-        END as ${column}`;
-      })
-      .join(',');
-
-    const dynamicQuery = `
-      SELECT ${selectClauses}
-      FROM read_parquet('${fileName}')
-    `;
-
-    console.log('🔍 Dynamic query:', dynamicQuery);
-
-    // Execute the query
-    const queryResult = await conn.query(dynamicQuery);
+    // Read the parquet as raw rows and normalize in JavaScript
+    const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
     const rawData = queryResult.toArray();
 
     // Transform the data with generic array handling
@@ -354,6 +299,34 @@ export const useCatalogStore = defineStore('catalog', () => {
     console.log('📊 Total records:', transformedData.length);
 
     return transformedData;
+  }
+
+  /**
+   * Read a generic ESM datastore parquet file and get the project from the first
+   * row's path column.
+   *    
+   * @param db - DuckDB Async instance
+   * @param conn - Active connection associated with `db`
+   * @param uint8Array - Bytes of the datastore parquet
+   * @param datastoreName - Logical name used to register the buffer
+   */
+  async function getEsmDatastoreProject(
+    conn: duckdb.AsyncDuckDBConnection,
+    fileName: string,
+  ): Promise<string | null> {
+    // NOTE: the parquet file buffer must be registered by the caller.
+    // Query for a single row and return the first matched project (or null)
+    return conn
+      .query(`SELECT path FROM read_parquet('${fileName}') LIMIT 1`)
+      .then((table) => table.toArray())
+      .then((rows: any[]) => {
+        const row = rows[0];
+        if (!row) return null;
+        const pathValue = row['path'];
+        if (!pathValue) return null;
+        const match = String(pathValue).match(/\/g\/data\/([^\/]+)\//);
+        return match?.[1] ?? null;
+      });
   }
 
   // Actions
@@ -483,6 +456,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       filterOptions: {},
       loading: true,
       error: null,
+      project: null,
       lastFetched: new Date(),
     };
 
@@ -512,11 +486,21 @@ export const useCatalogStore = defineStore('catalog', () => {
       db = dbConnection.db;
       conn = dbConnection.conn;
 
-      // Query the ESM datastore data
-      const datastoreData = await queryEsmDatastore(db, conn, uint8Array, datastoreName);
+      // Register the parquet bytes once (transfers the ArrayBuffer to the worker).
+      const fileName = `${datastoreName}.parquet`;
+      await db.registerFileBuffer(fileName, uint8Array);
+
+      // Query the ESM datastore data and project concurrently (functions
+      // now accept `conn` + `fileName` and must NOT re-register the bytes).
+      const [datastoreData, project] = await Promise.all([
+        queryEsmDatastore(conn, fileName),
+        getEsmDatastoreProject(conn, fileName),
+      ]);
       const columns = Object.keys(datastoreData[0] || {});
       const displayColumns = setupColumns(columns);
       const filterOptions = generateFilterOptions(datastoreData);
+
+      // Also extract project from the datastore (first row path)
 
       // Update cache with loaded data
       datastoreCache.value[datastoreName] = {
@@ -526,6 +510,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         filterOptions,
         loading: false,
         error: null,
+        project,
         lastFetched: new Date(),
       };
 
@@ -542,6 +527,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         filterOptions: {},
         loading: false,
         error: errorMessage,
+        project: null,
         lastFetched: new Date(),
       };
 
