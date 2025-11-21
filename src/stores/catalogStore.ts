@@ -54,6 +54,7 @@ export interface DatastoreCache {
   error: string | null;
   /** Timestamp when the datastore was last fetched. */
   lastFetched: Date;
+  project?: string | null;
 }
 
 /**
@@ -72,11 +73,6 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
     mainWorker: mvp_worker,
   },
 };
-
-// We'll read the raw parquet rows and normalize them in JS instead
-// of using a large SQL CASE expression. This keeps the coercion
-// logic in a single place and works better with DuckDB WASM's
-// JavaScript-oriented usage patterns.
 
 export const useCatalogStore = defineStore('catalog', () => {
   // State
@@ -230,20 +226,10 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function queryEsmDatastore(
-    db: duckdb.AsyncDuckDB,
-    conn: duckdb.AsyncDuckDBConnection,
-    uint8Array: Uint8Array,
-    datastoreName: string,
-  ): Promise<any[]> {
-    // Register the parquet file with a dynamic name
-    const fileName = `${datastoreName}.parquet`;
-    await db.registerFileBuffer(fileName, uint8Array);
-
+  async function queryEsmDatastore(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<any[]> {
+    // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
-    const schemaResult = await conn.query(`
-      DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1
-    `);
+    const schemaResult = await conn.query(`DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1`);
 
     const schemaData = schemaResult.toArray();
     console.log('📊 ESM Datastore schema:', schemaData);
@@ -253,10 +239,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       .filter((col: string) => col !== 'filename' && col !== 'path');
     console.log('📋 Available columns:', columns);
 
-    // Read all columns directly and normalize rows using the same
-    // array-normalization logic we use for the metacatalog.
+    // Read the parquet as raw rows and normalize in JavaScript
     const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
-
     const rawData = queryResult.toArray();
 
     // Transform the data using the same normalization used by
@@ -306,6 +290,31 @@ export const useCatalogStore = defineStore('catalog', () => {
     console.log('📊 Total records:', transformedData.length);
 
     return transformedData;
+  }
+
+  /**
+   * Read a generic ESM datastore parquet file and get the project from the first
+   * row's path column.
+   *
+   * @param db - DuckDB Async instance
+   * @param conn - Active connection associated with `db`
+   * @param uint8Array - Bytes of the datastore parquet
+   * @param datastoreName - Logical name used to register the buffer
+   */
+  async function getEsmDatastoreProject(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<string | null> {
+    // NOTE: the parquet file buffer must be registered by the caller.
+    // Query for a single row and return the first matched project (or null)
+    return conn
+      .query(`SELECT path FROM read_parquet('${fileName}') LIMIT 1`)
+      .then((table) => table.toArray())
+      .then((rows: any[]) => {
+        const row = rows[0];
+        if (!row) return null;
+        const pathValue = row['path'];
+        if (!pathValue) return null;
+        const match = String(pathValue).match(/\/g\/data\/([^\/]+)\//);
+        return match?.[1] ?? null;
+      });
   }
 
   // Actions
@@ -435,6 +444,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       filterOptions: {},
       loading: true,
       error: null,
+      project: null,
       lastFetched: new Date(),
     };
 
@@ -464,11 +474,21 @@ export const useCatalogStore = defineStore('catalog', () => {
       db = dbConnection.db;
       conn = dbConnection.conn;
 
-      // Query the ESM datastore data
-      const datastoreData = await queryEsmDatastore(db, conn, uint8Array, datastoreName);
+      // Register the parquet bytes once (transfers the ArrayBuffer to the worker).
+      const fileName = `${datastoreName}.parquet`;
+      await db.registerFileBuffer(fileName, uint8Array);
+
+      // Query the ESM datastore data and project concurrently (functions
+      // now accept `conn` + `fileName` and must NOT re-register the bytes).
+      const [datastoreData, project] = await Promise.all([
+        queryEsmDatastore(conn, fileName),
+        getEsmDatastoreProject(conn, fileName),
+      ]);
       const columns = Object.keys(datastoreData[0] || {});
       const displayColumns = setupColumns(columns);
       const filterOptions = generateFilterOptions(datastoreData);
+
+      // Also extract project from the datastore (first row path)
 
       // Update cache with loaded data
       datastoreCache.value[datastoreName] = {
@@ -478,6 +498,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         filterOptions,
         loading: false,
         error: null,
+        project,
         lastFetched: new Date(),
       };
 
@@ -494,6 +515,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         filterOptions: {},
         loading: false,
         error: errorMessage,
+        project: null,
         lastFetched: new Date(),
       };
 

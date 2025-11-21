@@ -82,6 +82,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -176,26 +177,17 @@ const hasActiveFilters = computed(() => {
  * - Returns a sorted array of unique project names.
  */
 const requiredProjects = computed(() => {
-  const projects = new Set<string>();
-
-  // We always require 'xp65'
   const XP65 = 'xp65';
+  const projects = new Set<string>();
   projects.add(XP65);
 
-  // Look for path fields in the data
-  props.rawData.forEach((row) => {
-    // Check various possible path field names
-    const field = 'path';
+  // Read the cached project (populated when the datastore is loaded).
 
-    if (row[field]) {
-      const pathValue = row[field];
-      // Match pattern /g/data/{PROJECT}/...
-      const match = pathValue.match(/\/g\/data\/([^\/]+)\//);
-      if (match) {
-        projects.add(match[1]);
-      }
-    }
-  });
+  const cachedProject = useCatalogStore().getDatastoreFromCache(props.datastoreName)?.project ?? null;
+
+  if (cachedProject) {
+    projects.add(cachedProject);
+  }
 
   return Array.from(projects).sort();
 });
