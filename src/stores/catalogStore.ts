@@ -141,8 +141,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     // Register the parquet file
     await db.registerFileBuffer('metacatalog.parquet', uint8Array);
 
-    // Query with explicit array handling
-    const queryResult = await conn.query("select * from read_parquet('metacatalog.parquet')");
+    // Read the parquet as raw rows and normalize in JavaScript
+    const queryResult = await conn.query("SELECT * FROM read_parquet('metacatalog.parquet')");
 
     // Get raw data for inspection
     const rawData = queryResult.toArray();
@@ -244,46 +244,44 @@ export const useCatalogStore = defineStore('catalog', () => {
     const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
     const rawData = queryResult.toArray();
 
-    // Transform the data with generic array handling
+    // Transform the data using the same normalization used by
+    // `queryMetaCatalogPq`: always produce an array of strings for
+    // each column (empty array for null/undefined).
     const transformedData = rawData.map((row: any) => {
-      const processField = (value: any): any => {
-        if (value === null || value === undefined) return null;
+      const processGenericField = (value: any): string[] => {
+        if (value === null || value === undefined) return [];
 
-        // Handle DuckDB Vector objects for arrays
+        // DuckDB Vector-like objects (expose toArray)
         if (value && typeof value.toArray === 'function') {
-          const arrayValue = value.toArray().filter((v: any) => v !== null && v !== undefined);
-          return arrayValue.length > 1 ? arrayValue.map(String) : arrayValue[0] ? String(arrayValue[0]) : null;
+          return value
+            .toArray()
+            .filter((v: any) => v !== null && v !== undefined)
+            .map(String);
         }
 
-        // Handle regular arrays
+        // Regular arrays
         if (Array.isArray(value)) {
-          const filteredArray = value.filter((v) => v !== null && v !== undefined);
-          return filteredArray.length > 1
-            ? filteredArray.map(String)
-            : filteredArray[0]
-              ? String(filteredArray[0])
-              : null;
+          return value.filter((v) => v !== null && v !== undefined).map(String);
         }
 
-        // Handle string values
+        // Strings may be JSON arrays or scalars
         if (typeof value === 'string') {
           try {
             const parsed = JSON.parse(value);
-            if (Array.isArray(parsed)) {
-              return parsed.length > 1 ? parsed.map(String) : parsed[0] ? String(parsed[0]) : null;
-            }
-            return String(parsed);
+            return Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
           } catch {
-            return String(value);
+            return [value];
           }
         }
 
-        return value;
+        // Fallback: stringify single value
+        return [String(value)];
       };
 
       const transformedRow: any = {};
       columns.forEach((column) => {
-        transformedRow[column] = processField(row[column]);
+        const arr = processGenericField(row[column]);
+        transformedRow[column] = arr.length === 0 ? null : arr.length === 1 ? arr[0] : arr;
       });
 
       return transformedRow;
