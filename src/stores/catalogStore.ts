@@ -253,7 +253,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       .filter((col: string) => col !== 'filename' && col !== 'path');
     console.log('📋 Available columns:', columns);
 
-    // Read all columns directly and normalize rows using the same 
+    // Read all columns directly and normalize rows using the same
     // array-normalization logic we use for the metacatalog.
     const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
 
