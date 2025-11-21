@@ -3,7 +3,6 @@ import { ref, computed } from 'vue';
 import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
-import type { get } from 'http';
 
 /**
  * A single normalized catalog row returned by querying the metacatalog
