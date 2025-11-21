@@ -75,7 +75,6 @@ const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
   },
 };
 
-
 export const useCatalogStore = defineStore('catalog', () => {
   // State
   const data = ref<CatalogRow[]>([]);
@@ -228,15 +227,10 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function queryEsmDatastore(
-    conn: duckdb.AsyncDuckDBConnection,
-    fileName: string,
-  ): Promise<any[]> {
+  async function queryEsmDatastore(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<any[]> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
-    const schemaResult = await conn.query(
-      `DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1`
-    );
+    const schemaResult = await conn.query(`DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1`);
 
     const schemaData = schemaResult.toArray();
     console.log('📊 ESM Datastore schema:', schemaData);
@@ -304,16 +298,13 @@ export const useCatalogStore = defineStore('catalog', () => {
   /**
    * Read a generic ESM datastore parquet file and get the project from the first
    * row's path column.
-   *    
+   *
    * @param db - DuckDB Async instance
    * @param conn - Active connection associated with `db`
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function getEsmDatastoreProject(
-    conn: duckdb.AsyncDuckDBConnection,
-    fileName: string,
-  ): Promise<string | null> {
+  async function getEsmDatastoreProject(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<string | null> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // Query for a single row and return the first matched project (or null)
     return conn
