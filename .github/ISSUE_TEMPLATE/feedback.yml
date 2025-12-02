@@ -1,0 +1,85 @@
+name: User Feedback
+description: Tell us what you think! Report bugs, suggest features, or share your ideas.
+title: "[Feedback]: "
+labels: ["feedback", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to share your feedback with us! We really appreciate it. 🙏
+  
+  - type: input
+    id: summary
+    attributes:
+      label: What's on your mind?
+      description: A quick one-line summary of your feedback
+      placeholder: e.g., "Filter dropdowns are hard to use on mobile"
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: feedback-type
+    attributes:
+      label: What kind of feedback is this?
+      options:
+        - Bug report
+        - Usability / UX feedback
+        - Feature request
+        - Documentation improvement
+        - Something else
+    validations:
+      required: true
+  
+  - type: textarea
+    id: description
+    attributes:
+      label: Tell us more
+      description: We'd love to hear the details! Let us know what happened, where you encountered this, what browser/OS you're using, and feel free to add screenshots or other helpful context.
+      placeholder: |
+        I was trying to filter the datasets when...
+        
+        Browser: Chrome 120
+        OS: macOS Sonoma
+    validations:
+      required: true
+  
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce (if applicable)
+      description: If this is a bug, help us recreate it!
+      placeholder: |
+        1. Go to the catalog page
+        2. Click on a datastore
+        3. Try to apply a filter
+        4. Notice that...
+    validations:
+      required: false
+  
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: What did you expect vs. what actually happened?
+      description: This helps us understand the gap between intention and reality
+      placeholder: |
+        Expected: The filter should apply immediately
+        Actual: Nothing happens when I click the filter button
+    validations:
+      required: false
+  
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - Nice to have
+        - Would really help
+        - Pretty urgent
+    validations:
+      required: false
+  
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        Thanks so much for your feedback! We'll take a look soon and get back to you.
