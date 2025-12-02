@@ -5,4 +5,4 @@ blank_issues_enabled: true
 contact_links:
   - name: 'Share your feedback'
     about: 'Tell us what you think! Report bugs, suggest features, or share your ideas.'
-    url: 'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.md'
+    url: 'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.yml'
