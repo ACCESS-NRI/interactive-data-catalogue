@@ -121,26 +121,12 @@
           class="mb-6"
         />
 
-        <section class="bg-white rounded-lg shadow p-6 mb-6">
-          <h6 class="font-semibold mb-4">Filters</h6>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="(options, column) in filterOptions" :key="column">
-              <label class="block text-sm font-medium mb-1">{{ formatColumnName(column) }}</label>
-              <MultiSelect
-                v-model="currentFilters[column]"
-                :options="options"
-                display="chip"
-                class="w-full"
-                filter
-                showClear
-                placeholder="No filters applied"
-              />
-            </div>
-          </div>
-          <div class="mt-4">
-            <Button label="Clear Filters" icon="pi pi-times" @click="clearFilters" size="small" />
-          </div>
-        </section>
+        <FilterSelectors
+          v-model="currentFilters"
+          :filter-options="filterOptions"
+          :raw-data="rawData"
+          @clear="clearFilters"
+        />
 
         <DatastoreTable
           :filtered-data="filteredData"
@@ -161,9 +147,9 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCatalogStore } from '../stores/catalogStore';
 import Button from 'primevue/button';
-import MultiSelect from 'primevue/multiselect';
 import QuickStartCode from './QuickStartCode.vue';
 import DatastoreTable from './DatastoreTable.vue';
+import FilterSelectors from './FilterSelectors.vue';
 
 const route = useRoute();
 const router = useRouter();
