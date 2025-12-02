@@ -208,18 +208,18 @@ watch(
 // Handle chip clicks - navigate to datastore with filter
 const handleFilterClick = (field: string, value: string) => {
   if (!props.rowData?.name) return;
-  
+
   // Check if the field exists in the datastore columns
   const datastore = catalogStore.getDatastoreFromCache(props.rowData.name);
   const hasField = datastore?.columns?.includes(field);
-  
+
   router.push({
     name: 'DatastoreDetail',
     params: { name: props.rowData.name },
     // Only add filter query if the field exists in the datastore
     query: hasField ? { [`${field}_filter`]: value } : {},
   });
-  
+
   emit('hide');
 };
 </script>
