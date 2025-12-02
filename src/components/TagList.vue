@@ -3,7 +3,13 @@
     <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">{{ title }}</h6>
     <div class="flex flex-wrap gap-2">
       <template v-if="items && items.length">
-        <span v-for="item in items" :key="item" :class="chipClassComputed">
+        <span
+          v-for="item in items"
+          :key="item"
+          :class="[chipClassComputed, clickable && 'cursor-pointer hover:opacity-80 transition-opacity']"
+          v-tooltip.top="clickable ? 'Filter and open' : undefined"
+          @click="clickable && $emit('chip-click', item)"
+        >
           {{ item }}
         </span>
       </template>
@@ -19,6 +25,11 @@ const props = defineProps<{
   title: string;
   items?: string[] | null;
   chipClass?: string | null;
+  clickable?: boolean;
+}>();
+
+defineEmits<{
+  'chip-click': [item: string];
 }>();
 
 const defaultChip =

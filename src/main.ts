@@ -9,6 +9,7 @@ import Aura from '@primeuix/themes/aura';
 import PrimeVue from 'primevue/config';
 import 'primeicons/primeicons.css';
 import ToastService from 'primevue/toastservice';
+import Tooltip from 'primevue/tooltip';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -23,6 +24,9 @@ app.use(PrimeVue, {
 
 // PrimeVue ToastService provides the context used by `useToast()`.
 app.use(ToastService);
+
+// Register Tooltip directive
+app.directive('tooltip', Tooltip);
 
 app.mount('#app');
 

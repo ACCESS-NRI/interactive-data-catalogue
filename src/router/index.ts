@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
+import { ref } from 'vue';
 import CatalogTable from '../components/CatalogTable.vue';
 
 const routes = [
@@ -26,12 +27,23 @@ const router = createRouter({
   routes,
 });
 
-// Optional: Set page title based on route meta
+// Global loading state for navigation
+export const isNavigating = ref(false);
+
+// Set page title and show loading during navigation
 router.beforeEach((to, _from, next) => {
+  isNavigating.value = true;
   if (to.meta?.title) {
     document.title = to.meta.title as string;
   }
   next();
+});
+
+router.afterEach(() => {
+  // Small delay to ensure component is mounted
+  setTimeout(() => {
+    isNavigating.value = false;
+  }, 100);
 });
 
 export default router;

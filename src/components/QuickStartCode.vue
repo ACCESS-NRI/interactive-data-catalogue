@@ -9,7 +9,7 @@
       <!-- Toggle Switch -->
       <div class="flex items-center space-x-3">
         <span class="text-sm text-blue-700 dark:text-blue-300">ESM Datastore</span>
-        <ToggleSwitch v-model="isXArrayMode" onLabel="xarray" offLabel="ESM" class="w-24" size="small" />
+        <ToggleSwitch v-model="isXArrayMode" :on-label="'xarray'" :off-label="'ESM'" class="w-24" size="small" />
         <span class="text-sm text-blue-700 dark:text-blue-300">xarray Dataset</span>
       </div>
     </div>
