@@ -3,6 +3,6 @@
 # feedback template in the repository's new-issue UI.
 blank_issues_enabled: true
 contact_links:
-  - name: 'Submit user feedback'
-    about: 'Open a pre-filled feedback issue to report bugs or suggest improvements.'
+  - name: 'Share your feedback'
+    about: 'Tell us what you think! Report bugs, suggest features, or share your ideas.'
     url: 'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.md'
