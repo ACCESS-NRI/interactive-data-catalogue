@@ -63,7 +63,7 @@ export interface DatastoreCache {
  */
 const METACAT_URL =
   process.env.NODE_ENV === 'production'
-    ? 'https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
+    ? 'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
     : '/api/parquet/metacatalog.parquet';
 
 /** DuckDB WASM bundles used by the client; selectBundle picks the best one. */
@@ -457,7 +457,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       // Construct the parquet file URL for this specific datastore
       const datastoreUrl =
         process.env.NODE_ENV === 'production'
-          ? `https://corsproxy.io/?https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
+          ? `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
           : `/api/parquet/source/${datastoreName}.parquet`;
 
       // Fetch parquet file and initialize DuckDB concurrently
