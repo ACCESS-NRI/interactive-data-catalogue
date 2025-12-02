@@ -56,18 +56,24 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
             title="Models"
             :items="rowData.model"
             chipClass="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium"
+            :clickable="true"
+            @chip-click="(value) => handleFilterClick('model', value)"
           />
 
           <TagList
             title="Realms"
             :items="rowData.realm"
             chipClass="px-3 py-1 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-full text-sm font-medium"
+            :clickable="true"
+            @chip-click="(value) => handleFilterClick('realm', value)"
           />
 
           <TagList
             title="Frequencies"
             :items="rowData.frequency"
             chipClass="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-medium"
+            :clickable="true"
+            @chip-click="(value) => handleFilterClick('frequency', value)"
           />
         </div>
 
@@ -146,6 +152,7 @@ import YamlTree from './YamlTree.vue';
 import { load as loadYaml } from 'js-yaml';
 import type { CatalogRow } from '../stores/catalogStore';
 import { useCatalogStore } from '../stores/catalogStore';
+import { useRouter } from 'vue-router';
 
 // Props
 const props = defineProps<{
@@ -154,12 +161,13 @@ const props = defineProps<{
 }>();
 
 // Emits
-defineEmits<{
+const emit = defineEmits<{
   hide: [];
 }>();
 
 // Get catalog store for prefetching
 const catalogStore = useCatalogStore();
+const router = useRouter();
 
 // Parsed YAML state
 const parsedYaml = ref<any>(null);
@@ -196,6 +204,24 @@ watch(
   },
   { immediate: true },
 );
+
+// Handle chip clicks - navigate to datastore with filter
+const handleFilterClick = (field: string, value: string) => {
+  if (!props.rowData?.name) return;
+
+  // Check if the field exists in the datastore columns
+  const datastore = catalogStore.getDatastoreFromCache(props.rowData.name);
+  const hasField = datastore?.columns?.includes(field);
+
+  router.push({
+    name: 'DatastoreDetail',
+    params: { name: props.rowData.name },
+    // Only add filter query if the field exists in the datastore
+    query: hasField ? { [`${field}_filter`]: value } : {},
+  });
+
+  emit('hide');
+};
 </script>
 
 <style scoped>
