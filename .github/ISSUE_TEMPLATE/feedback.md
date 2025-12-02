@@ -1,54 +1,47 @@
-<!--
-Issue template for user feedback.
-This will be used when contributors open a new issue using the template parameter.
--->
-
 ---
-
 name: User Feedback
 about: Submit feedback, bug reports or UX suggestions
 title: ''
 labels: feedback, needs-triage
 assignees: ''
-
 ---
 
-## Summary
+## What's on your mind?
 
-One-line summary of the feedback.
+Tell us what you'd like to share!
 
-## Feedback Type
+## What kind of feedback is this?
 
 - [ ] Bug report
 - [ ] Usability / UX feedback
 - [ ] Feature request
-- [ ] Documentation change
-- [ ] Other
+- [ ] Documentation improvement
+- [ ] Something else
 
-## Describe the Feedback (required)
+## Tell us more
 
-Where did the user encounter this, their environment (browser/OS), and any attachments/screenshots.
+We'd love to hear the details! Let us know what happened, where you encountered this, what browser/OS you're using, and feel free to add screenshots or other helpful context.
 
 <details>
-  <summary>Reproduction steps (optional)</summary>
+  <summary>Steps to reproduce (if applicable)</summary>
 
 1. Go to ...
-2. Click ...
-3. Observe ...
+2. Click on ...
+3. See what happens...
 
 </details>
 
-## Expected vs Actual
+## What did you expect vs. what actually happened?
 
-- Expected:
-- Actual:
+- **Expected:**
+- **Actual:**
 
-## Suggested Priority
+## How important is this to you?
 
-- [ ] Low
-- [ ] Medium
-- [ ] High
+- [ ] Nice to have
+- [ ] Would really help
+- [ ] Pretty urgent
 
 ---
 
-Thank you — maintainers will triage this issue.
+Thanks so much for taking the time to share your feedback! We really appreciate it and will take a look soon. 🙏
