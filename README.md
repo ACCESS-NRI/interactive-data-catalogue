@@ -7,15 +7,14 @@ https://charles-turner-1.github.io/catalog-viewer-spa/
 ## Features
 
 - **Interactive Catalog Browsing**: Browse the complete ACCESS-NRI intake catalog with a responsive data table
-- **Advanced Filtering**: Filter datasets by model, realm, frequency, and variables
+- **Advanced Filtering**: Filter datasets by model, realm, frequency, and variables. Filtering composes, so when you apply filters, the remaining filters available will be intelligently pruned.
 - **Datastore Details**: Click through to individual datastores to explore their structure and data
-- **Prefetching & Caching**: Intelligent data prefetching and caching for improved performance
+- **Prefetching & Caching**: Intelligent data prefetching and caching for performance
 - **Quick Start Code**: Generate Python code snippets for accessing datasets via intake
 - **Dark Mode Support**: Toggle between light and dark themes
 
 ## Limitations
 
-- Currently appears to be blocked on ANU wifi.
 - You will still require Gadi access to get your hands on the data.
 - NCI managed datastores (eg. `era5_rt52`, `cmip6_fs38`) currently unsupported.
 
@@ -27,6 +26,9 @@ npm install
 
 # Start development server
 npm run dev
+
+# Format using prettier
+npm run format
 
 # Build for production
 npm run build
