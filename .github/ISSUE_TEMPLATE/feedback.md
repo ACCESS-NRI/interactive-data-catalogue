@@ -33,8 +33,8 @@ We'd love to hear the details! Let us know what happened, where you encountered 
 
 ## What did you expect vs. what actually happened?
 
-- **Expected:** 
-- **Actual:** 
+- **Expected:**
+- **Actual:**
 
 ## How important is this to you?
 
