@@ -1,13 +1,13 @@
 name: User Feedback
 description: Tell us what you think! Report bugs, suggest features, or share your ideas.
-title: "[Feedback]: "
-labels: ["feedback", "needs-triage"]
+title: '[Feedback]: '
+labels: ['feedback', 'needs-triage']
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to share your feedback with us! We really appreciate it. 🙏
-  
+
   - type: input
     id: summary
     attributes:
@@ -16,7 +16,7 @@ body:
       placeholder: e.g., "Filter dropdowns are hard to use on mobile"
     validations:
       required: true
-  
+
   - type: dropdown
     id: feedback-type
     attributes:
@@ -29,7 +29,7 @@ body:
         - Something else
     validations:
       required: true
-  
+
   - type: textarea
     id: description
     attributes:
@@ -37,12 +37,12 @@ body:
       description: We'd love to hear the details! Let us know what happened, where you encountered this, what browser/OS you're using, and feel free to add screenshots or other helpful context.
       placeholder: |
         I was trying to filter the datasets when...
-        
+
         Browser: Chrome 120
         OS: macOS Sonoma
     validations:
       required: true
-  
+
   - type: textarea
     id: reproduction
     attributes:
@@ -55,7 +55,7 @@ body:
         4. Notice that...
     validations:
       required: false
-  
+
   - type: textarea
     id: expected-actual
     attributes:
@@ -66,7 +66,7 @@ body:
         Actual: Nothing happens when I click the filter button
     validations:
       required: false
-  
+
   - type: dropdown
     id: priority
     attributes:
@@ -77,7 +77,7 @@ body:
         - Pretty urgent
     validations:
       required: false
-  
+
   - type: markdown
     attributes:
       value: |
