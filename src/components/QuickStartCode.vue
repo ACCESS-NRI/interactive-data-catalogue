@@ -34,7 +34,9 @@
         <span
           v-for="project in requiredProjects"
           :key="project"
-          class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-sm font-mono font-medium"
+          v-tooltip.top="'Join group'"
+          @click="openProjectJoinPage(project)"
+          class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-sm font-mono font-medium cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
         >
           {{ project }}
         </span>
@@ -270,6 +272,15 @@ const copyCodeToClipboard = async (): Promise<void> => {
     console.error('Failed to copy quick-start code:');
     console.error(err);
   }
+};
+
+/**
+ * Opens the NCI project join page for the specified project.
+ * @param project - The project code (e.g., 'xp65')
+ */
+const openProjectJoinPage = (project: string): void => {
+  const url = `https://my.nci.org.au/mancini/project/${project}/join`;
+  window.open(url, '_blank');
 };
 
 /**
