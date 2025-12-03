@@ -85,21 +85,21 @@ describe('YamlNode', () => {
     });
 
     const button = wrapper.find('button');
-    
+
     // Initially closed (chevron-right)
     expect(wrapper.find('.pi-chevron-right').exists()).toBe(true);
-    
+
     // Click to open
     await button.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Now open (chevron-down)
     expect(wrapper.find('.pi-chevron-down').exists()).toBe(true);
-    
+
     // Click to close
     await button.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Back to closed (chevron-right)
     expect(wrapper.find('.pi-chevron-right').exists()).toBe(true);
   });
@@ -143,15 +143,15 @@ describe('YamlNode', () => {
     });
 
     const button = wrapper.find('button');
-    
+
     // Initially closed
     expect(wrapper.find('.pi-chevron-right').exists()).toBe(true);
     expect(wrapper.find('.pi-chevron-down').exists()).toBe(false);
-    
+
     // Click to open
     await button.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Now open
     expect(wrapper.find('.pi-chevron-down').exists()).toBe(true);
     expect(wrapper.find('.pi-chevron-right').exists()).toBe(false);
@@ -170,20 +170,20 @@ describe('YamlNode', () => {
     });
 
     expect(wrapper.text()).toContain('parent');
-    
+
     // Open the parent
     const parentButton = wrapper.find('button');
     await parentButton.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Now we should see the child key
     expect(wrapper.text()).toContain('child');
-    
+
     // Open the child
     const buttons = wrapper.findAll('button');
     await buttons[1]!.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Now we should see the nested value
     expect(wrapper.text()).toContain('nested-value');
   });
@@ -197,12 +197,12 @@ describe('YamlNode', () => {
     });
 
     expect(wrapper.text()).toContain('- [0]');
-    
+
     // Open the first array item
     const firstButton = wrapper.find('button');
     await firstButton.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Now we should see the nested array index
     const buttons = wrapper.findAll('button');
     expect(buttons.length).toBe(2);
@@ -220,12 +220,12 @@ describe('YamlNode', () => {
     });
 
     expect(wrapper.text()).toContain('arrayKey');
-    
+
     // Open arrayKey
     const buttons = wrapper.findAll('button');
     await buttons[0]!.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Should see array indices
     expect(wrapper.text()).toContain('- [0]');
     expect(wrapper.text()).toContain('- [1]');
@@ -296,26 +296,26 @@ describe('YamlNode', () => {
     });
 
     expect(wrapper.text()).toContain('level1');
-    
+
     // Open level1
     let buttons = wrapper.findAll('button');
     await buttons[0]!.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     expect(wrapper.text()).toContain('level2');
-    
+
     // Open level2
     buttons = wrapper.findAll('button');
     await buttons[1]!.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     expect(wrapper.text()).toContain('level3');
-    
+
     // Open level3
     buttons = wrapper.findAll('button');
     await buttons[2]!.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     expect(wrapper.text()).toContain('deep-value');
   });
 
@@ -354,23 +354,23 @@ describe('YamlNode', () => {
     const buttons = wrapper.findAll('button');
 
     expect(wrapper.findAll('.pi-chevron-down').length).toBe(0);
-    
+
     // Open first key
     await buttons[0]!.trigger('click');
     await wrapper.vm.$nextTick();
 
     expect(wrapper.findAll('.pi-chevron-down').length).toBe(1);
-    
+
     // First should be open, second closed
     const chevronDowns = wrapper.findAll('.pi-chevron-down');
     const chevronRights = wrapper.findAll('.pi-chevron-right');
     expect(chevronDowns.length).toBe(1);
     expect(chevronRights.length).toBe(1);
-    
+
     // Open second key
     await buttons[1]!.trigger('click');
     await wrapper.vm.$nextTick();
-    
+
     // Both should be open
     expect(wrapper.findAll('.pi-chevron-down').length).toBe(2);
   });
