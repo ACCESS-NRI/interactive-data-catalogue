@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -24,13 +27,17 @@
     "@tailwindcss/forms": "^0.5.7",
     "@types/node": "^24.10.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.4.22",
+    "happy-dom": "^20.0.11",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwindcss": "^3.4.18",
     "typescript": "~5.9.3",
     "vite": "^7.2.2",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.1.3"
   }
 }
