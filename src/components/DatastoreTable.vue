@@ -69,7 +69,7 @@
               </span>
               <span
                 v-if="data[column.field].length > 3"
-                @click.prevent.stop="openArrayModal(column.header, data[column.field])"
+                @click.prevent.stop="openDatastoreEntryModal(column.header, data[column.field])"
                 role="button"
                 tabindex="0"
                 class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs cursor-pointer hover:bg-gray-200"
@@ -90,7 +90,7 @@
               </span>
               <span
                 v-if="data[column.field].length > 2"
-                @click.prevent.stop="openArrayModal(column.header, data[column.field])"
+                @click.prevent.stop="openDatastoreEntryModal(column.header, data[column.field])"
                 role="button"
                 tabindex="0"
                 class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs cursor-pointer hover:bg-gray-200"
@@ -131,7 +131,7 @@
               </div>
               <span v-if="data[column.field].length > 2" class="text-xs text-gray-500">
                 <span
-                  @click.prevent.stop="openArrayModal(column.header, data[column.field])"
+                  @click.prevent.stop="openDatastoreEntryModal(column.header, data[column.field])"
                   role="button"
                   tabindex="0"
                   class="cursor-pointer text-xs text-gray-500 hover:text-gray-700"
@@ -150,7 +150,7 @@
         </template>
       </Column>
     </DataTable>
-    <ArrayModal v-model="showArrayModal" :title="modalTitle" :items="modalItems" />
+    <DatastoreEntryModal v-model="showDataStoreEntryModal" :title="modalTitle" :items="modalItems" />
   </div>
 </template>
 
@@ -160,7 +160,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
-import ArrayModal from './ArrayModal.vue';
+import DatastoreEntryModal from './DatastoreEntryModal.vue';
 
 defineProps<{
   filteredData: any[];
@@ -182,14 +182,14 @@ const onRefresh = () => {
 };
 
 // Modal state for showing full array/field contents
-const showArrayModal = ref(false);
+const showDataStoreEntryModal = ref(false);
 const modalTitle = ref('');
 const modalItems = ref<any>([]);
 
-const openArrayModal = (title: string, items: any) => {
+const openDatastoreEntryModal = (title: string, items: any) => {
   modalTitle.value = title || 'Details';
   modalItems.value = Array.isArray(items) ? items : [items];
-  showArrayModal.value = true;
+  showDataStoreEntryModal.value = true;
 };
 </script>
 
