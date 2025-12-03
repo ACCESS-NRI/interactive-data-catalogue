@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
-import CatalogRowDetailModal from '../CatalogRowDetailModal.vue';
+import CatalogRowDetailModal from '../MetacatRowDetailModal.vue';
 import type { CatalogRow } from '../../stores/catalogStore';
 
 // Mock router
