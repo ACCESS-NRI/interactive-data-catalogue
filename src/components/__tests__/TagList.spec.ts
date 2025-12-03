@@ -138,4 +138,3 @@ describe('TagList', () => {
     expect(tag?.classes()).not.toContain('cursor-pointer');
   });
 });
-

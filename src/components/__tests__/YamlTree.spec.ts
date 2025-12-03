@@ -45,7 +45,7 @@ describe('YamlTree', () => {
       },
       array: [1, 2, 3],
     };
-    
+
     const wrapper = mount(YamlTree, {
       props: { data: nestedData },
       global: {
@@ -55,7 +55,7 @@ describe('YamlTree', () => {
 
     // Check that YamlNode is rendered
     expect(wrapper.findComponent(YamlNode).exists()).toBe(true);
-    
+
     // Check that nested keys are present in the DOM
     expect(wrapper.html()).toContain('parent');
     expect(wrapper.html()).toContain('array');
