@@ -1,6 +1,6 @@
 <template>
   <div class="catalog-table-container">
-    <CatalogHeader />
+    <MetacatHeader />
 
     <!-- Loading State -->
     <div v-if="catalogStore.loading" class="flex justify-center items-center py-12">
@@ -196,7 +196,7 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
-import CatalogHeader from './CatalogHeader.vue';
+import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './CatalogRowDetailModal.vue';
 import { useCatalogStore } from '../stores/catalogStore';
 

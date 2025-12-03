@@ -19,9 +19,7 @@
           </a>
           <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
             <div class="p-3 max-w-md">
-              <div class="text-sm text-gray-900 dark:text-gray-100 mb-2">
-                <strong>Commit:</strong> {{ commitSha }}
-              </div>
+              <div class="text-sm text-gray-900 dark:text-gray-100 mb-2"><strong>Commit:</strong> {{ commitSha }}</div>
               <div v-if="buildTime" class="text-xs text-gray-600 dark:text-gray-400 mb-3">
                 <strong>Built:</strong> {{ new Date(buildTime).toLocaleString() }}
               </div>
