@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time to share your feedback with us! We really appreciate it. 🙏
-        
+
         **💡 Tip:** Please include the deployment version from the green badge on the catalog page (hover over it and click "Copy SHA"). This helps us track down issues faster!
 
   - type: input

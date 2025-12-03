@@ -6,10 +6,7 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ACCESS-NRI Interactive Intake Catalog</h1>
         <div class="flex items-center gap-5">
           <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Intake Catalog</p>
-          <div
-            v-if="commitSha && commitSha !== 'unknown'"
-            class="inline-flex"
-          >
+          <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
             <a
               :href="commitUrl"
               target="_blank"
@@ -21,11 +18,7 @@
               <i class="pi pi-github text-sm text-green-700 dark:text-green-400"></i>
               <span class="text-green-700 dark:text-green-300">{{ shortCommitSha }}</span>
             </a>
-            <Popover
-              ref="commitPopover"
-              @mouseenter="cancelHidePopover"
-              @mouseleave="hideCommitPopover"
-            >
+            <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
               <div class="p-3 max-w-md">
                 <div class="text-sm text-gray-900 dark:text-gray-100 mb-2">
                   <strong>Commit:</strong> {{ commitSha }}
@@ -33,13 +26,7 @@
                 <div v-if="buildTime" class="text-xs text-gray-600 dark:text-gray-400 mb-3">
                   <strong>Built:</strong> {{ new Date(buildTime).toLocaleString() }}
                 </div>
-                <Button
-                  label="Copy SHA"
-                  icon="pi pi-copy"
-                  size="small"
-                  @click="copyCommitSha"
-                  class="w-full"
-                />
+                <Button label="Copy SHA" icon="pi pi-copy" size="small" @click="copyCommitSha" class="w-full" />
               </div>
             </Popover>
           </div>
@@ -280,9 +267,7 @@ declare const __BUILD_TIME__: string;
 const commitSha = typeof __GIT_COMMIT_SHA__ !== 'undefined' ? __GIT_COMMIT_SHA__ : null;
 const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null;
 const shortCommitSha = commitSha ? commitSha.substring(0, 7) : '';
-const commitUrl = commitSha
-  ? `https://github.com/charles-turner-1/catalog-viewer-spa/commit/${commitSha}`
-  : '';
+const commitUrl = commitSha ? `https://github.com/charles-turner-1/catalog-viewer-spa/commit/${commitSha}` : '';
 
 // Popover management for commit SHA
 const commitPopover = ref();
@@ -315,7 +300,7 @@ const hideCommitPopover = () => {
 
 const copyCommitSha = async () => {
   if (!commitSha) return;
-  
+
   try {
     await navigator.clipboard.writeText(commitSha);
     commitPopover.value?.hide();
