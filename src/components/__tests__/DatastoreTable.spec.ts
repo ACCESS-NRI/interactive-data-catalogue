@@ -94,9 +94,9 @@ describe('DatastoreTable', () => {
   it('emits refresh event when refresh button is clicked', async () => {
     const wrapper = createWrapper();
     const button = wrapper.findComponent(Button);
-    
+
     await button.vm.$emit('click');
-    
+
     expect(wrapper.emitted('refresh')).toBeTruthy();
     expect(wrapper.emitted('refresh')).toHaveLength(1);
   });
@@ -105,10 +105,10 @@ describe('DatastoreTable', () => {
   it('emits update:selectedColumns when columns are toggled', async () => {
     const wrapper = createWrapper();
     const multiSelect = wrapper.findComponent(MultiSelect);
-    
+
     const newColumns = [{ field: 'variable', header: 'Variable' }];
     await multiSelect.vm.$emit('update:model-value', newColumns);
-    
+
     expect(wrapper.emitted('update:selectedColumns')).toBeTruthy();
     expect(wrapper.emitted('update:selectedColumns')?.[0]).toEqual([newColumns]);
   });
@@ -117,7 +117,7 @@ describe('DatastoreTable', () => {
   it('configures DataTable with pagination props', () => {
     const wrapper = createWrapper();
     const dataTable = wrapper.findComponent(DataTable);
-    
+
     expect(dataTable.props('paginator')).toBe(true);
     expect(dataTable.props('rows')).toBe(25);
     expect(dataTable.props('rowsPerPageOptions')).toEqual([10, 25, 50, 100]);
@@ -127,7 +127,7 @@ describe('DatastoreTable', () => {
   it('passes filteredData to DataTable', () => {
     const wrapper = createWrapper({ filteredData: mockData });
     const dataTable = wrapper.findComponent(DataTable);
-    
+
     expect(dataTable.props('value')).toEqual(mockData);
     expect(dataTable.props('totalRecords')).toBe(2);
   });
@@ -136,7 +136,7 @@ describe('DatastoreTable', () => {
   it('configures DataTable with gridlines, sorting, and resizing', () => {
     const wrapper = createWrapper();
     const dataTable = wrapper.findComponent(DataTable);
-    
+
     expect(dataTable.props('showGridlines')).toBe(true);
     expect(dataTable.props('stripedRows')).toBe(true);
     expect(dataTable.props('removableSort')).toBe(true);
@@ -147,7 +147,7 @@ describe('DatastoreTable', () => {
   it('renders Column components for selected columns', () => {
     const wrapper = createWrapper();
     const columns = wrapper.findAllComponents(Column);
-    
+
     expect(columns.length).toBe(mockColumns.length);
   });
 
@@ -155,7 +155,7 @@ describe('DatastoreTable', () => {
   it('configures columns with correct field and header props', () => {
     const wrapper = createWrapper();
     const columns = wrapper.findAllComponents(Column);
-    
+
     columns.forEach((column, index) => {
       expect(column.props('field')).toBe(mockColumns[index]?.field);
       expect(column.props('header')).toBe(mockColumns[index]?.header);
@@ -167,7 +167,7 @@ describe('DatastoreTable', () => {
   it('configures MultiSelect with column options', () => {
     const wrapper = createWrapper();
     const multiSelect = wrapper.findComponent(MultiSelect);
-    
+
     expect(multiSelect.props('modelValue')).toEqual(mockColumns);
     expect(multiSelect.props('options')).toEqual(mockColumns);
     expect(multiSelect.props('optionLabel')).toBe('header');
@@ -176,7 +176,7 @@ describe('DatastoreTable', () => {
   // Test that the modal refs are initialized with correct default values
   it('initializes modal state correctly', () => {
     const wrapper = createWrapper();
-    
+
     expect(wrapper.vm.showDataStoreEntryModal).toBe(false);
     expect(wrapper.vm.modalTitle).toBe('');
     expect(wrapper.vm.modalItems).toEqual([]);
@@ -186,9 +186,9 @@ describe('DatastoreTable', () => {
   it('opens modal with correct data when openDatastoreEntryModal is called', () => {
     const wrapper = createWrapper();
     const testItems = ['item1', 'item2', 'item3'];
-    
+
     wrapper.vm.openDatastoreEntryModal('Test Title', testItems);
-    
+
     expect(wrapper.vm.showDataStoreEntryModal).toBe(true);
     expect(wrapper.vm.modalTitle).toBe('Test Title');
     expect(wrapper.vm.modalItems).toEqual(testItems);
@@ -198,18 +198,18 @@ describe('DatastoreTable', () => {
   it('wraps non-array items in array when opening modal', () => {
     const wrapper = createWrapper();
     const singleItem = 'single-item';
-    
+
     wrapper.vm.openDatastoreEntryModal('Single Item', singleItem);
-    
+
     expect(wrapper.vm.modalItems).toEqual([singleItem]);
   });
 
   // Test that openDatastoreEntryModal uses default title when none provided
   it('uses default title when opening modal without title', () => {
     const wrapper = createWrapper();
-    
+
     wrapper.vm.openDatastoreEntryModal('', ['item1']);
-    
+
     expect(wrapper.vm.modalTitle).toBe('Details');
   });
 
@@ -217,7 +217,7 @@ describe('DatastoreTable', () => {
   it('renders DatastoreEntryModal with correct props', () => {
     const wrapper = createWrapper();
     const modal = wrapper.findComponent(DatastoreEntryModal);
-    
+
     expect(modal.exists()).toBe(true);
     expect(modal.props('title')).toBe('');
     expect(modal.props('items')).toEqual([]);
@@ -227,7 +227,7 @@ describe('DatastoreTable', () => {
   it('handles empty filtered data', () => {
     const wrapper = createWrapper({ filteredData: [] });
     const dataTable = wrapper.findComponent(DataTable);
-    
+
     expect(dataTable.props('value')).toEqual([]);
     expect(dataTable.props('totalRecords')).toBe(0);
     expect(wrapper.text()).toContain('0 records');
@@ -245,7 +245,7 @@ describe('DatastoreTable', () => {
   it('configures global filter fields', () => {
     const wrapper = createWrapper();
     const dataTable = wrapper.findComponent(DataTable);
-    
+
     expect(dataTable.props('globalFilterFields')).toEqual(['variable', 'frequency', 'realm']);
   });
 
@@ -253,7 +253,7 @@ describe('DatastoreTable', () => {
   it('renders variable_units with up to 2 units displayed', () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({ selectedColumns: columnsWithUnits });
-    
+
     const html = wrapper.html();
     expect(html).toContain('K');
     expect(html).toContain('Pa');
@@ -263,7 +263,7 @@ describe('DatastoreTable', () => {
   it('shows "+X more" link for variable_units when more than 2 units exist', async () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({ selectedColumns: columnsWithUnits });
-    
+
     const html = wrapper.html();
     expect(html).toContain('+1 more');
   });
@@ -271,22 +271,22 @@ describe('DatastoreTable', () => {
   // Test that clicking "+X more" on variable_units opens the modal
   it('opens modal when clicking "+X more" on variable_units field', async () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
-    const wrapper = createWrapper({ 
+    const wrapper = createWrapper({
       selectedColumns: columnsWithUnits,
       filteredData: [
         {
           __index_level_0__: 1,
           variable_units: ['K', 'Pa', 'kg/kg', 'W/m2'],
-        }
-      ]
+        },
+      ],
     });
-    
+
     // Find and click the "+X more" button
     const moreButton = wrapper.find('[role="button"]');
     expect(moreButton.exists()).toBe(true);
-    
+
     await moreButton.trigger('click');
-    
+
     expect(wrapper.vm.showDataStoreEntryModal).toBe(true);
     expect(wrapper.vm.modalTitle).toBe('Variable Units');
     expect(wrapper.vm.modalItems).toEqual(['K', 'Pa', 'kg/kg', 'W/m2']);
@@ -299,13 +299,13 @@ describe('DatastoreTable', () => {
       {
         __index_level_0__: 1,
         variable_units: ['K', 'Pa'],
-      }
+      },
     ];
-    const wrapper = createWrapper({ 
+    const wrapper = createWrapper({
       selectedColumns: columnsWithUnits,
-      filteredData: dataWithFewUnits 
+      filteredData: dataWithFewUnits,
     });
-    
+
     const html = wrapper.html();
     expect(html).not.toContain('more');
   });
