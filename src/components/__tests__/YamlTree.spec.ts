@@ -35,4 +35,29 @@ describe('YamlTree', () => {
 
     expect(wrapper.find('.yaml-tree').exists()).toBe(true);
   });
+
+  it('renders nested YAML structure', () => {
+    const nestedData = {
+      parent: {
+        child: {
+          grandchild: 'value',
+        },
+      },
+      array: [1, 2, 3],
+    };
+    
+    const wrapper = mount(YamlTree, {
+      props: { data: nestedData },
+      global: {
+        components: { YamlNode },
+      },
+    });
+
+    // Check that YamlNode is rendered
+    expect(wrapper.findComponent(YamlNode).exists()).toBe(true);
+    
+    // Check that nested keys are present in the DOM
+    expect(wrapper.html()).toContain('parent');
+    expect(wrapper.html()).toContain('array');
+  });
 });
