@@ -1,8 +1,8 @@
 <template>
   <Dialog v-model:visible="isVisible" header="Long link warning" modal @update:visible="handleVisibilityChange">
     <p class="text-sm text-gray-700 dark:text-gray-200">
-      The generated link is <strong>{{ urlLength }}</strong> characters long and may not work in some browsers,
-      servers, or when pasted into email clients.
+      The generated link is <strong>{{ urlLength }}</strong> characters long and may not work in some browsers, servers,
+      or when pasted into email clients.
     </p>
     <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Do you want to copy it to the clipboard anyway?</p>
     <div class="mt-4 flex justify-end space-x-2">
@@ -72,7 +72,7 @@ watch(
   () => props.visible,
   (newValue) => {
     isVisible.value = newValue;
-  }
+  },
 );
 
 /**
