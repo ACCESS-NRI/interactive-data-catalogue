@@ -1,12 +1,12 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { ref } from 'vue';
-import CatalogTable from '../components/CatalogTable.vue';
+import MetacatTable from '../components/MetacatTable.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: CatalogTable,
+    component: MetacatTable,
     meta: {
       title: 'ACCESS-NRI Intake',
     },
