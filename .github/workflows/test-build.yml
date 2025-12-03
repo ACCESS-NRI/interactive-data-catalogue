@@ -26,6 +26,9 @@ jobs:
       - name: Lint formatting with Prettier
         run: npm run format:check
 
+      - name: Run tests
+        run: npm test -- --run
+
       - name: Build project (includes type checking)
         run: NODE_ENV=production npm run build
 
