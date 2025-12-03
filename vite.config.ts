@@ -56,6 +56,7 @@ export default defineConfig({
         'vite.config.ts',
         'tailwind.config.js',
         'postcss.config.js',
+        'dist/assets/**',
       ],
     },
   },
