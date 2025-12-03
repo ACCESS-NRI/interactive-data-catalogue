@@ -1,10 +1,24 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { execSync } from 'child_process';
+
+// Get git commit SHA
+const getGitCommitSha = () => {
+  try {
+    return execSync('git rev-parse HEAD').toString().trim();
+  } catch {
+    return 'unknown';
+  }
+};
 
 // https://vite.dev/config/
 export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/catalog-viewer-spa/' : '/',
   plugins: [vue()],
+  define: {
+    __GIT_COMMIT_SHA__: JSON.stringify(getGitCommitSha()),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   server: {
     proxy: {
       '/api/parquet': {
