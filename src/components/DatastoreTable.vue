@@ -160,7 +160,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
-import DatastoreEntryModal from './DataStoreEntryModal.vue';
+import DatastoreEntryModal from './DatastoreEntryModal.vue';
 
 defineProps<{
   filteredData: any[];

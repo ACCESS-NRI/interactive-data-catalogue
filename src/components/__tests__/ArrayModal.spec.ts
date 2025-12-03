@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
-import DataStoreEntryModal from '../DatastoreEntryModal.vue';
+import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 
 describe('ArrayModal', () => {
   // Helper to create wrapper with PrimeVue components stubbed
   const createWrapper = (props: any) => {
-    return mount(DataStoreEntryModal, {
+    return mount(DatastoreEntryModal, {
       props,
       global: {
         stubs: {
