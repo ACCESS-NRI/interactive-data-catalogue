@@ -18,30 +18,7 @@
       To access this data{{ hasActiveFilters ? ' with current filters' : '' }}:
     </p>
 
-    <!-- Required Projects Section -->
-    <div
-      v-if="requiredProjects.length > 0"
-      class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded"
-    >
-      <div class="flex items-center mb-2">
-        <i class="pi pi-info-circle text-yellow-600 mr-2"></i>
-        <strong class="text-yellow-800 dark:text-yellow-200 text-sm">Required Project Access:</strong>
-      </div>
-      <p class="text-yellow-700 dark:text-yellow-300 text-sm mb-2">
-        You will need to be a member of the following project{{ requiredProjects.length > 1 ? 's' : '' }}:
-      </p>
-      <div class="flex flex-wrap gap-2">
-        <span
-          v-for="project in requiredProjects"
-          :key="project"
-          v-tooltip.top="'Join group'"
-          @click="openProjectJoinPage(project)"
-          class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-sm font-mono font-medium cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
-        >
-          {{ project }}
-        </span>
-      </div>
-    </div>
+    <RequiredProjectsWarning :projects="requiredProjects" />
 
     <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ quickStartCode }}</code></pre>
 
@@ -67,18 +44,15 @@
 
       <!-- PrimeVue toast will show copy confirmations -->
     </div>
-    <!-- Long URL confirmation dialog -->
-    <Dialog v-model:visible="showLongUrlDialog" header="Long link warning" modal>
-      <p class="text-sm text-gray-700 dark:text-gray-200">
-        The generated link is <strong>{{ pendingUrlLength }}</strong> characters long and may not work in some browsers,
-        servers, or when pasted into email clients.
-      </p>
-      <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Do you want to copy it to the clipboard anyway?</p>
-      <div class="mt-4 flex justify-end space-x-2">
-        <Button label="Cancel" class="p-button-text" @click="cancelCopyLongUrl" />
-        <Button label="Copy anyway" icon="pi pi-copy" @click="confirmCopyLongUrl" />
-      </div>
-    </Dialog>
+
+    <LongUrlConfirmDialog
+      :visible="showLongUrlDialog"
+      :url="pendingLongUrl"
+      :url-length="pendingUrlLength"
+      @update:visible="showLongUrlDialog = $event"
+      @confirm="confirmCopyLongUrl"
+      @cancel="cancelCopyLongUrl"
+    />
   </div>
 </template>
 
@@ -88,9 +62,10 @@ import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
-import Dialog from 'primevue/dialog';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
+import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
+import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
 
 // Props
 /**
@@ -138,11 +113,11 @@ const showLongUrlDialog = ref(false);
 const pendingLongUrl = ref('');
 const pendingUrlLength = ref(0);
 
-const confirmCopyLongUrl = async () => {
+const confirmCopyLongUrl = async (url: string) => {
   try {
-    await navigator.clipboard.writeText(pendingLongUrl.value);
+    await navigator.clipboard.writeText(url);
     showLongUrlDialog.value = false;
-    console.log('Query link copied to clipboard (long):', pendingLongUrl.value);
+    console.log('Query link copied to clipboard (long):', url);
     // show ephemeral confirmation
     triggerCopiedBadge();
   } catch (err) {
@@ -272,15 +247,6 @@ const copyCodeToClipboard = async (): Promise<void> => {
     console.error('Failed to copy quick-start code:');
     console.error(err);
   }
-};
-
-/**
- * Opens the NCI project join page for the specified project.
- * @param project - The project code (e.g., 'xp65')
- */
-const openProjectJoinPage = (project: string): void => {
-  const url = `https://my.nci.org.au/mancini/project/${project}/join`;
-  window.open(url, '_blank');
 };
 
 /**
