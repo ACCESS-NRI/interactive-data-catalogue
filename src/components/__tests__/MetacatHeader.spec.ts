@@ -87,7 +87,7 @@ describe('MetacatHeader', () => {
     const wrapper = createWrapper(commitSha, '2025-12-03T10:00:00Z');
     const commitLink = wrapper.find('a[href*="github.com"]');
     expect(commitLink.attributes('href')).toBe(
-      `https://github.com/charles-turner-1/catalog-viewer-spa/commit/${commitSha}`
+      `https://github.com/charles-turner-1/catalog-viewer-spa/commit/${commitSha}`,
     );
   });
 
