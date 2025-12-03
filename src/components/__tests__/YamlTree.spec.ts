@@ -8,7 +8,7 @@ describe('YamlTree', () => {
     const wrapper = mount(YamlTree, {
       props: { data: null },
     });
-    
+
     expect(wrapper.text()).toContain('No data to display');
   });
 
@@ -20,7 +20,7 @@ describe('YamlTree', () => {
         components: { YamlNode },
       },
     });
-    
+
     expect(wrapper.findComponent(YamlNode).exists()).toBe(true);
     expect(wrapper.text()).not.toContain('No data to display');
   });
@@ -32,7 +32,7 @@ describe('YamlTree', () => {
         components: { YamlNode },
       },
     });
-    
+
     expect(wrapper.find('.yaml-tree').exists()).toBe(true);
   });
 });
