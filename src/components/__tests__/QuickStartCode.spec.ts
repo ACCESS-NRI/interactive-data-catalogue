@@ -207,9 +207,7 @@ describe('QuickStartCode', () => {
     expect(buttons.length).toBeGreaterThan(0);
     await buttons[0]!.vm.$emit('click');
 
-    expect(writeTextMock).toHaveBeenCalledWith(
-      expect.stringContaining('intake.cat.access_nri["test-datastore"]')
-    );
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('intake.cat.access_nri["test-datastore"]'));
   });
 
   // Test that the copy link button generates correct URL with filters
@@ -227,12 +225,8 @@ describe('QuickStartCode', () => {
     expect(buttons.length).toBeGreaterThan(1);
     await buttons[1]!.vm.$emit('click');
 
-    expect(writeTextMock).toHaveBeenCalledWith(
-      expect.stringContaining('project_filter=xp65')
-    );
-    expect(writeTextMock).toHaveBeenCalledWith(
-      expect.stringContaining('variable_filter=tas,pr')
-    );
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('project_filter=xp65'));
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('variable_filter=tas,pr'));
   });
 
   // Test that the copy link button generates URL without filters when none active
@@ -247,9 +241,7 @@ describe('QuickStartCode', () => {
     expect(buttons.length).toBeGreaterThan(1);
     await buttons[1]!.vm.$emit('click');
 
-    expect(writeTextMock).toHaveBeenCalledWith(
-      expect.stringMatching(/\/datastore\/test-datastore$/)
-    );
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringMatching(/\/datastore\/test-datastore$/));
   });
 
   // Test that required projects includes xp65 by default
@@ -413,10 +405,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      rawData: [
-        { path: '/g/data/xp65/file1.nc' },
-        { path: '/g/data/xp65/file2.nc' },
-      ],
+      rawData: [{ path: '/g/data/xp65/file1.nc' }, { path: '/g/data/xp65/file2.nc' }],
     });
 
     // Should still render without errors
