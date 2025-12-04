@@ -17,7 +17,7 @@ describe('catalogStore', () => {
     setActivePinia(pinia);
     store = useCatalogStore();
     vi.clearAllMocks();
-    
+
     // Mock Worker globally for tests that need it
     global.Worker = vi.fn() as any;
   });
@@ -144,38 +144,38 @@ describe('catalogStore', () => {
         // Mock initializeDuckDB to throw an error quickly
         vi.spyOn(store, 'initializeDuckDB').mockRejectedValue(new Error('Test error'));
         const fetchPromise = store.fetchCatalogData();
-        
+
         expect(store.loading).toBe(true);
 
         await fetchPromise.catch(() => {});
         expect(store.loading).toBe(false);
       });
 
-    // These fail because I (and Claude) can't work out how to properly mock the
-    // store duckdb initialisation, so we wind up with nonsense. Circle back - 
-    // everything seems to work properly anyway (for now...)
+      // These fail because I (and Claude) can't work out how to properly mock the
+      // store duckdb initialisation, so we wind up with nonsense. Circle back -
+      // everything seems to work properly anyway (for now...)
 
-    //      // Test that fetchCatalogData handles fetch errors gracefully
-    //      it('handles fetch errors', async () => {
-    //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('Network error'));
-        //
-    //        await store.fetchCatalogData();
-        //
-    //        expect(store.error).toBe('Network error');
-    //        expect(store.loading).toBe(false);
-    //      });
+      //      // Test that fetchCatalogData handles fetch errors gracefully
+      //      it('handles fetch errors', async () => {
+      //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('Network error'));
       //
-    //      // Test that fetchCatalogData clears error state before fetching
-    //      it('clears previous error before fetching', async () => {
-    //        store.error = 'Previous error';
-    //        store.data = []; // Ensure it tries to fetch
-        //
-    //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('New error'));
-        //
-    //        await store.fetchCatalogData();
-        //
-    //        expect(store.error).toBe('New error');
-    //      });
+      //        await store.fetchCatalogData();
+      //
+      //        expect(store.error).toBe('Network error');
+      //        expect(store.loading).toBe(false);
+      //      });
+      //
+      //      // Test that fetchCatalogData clears error state before fetching
+      //      it('clears previous error before fetching', async () => {
+      //        store.error = 'Previous error';
+      //        store.data = []; // Ensure it tries to fetch
+      //
+      //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('New error'));
+      //
+      //        await store.fetchCatalogData();
+      //
+      //        expect(store.error).toBe('New error');
+      //      });
     });
 
     describe('clearDatastoreCache', () => {
@@ -393,10 +393,7 @@ describe('catalogStore', () => {
 
       // Test that generateFilterOptions handles array values in columns
       it('handles array values', () => {
-        const data = [
-          { tags: ['tag1', 'tag2'] },
-          { tags: ['tag2', 'tag3'] },
-        ];
+        const data = [{ tags: ['tag1', 'tag2'] }, { tags: ['tag2', 'tag3'] }];
 
         const options = store.generateFilterOptions(data);
 
@@ -405,12 +402,7 @@ describe('catalogStore', () => {
 
       // Test that generateFilterOptions filters out null and empty values
       it('filters out null and empty values', () => {
-        const data = [
-          { value: 'valid' },
-          { value: null },
-          { value: '' },
-          { value: '  ' },
-        ];
+        const data = [{ value: 'valid' }, { value: null }, { value: '' }, { value: '  ' }];
 
         const options = store.generateFilterOptions(data);
 
@@ -419,10 +411,7 @@ describe('catalogStore', () => {
 
       // Test that generateFilterOptions handles mixed scalar and array values
       it('handles mixed scalar and array values', () => {
-        const data = [
-          { field: 'value1' },
-          { field: ['value2', 'value3'] },
-        ];
+        const data = [{ field: 'value1' }, { field: ['value2', 'value3'] }];
 
         const options = store.generateFilterOptions(data);
 
