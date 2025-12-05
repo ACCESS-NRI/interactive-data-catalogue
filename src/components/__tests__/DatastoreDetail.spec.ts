@@ -375,7 +375,7 @@ describe('DatastoreDetail', () => {
       frequency: ['daily', 'monthly'],
       realm: ['ocean', 'atmosphere'],
     });
-    expect(filters.props('rawData')).toEqual(mockDatastoreData);
+    expect(filters.props('dynamicFilterOptions')).toBeDefined();
 
     // Check DatastoreTable props
     const table = wrapper.findComponent({ name: 'DatastoreTable' });

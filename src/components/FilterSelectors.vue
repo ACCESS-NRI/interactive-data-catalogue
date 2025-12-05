@@ -7,7 +7,7 @@
         <MultiSelect
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="dynamicFilterOptions[column] || options"
+          :options="props.dynamicFilterOptions[column] || options"
           display="chip"
           class="w-full"
           filter
@@ -23,14 +23,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 
 interface Props {
   filterOptions: Record<string, string[]>;
   modelValue: Record<string, string[]>;
-  rawData: Array<Record<string, any>>;
+  dynamicFilterOptions: Record<string, string[]>;
 }
 
 interface Emits {
@@ -49,50 +48,6 @@ const formatColumnName = (c: string) =>
       return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : '';
     })
     .join(' ');
-
-// Compute dynamic filter options based on current filter selections
-// This ensures users can't select filter combinations that result in 0 rows
-const dynamicFilterOptions = computed(() => {
-  const result: Record<string, string[]> = {};
-
-  // For each filter column, compute which options would yield results
-  for (const [column, allOptions] of Object.entries(props.filterOptions)) {
-    // Start with raw data
-    let availableData = props.rawData;
-
-    // Apply all OTHER active filters (not the current column)
-    for (const [filterColumn, filterValues] of Object.entries(props.modelValue)) {
-      if (filterColumn !== column && filterValues && filterValues.length > 0) {
-        availableData = availableData.filter((row: Record<string, any>) => {
-          const cellValue = row[filterColumn];
-          return filterValues.some((fv) => {
-            if (Array.isArray(cellValue))
-              return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
-            return String(cellValue || '')
-              .toLowerCase()
-              .includes(fv.toLowerCase());
-          });
-        });
-      }
-    }
-
-    // Now find which options from this column exist in the filtered data
-    const validOptions = new Set<string>();
-    for (const row of availableData) {
-      const cellValue = row[column];
-      if (Array.isArray(cellValue)) {
-        cellValue.forEach((val: any) => validOptions.add(String(val)));
-      } else if (cellValue !== null && cellValue !== undefined) {
-        validOptions.add(String(cellValue));
-      }
-    }
-
-    // Filter the original options to only include valid ones
-    result[column] = allOptions.filter((option) => validOptions.has(option));
-  }
-
-  return result;
-});
 
 const updateFilter = (column: string, value: string[]) => {
   const updatedFilters = { ...props.modelValue, [column]: value };

@@ -20,6 +20,8 @@
 
     <RequiredProjectsWarning :projects="requiredProjects" />
 
+    <MultipleCellMethodsWarning :visible="shouldShowCellMethodsWarning" />
+
     <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ quickStartCode }}</code></pre>
 
     <div class="mt-3 relative inline-block">
@@ -65,6 +67,7 @@ import ToggleSwitch from 'primevue/toggleswitch';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
+import MultipleCellMethodsWarning from './MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
 
 // Props
@@ -92,6 +95,12 @@ interface Props {
    * to be an object and may contain fields such as `path` and `file_id`.
    */
   rawData: any[];
+
+  /**
+   * Dynamic filter options for each column (filtered based on other active filters).
+   * Used to determine if there are multiple variable_cell_methods options available.
+   */
+  dynamicFilterOptions: Record<string, string[]>;
 }
 
 /** The typed props object (available in <script setup> via defineProps). */
@@ -187,6 +196,29 @@ const numDatasets = computed(() => {
   });
 
   return fileIds.size;
+});
+
+/**
+ * Determine whether to show the MultipleCellMethodsWarning.
+ *
+ * The warning should be displayed when:
+ * 1. xarray mode is enabled (isXArrayMode is true)
+ * 2. User has filtered down to a single dataset (numDatasets === 1)
+ * 3. There are multiple variable_cell_methods options available in dynamicFilterOptions
+ *
+ * This indicates the user may need to further filter by variable_cell_methods
+ * before calling to_dask().
+ */
+const shouldShowCellMethodsWarning = computed((): boolean => {
+  if (!isXArrayMode.value) return false;
+  if (numDatasets.value !== 1) return false;
+
+  // Don't show warning if user has already filtered by variable_cell_methods
+  const hasFilteredCellMethods = (props.currentFilters['variable_cell_methods']?.length ?? 0) > 0;
+  if (hasFilteredCellMethods) return false;
+
+  const cellMethodsOptions = props.dynamicFilterOptions['variable_cell_methods'];
+  return !!(cellMethodsOptions && cellMethodsOptions.length > 1);
 });
 
 /**
