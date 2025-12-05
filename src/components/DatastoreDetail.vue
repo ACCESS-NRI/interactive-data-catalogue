@@ -82,13 +82,14 @@
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
           :raw-data="filteredData"
+          :dynamic-filter-options="dynamicFilterOptions"
           class="mb-6"
         />
 
         <FilterSelectors
           v-model="currentFilters"
           :filter-options="filterOptions"
-          :raw-data="rawData"
+          :dynamic-filter-options="dynamicFilterOptions"
           @clear="clearFilters"
         />
 
@@ -166,6 +167,45 @@ const filteredData = computed(() => {
     }
   }
   return data;
+});
+
+const dynamicFilterOptions = computed(() => {
+  const result: Record<string, string[]> = {};
+
+  for (const [column, allOptions] of Object.entries(filterOptions.value)) {
+    let availableData = rawData.value;
+
+    // Apply all OTHER active filters (not the current column)
+    for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
+      if (filterColumn !== column && filterValues && filterValues.length > 0) {
+        availableData = availableData.filter((row: Record<string, any>) => {
+          const cellValue = row[filterColumn];
+          return filterValues.some((fv) => {
+            if (Array.isArray(cellValue))
+              return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+            return String(cellValue || '')
+              .toLowerCase()
+              .includes(fv.toLowerCase());
+          });
+        });
+      }
+    }
+
+    // Find which options from this column exist in the filtered data
+    const validOptions = new Set<string>();
+    for (const row of availableData) {
+      const cellValue = row[column];
+      if (Array.isArray(cellValue)) {
+        cellValue.forEach((val: any) => validOptions.add(String(val)));
+      } else if (cellValue !== null && cellValue !== undefined) {
+        validOptions.add(String(cellValue));
+      }
+    }
+
+    result[column] = allOptions.filter((option) => validOptions.has(option));
+  }
+
+  return result;
 });
 
 const loadDatastore = async () => {

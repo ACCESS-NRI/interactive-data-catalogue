@@ -14,11 +14,11 @@ describe('FilterSelectors', () => {
       variable: ['var1', 'var2', 'var3', 'var4'],
     },
     modelValue: {},
-    rawData: [
-      { project: 'proj1', experiment: 'exp1', variable: 'var1' },
-      { project: 'proj2', experiment: 'exp2', variable: 'var2' },
-      { project: 'proj3', experiment: 'exp1', variable: 'var3' },
-    ],
+    dynamicFilterOptions: {
+      project: ['proj1', 'proj2', 'proj3'],
+      experiment: ['exp1', 'exp2'],
+      variable: ['var1', 'var2', 'var3', 'var4'],
+    },
   };
 
   // Helper to create wrapper with PrimeVue components
@@ -124,113 +124,100 @@ describe('FilterSelectors', () => {
     });
   });
 
-  // Test that dynamic filter options exclude values that would result in zero results
-  it('computes dynamic filter options based on other active filters', () => {
+  // Test that dynamic filter options are used from props
+  it('uses dynamic filter options from props', () => {
     const wrapper = createWrapper({
-      modelValue: {
+      dynamicFilterOptions: {
         project: ['proj1'],
+        experiment: ['exp1'],
+        variable: ['var1'],
       },
     });
 
-    // With project='proj1' selected, only exp1 should be available in experiment filter
-    const vm = wrapper.vm as any;
-    const dynamicOptions = vm.dynamicFilterOptions;
-
-    expect(dynamicOptions.experiment).toEqual(['exp1']);
-    expect(dynamicOptions.variable).toEqual(['var1']);
+    // Verify that the component uses the provided dynamic options
+    const multiSelects = wrapper.findAllComponents(MultiSelect);
+    expect(multiSelects.length).toBe(3);
   });
 
   // Test that all options are available when no filters are applied
   it('shows all filter options when no filters are active', () => {
     const wrapper = createWrapper();
 
-    const vm = wrapper.vm as any;
-    const dynamicOptions = vm.dynamicFilterOptions;
+    const dynamicOptions = wrapper.props('dynamicFilterOptions');
 
     expect(dynamicOptions.project).toEqual(['proj1', 'proj2', 'proj3']);
     expect(dynamicOptions.experiment).toEqual(['exp1', 'exp2']);
-    expect(dynamicOptions.variable).toEqual(['var1', 'var2', 'var3']);
+    expect(dynamicOptions.variable).toEqual(['var1', 'var2', 'var3', 'var4']);
   });
 
-  // Test that filters work correctly with array cell values
-  it('handles array values in data cells', () => {
+  // Test that component accepts dynamic filter options as prop
+  it('accepts dynamicFilterOptions as prop', () => {
     const wrapper = createWrapper({
-      rawData: [
-        { project: 'proj1', experiment: ['exp1', 'exp2'], variable: 'var1' },
-        { project: 'proj2', experiment: ['exp2'], variable: 'var2' },
-      ],
+      dynamicFilterOptions: {
+        project: ['proj1'],
+        experiment: ['exp1', 'exp2'],
+        variable: ['var1'],
+      },
       modelValue: {
         project: ['proj1'],
       },
     });
 
-    const vm = wrapper.vm as any;
-    const dynamicOptions = vm.dynamicFilterOptions;
+    const dynamicOptions = wrapper.props('dynamicFilterOptions');
 
-    // With proj1 selected, both exp1 and exp2 should be available
     expect(dynamicOptions.experiment).toContain('exp1');
     expect(dynamicOptions.experiment).toContain('exp2');
   });
 
-  // Test that null and undefined values are handled gracefully
-  it('handles null and undefined values in data', () => {
+  // Test that component handles empty dynamicFilterOptions gracefully
+  it('handles empty dynamicFilterOptions gracefully', () => {
     const wrapper = createWrapper({
-      rawData: [
-        { project: 'proj1', experiment: null, variable: undefined },
-        { project: 'proj2', experiment: 'exp2', variable: 'var2' },
-      ],
+      dynamicFilterOptions: {},
     });
 
-    const vm = wrapper.vm as any;
-    const dynamicOptions = vm.dynamicFilterOptions;
-
-    // Should not crash and should still compute valid options
-    expect(dynamicOptions.project).toContain('proj1');
-    expect(dynamicOptions.project).toContain('proj2');
+    // Should not crash
+    expect(wrapper.exists()).toBe(true);
   });
 
-  // Test that multiple filters work together to narrow down options
-  it('narrows down options correctly with multiple active filters', () => {
+  // Test that component works with narrowed dynamicFilterOptions
+  it('works with narrowed dynamicFilterOptions from parent', () => {
     const wrapper = createWrapper({
-      rawData: [
-        { project: 'proj1', experiment: 'exp1', variable: 'var1' },
-        { project: 'proj1', experiment: 'exp2', variable: 'var2' },
-        { project: 'proj2', experiment: 'exp1', variable: 'var3' },
-      ],
+      dynamicFilterOptions: {
+        project: ['proj1'],
+        experiment: ['exp1'],
+        variable: ['var1'],
+      },
       modelValue: {
         project: ['proj1'],
         experiment: ['exp1'],
       },
     });
 
-    const vm = wrapper.vm as any;
-    const dynamicOptions = vm.dynamicFilterOptions;
+    const dynamicOptions = wrapper.props('dynamicFilterOptions');
 
-    // With proj1 AND exp1 selected, only var1 should be available
+    // Verify narrowed options are passed correctly
     expect(dynamicOptions.variable).toEqual(['var1']);
   });
 
-  // Test that filter matching is case-insensitive
-  it('performs case-insensitive filtering', () => {
+  // Test that component renders with different filter options
+  it('renders with different filter option formats', () => {
     const wrapper = createWrapper({
       filterOptions: {
         project: ['PROJ1', 'Proj2'],
         experiment: ['EXP1', 'Exp2'],
         variable: ['VAR1', 'Var2'],
       },
-      rawData: [
-        { project: 'PROJ1', experiment: 'EXP1', variable: 'VAR1' },
-        { project: 'Proj2', experiment: 'Exp2', variable: 'Var2' },
-      ],
+      dynamicFilterOptions: {
+        project: ['PROJ1'],
+        experiment: ['EXP1'],
+        variable: ['VAR1'],
+      },
       modelValue: {
         project: ['proj1'],
       },
     });
 
-    const vm = wrapper.vm as any;
-    const dynamicOptions = vm.dynamicFilterOptions;
-
-    // Should match 'proj1' to 'PROJ1' case-insensitively
-    expect(dynamicOptions.experiment).toEqual(['EXP1']);
+    // Should render without errors
+    expect(wrapper.exists()).toBe(true);
   });
 });

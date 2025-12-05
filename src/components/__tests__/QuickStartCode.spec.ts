@@ -44,7 +44,10 @@ describe('QuickStartCode', () => {
   // Helper to create wrapper with required props and global config
   const createWrapper = (props: any) => {
     return mount(QuickStartCode, {
-      props,
+      props: {
+        dynamicFilterOptions: {},
+        ...props,
+      },
       global: {
         plugins: [pinia, router, PrimeVue, ToastService],
         stubs: {
@@ -410,5 +413,77 @@ describe('QuickStartCode', () => {
 
     // Should still render without errors
     expect(wrapper.text()).toContain('Quick Start');
+  });
+
+  // Test that MultipleCellMethodsWarning appears when conditions are met
+  it('shows cell methods warning when single dataset with multiple cell methods', () => {
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [{ file_id: 'dataset1' }],
+      dynamicFilterOptions: {
+        variable_cell_methods: ['time: mean', 'time: point', 'area: mean'],
+      },
+    });
+
+    expect(wrapper.text()).toContain('Multiple Cell Methods Detected');
+  });
+
+  // Test that MultipleCellMethodsWarning does NOT appear with single cell method
+  it('does not show cell methods warning with single cell method option', () => {
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [{ file_id: 'dataset1' }],
+      dynamicFilterOptions: {
+        variable_cell_methods: ['time: mean'],
+      },
+    });
+
+    expect(wrapper.text()).not.toContain('Multiple Cell Methods Detected');
+  });
+
+  // Test that MultipleCellMethodsWarning does NOT appear with multiple datasets
+  it('does not show cell methods warning with multiple datasets', () => {
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [{ file_id: 'dataset1' }, { file_id: 'dataset2' }],
+      dynamicFilterOptions: {
+        variable_cell_methods: ['time: mean', 'time: point'],
+      },
+    });
+
+    expect(wrapper.text()).not.toContain('Multiple Cell Methods Detected');
+  });
+
+  // Test that MultipleCellMethodsWarning does NOT appear in ESM mode
+  it('does not show cell methods warning in ESM mode', async () => {
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [{ file_id: 'dataset1' }],
+      dynamicFilterOptions: {
+        variable_cell_methods: ['time: mean', 'time: point'],
+      },
+    });
+
+    // Toggle to ESM mode (off)
+    const toggleSwitch = wrapper.findComponent({ name: 'ToggleSwitch' });
+    await toggleSwitch.vm.$emit('update:modelValue', false);
+
+    expect(wrapper.text()).not.toContain('Multiple Cell Methods Detected');
+  });
+
+  // Test that MultipleCellMethodsWarning does NOT appear without dynamicFilterOptions
+  it('does not show cell methods warning without filterOptions', () => {
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [{ file_id: 'dataset1' }],
+      dynamicFilterOptions: {},
+    });
+
+    expect(wrapper.text()).not.toContain('Multiple Cell Methods Detected');
   });
 });
