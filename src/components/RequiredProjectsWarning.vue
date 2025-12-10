@@ -18,7 +18,7 @@
         @click="openProjectJoinPage(project)"
         class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-blue-400 dark:text-yellow-200 rounded text-sm font-mono font-medium cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors underline decoration-dotted"
       >
-      <i class="pi pi-external-link" style="font-size: 0.8rem"></i>
+        <i class="pi pi-external-link" style="font-size: 0.8rem"></i>
         {{ project }}
       </span>
     </div>
