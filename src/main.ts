@@ -11,10 +11,19 @@ import 'primeicons/primeicons.css';
 import ToastService from 'primevue/toastservice';
 import Tooltip from 'primevue/tooltip';
 
+// Syntax highlighting
+import 'highlight.js/styles/github-dark.css';
+import hljs from 'highlight.js/lib/core';
+import python from 'highlight.js/lib/languages/python';
+import hljsVuePlugin from '@highlightjs/vue-plugin';
+
+hljs.registerLanguage('python', python);
+
 const app = createApp(App);
 const pinia = createPinia();
 
 app.use(pinia);
+app.use(hljsVuePlugin);
 app.use(router);
 app.use(PrimeVue, {
   theme: {

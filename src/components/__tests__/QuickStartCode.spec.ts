@@ -54,6 +54,10 @@ describe('QuickStartCode', () => {
           Toast: true,
           Button: true,
           ToggleSwitch: true,
+          highlightjs: {
+            template: '<pre><code>{{ code }}</code></pre>',
+            props: ['code', 'language'],
+          },
         },
       },
     });
