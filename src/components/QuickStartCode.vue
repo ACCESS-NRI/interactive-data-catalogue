@@ -22,7 +22,9 @@
 
     <MultipleCellMethodsWarning :visible="shouldShowCellMethodsWarning" />
 
-    <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"><code>{{ quickStartCode }}</code></pre>
+    <div class="rounded overflow-hidden">
+    <highlightjs language="python" :code="quickStartCode" class="text-sm"/>
+    </div>
 
     <div class="mt-3 relative inline-block">
       <Toast position="top-right" />
@@ -69,6 +71,7 @@ import { useToast } from 'primevue/usetoast';
 import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
 import MultipleCellMethodsWarning from './MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
+import 'highlight.js/lib/common';
 
 // Props
 /**
@@ -235,9 +238,19 @@ const shouldShowCellMethodsWarning = computed((): boolean => {
  * change.
  */
 const quickStartCode = computed(() => {
-  let code = `# In an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
+  let code = `"""
+You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
+
+First we import intake and connect to a Dask cluster - we can then access the datastore.
+"""
+
 import intake
+from dask.distributed import Client
+
+client = Client(threads_per_worker=1) 
+
 datastore = intake.cat.access_nri["${props.datastoreName}"]`;
+
 
   if (hasActiveFilters.value) {
     for (const [column, values] of Object.entries(props.currentFilters)) {
@@ -255,7 +268,7 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`;
   // Add XArray conversion if in XArray mode
   if (isXArrayMode.value) {
     if (numDatasets.value > 1) {
-      code += `\n# Search contains ${numDatasets.value} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
+      code += `\n\n# Search contains ${numDatasets.value} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
       code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`;
       code += `\ndataset_dict = datastore.to_dataset_dict()`;
     } else {
