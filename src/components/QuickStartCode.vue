@@ -23,7 +23,7 @@
     <MultipleCellMethodsWarning :visible="shouldShowCellMethodsWarning" />
 
     <div class="rounded overflow-hidden">
-    <highlightjs language="python" :code="quickStartCode" class="text-sm"/>
+      <highlightjs language="python" :code="quickStartCode" class="text-sm" />
     </div>
 
     <div class="mt-3 relative inline-block">
@@ -250,7 +250,6 @@ from dask.distributed import Client
 client = Client(threads_per_worker=1) 
 
 datastore = intake.cat.access_nri["${props.datastoreName}"]`;
-
 
   if (hasActiveFilters.value) {
     for (const [column, values] of Object.entries(props.currentFilters)) {
