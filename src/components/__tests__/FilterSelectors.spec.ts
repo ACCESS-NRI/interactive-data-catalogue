@@ -61,6 +61,30 @@ describe('FilterSelectors', () => {
     expect(wrapper.text()).toContain('Test Column Name');
   });
 
+  // Test that formatColumnName handles edge cases like empty parts (double underscores)
+  it('handles column names with empty parts from double underscores', () => {
+    const wrapper = createWrapper({
+      filterOptions: {
+        test__column: ['value1'],
+      },
+    });
+
+    // Should handle the empty string between double underscores
+    expect(wrapper.text()).toContain('Test  Column');
+  });
+
+  // Test that formatColumnName handles empty strings
+  it('handles empty string in column name parts', () => {
+    const wrapper = createWrapper({
+      filterOptions: {
+        test_: ['value1'],
+      },
+    });
+
+    // Should handle trailing underscore creating empty part
+    expect(wrapper.text()).toContain('Test ');
+  });
+
   // Test that MultiSelect components are rendered for each filter column
   it('renders MultiSelect components for each filter', () => {
     const wrapper = createWrapper();
@@ -219,5 +243,98 @@ describe('FilterSelectors', () => {
 
     // Should render without errors
     expect(wrapper.exists()).toBe(true);
+  });
+
+  // Test that filter search term is tracked
+  it('tracks filter search term when filter event is emitted', () => {
+    const wrapper = createWrapper();
+
+    const multiSelect = wrapper.findComponent(MultiSelect);
+    multiSelect.vm.$emit('filter', { value: 'proj' });
+
+    // filterValues should be updated internally
+    expect(wrapper.vm.filterValues).toBeDefined();
+    expect(wrapper.vm.filterValues.project).toBe('proj');
+  });
+
+  // Test that getSortedOptions returns original order when no search term
+  it('returns options in original order when no search term provided', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['zebra', 'apple', 'banana'],
+      },
+    });
+
+    const sorted = wrapper.vm.getSortedOptions('project', [], undefined);
+    expect(sorted).toEqual(['zebra', 'apple', 'banana']);
+  });
+
+  // Test that exact matches appear first
+  it('prioritizes exact matches first in sorted options', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['project', 'proj1', 'my_project', 'proj'],
+      },
+    });
+
+    const sorted = wrapper.vm.getSortedOptions('project', [], 'proj');
+    expect(sorted[0]).toBe('proj');
+  });
+
+  // Test that starts-with matches appear after exact matches
+  it('prioritizes starts-with matches after exact matches', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['my_proj', 'proj1', 'proj2', 'another_proj'],
+      },
+    });
+
+    const sorted = wrapper.vm.getSortedOptions('project', [], 'proj');
+    // proj1 and proj2 start with 'proj', they should come before others
+    expect(sorted[0]).toBe('proj1');
+    expect(sorted[1]).toBe('proj2');
+  });
+
+  // Test case-insensitive sorting
+  it('performs case-insensitive sorting of options', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['Project1', 'project', 'PROJ'],
+      },
+    });
+
+    const sorted = wrapper.vm.getSortedOptions('project', [], 'proj');
+    // 'PROJ' is exact match (case-insensitive)
+    expect(sorted[0]).toBe('PROJ');
+  });
+
+  // Test that fallback options are used when dynamic options are not available
+  it('uses fallback options when dynamic options are not available for column', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        // No 'project' key
+        experiment: ['exp1'],
+      },
+    });
+
+    const fallbackOptions = ['fallback1', 'fallback2'];
+    const sorted = wrapper.vm.getSortedOptions('project', fallbackOptions, undefined);
+    expect(sorted).toEqual(['fallback1', 'fallback2']);
+  });
+
+  // Test sorting with mixed match types
+  it('sorts with exact, starts-with, and contains matches in correct order', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        variable: ['var', 'variable', 'var1', 'my_var', 'test_variable'],
+      },
+    });
+
+    const sorted = wrapper.vm.getSortedOptions('variable', [], 'var');
+    // Exact match first
+    expect(sorted[0]).toBe('var');
+    // Starts-with matches next
+    expect(['var1', 'variable']).toContain(sorted[1]);
+    expect(['var1', 'variable']).toContain(sorted[2]);
   });
 });
