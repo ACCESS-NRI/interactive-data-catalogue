@@ -37,8 +37,10 @@
           <div>
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h6 class="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200">Open Catalog</h6>
-              <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3"><code>import intake
-intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
+              <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3">
+                                <code>import intake
+                                    intake.cat.access_nri["{{ rowData.name }}"]</code>
+                            </pre>
               <RouterLink
                 :to="{
                   name: 'DatastoreDetail',
@@ -89,7 +91,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
             >
               <div class="flex flex-wrap gap-2">
                 <span
-                  v-for="variable in rowData.variable"
+                  v-for="variable in sortedVariables"
                   :key="variable"
                   class="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-sm font-medium"
                 >
@@ -111,9 +113,9 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
                   <div class="font-medium mb-2">Error parsing YAML:</div>
                   <div class="whitespace-pre-wrap">{{ yamlParseError }}</div>
                   <div class="mt-3">
-                    <pre
-                      class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"
-                    ><code>{{ rowData.yaml }}</code></pre>
+                    <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto">
+                                            <code>{{ rowData.yaml }}</code>
+                                        </pre>
                   </div>
                 </div>
                 <div
@@ -144,7 +146,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import TagList from './TagList.vue';
@@ -172,6 +174,12 @@ const router = useRouter();
 // Parsed YAML state
 const parsedYaml = ref<any>(null);
 const yamlParseError = ref<string | null>(null);
+
+// Sort variables for our chips
+const sortedVariables = computed(() => {
+  if (!props.rowData?.variable) return [];
+  return [...props.rowData.variable].sort();
+});
 
 // Watch and parse YAML when rowData changes
 watch(
