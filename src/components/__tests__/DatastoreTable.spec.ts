@@ -70,6 +70,12 @@ describe('DatastoreTable', () => {
     });
   };
 
+  // Helper to show the table by clicking the show button
+  const showTable = async (wrapper: any) => {
+    const showButton = wrapper.findAllComponents(Button)[0];
+    await showButton.trigger('click');
+  };
+
   // Test that the datastore name is displayed in the header
   it('renders datastore name in header', () => {
     const wrapper = createWrapper();
@@ -83,8 +89,9 @@ describe('DatastoreTable', () => {
   });
 
   // Test that the component shows the loading state when tableLoading is true
-  it('passes loading state to DataTable', () => {
+  it('passes loading state to DataTable', async () => {
     const wrapper = createWrapper({ tableLoading: true });
+    await showTable(wrapper);
     const dataTable = wrapper.findComponent(DataTable);
     expect(dataTable.exists()).toBe(true);
     expect(dataTable.props('loading')).toBe(true);
@@ -93,9 +100,15 @@ describe('DatastoreTable', () => {
   // Test that the refresh button emits the refresh event when clicked
   it('emits refresh event when refresh button is clicked', async () => {
     const wrapper = createWrapper();
-    const button = wrapper.findComponent(Button);
+    await showTable(wrapper);
+    const buttons = wrapper.findAllComponents(Button);
+    const refreshButton = buttons[1]; // Second button is the refresh button
+    
+    if (!refreshButton) {
+      throw new Error('Refresh button not found');
+    }
 
-    await button.vm.$emit('click');
+    await refreshButton.trigger('click');
 
     expect(wrapper.emitted('refresh')).toBeTruthy();
     expect(wrapper.emitted('refresh')).toHaveLength(1);
@@ -104,6 +117,7 @@ describe('DatastoreTable', () => {
   // Test that column toggle emits update event with selected columns
   it('emits update:selectedColumns when columns are toggled', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const multiSelect = wrapper.findComponent(MultiSelect);
 
     const newColumns = [{ field: 'variable', header: 'Variable' }];
@@ -114,8 +128,9 @@ describe('DatastoreTable', () => {
   });
 
   // Test that the DataTable receives correct pagination configuration
-  it('configures DataTable with pagination props', () => {
+  it('configures DataTable with pagination props', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const dataTable = wrapper.findComponent(DataTable);
 
     expect(dataTable.props('paginator')).toBe(true);
@@ -124,8 +139,9 @@ describe('DatastoreTable', () => {
   });
 
   // Test that DataTable receives the filtered data
-  it('passes filteredData to DataTable', () => {
+  it('passes filteredData to DataTable', async () => {
     const wrapper = createWrapper({ filteredData: mockData });
+    await showTable(wrapper);
     const dataTable = wrapper.findComponent(DataTable);
 
     expect(dataTable.props('value')).toEqual(mockData);
@@ -133,8 +149,9 @@ describe('DatastoreTable', () => {
   });
 
   // Test that DataTable is configured with correct table features
-  it('configures DataTable with gridlines, sorting, and resizing', () => {
+  it('configures DataTable with gridlines, sorting, and resizing', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const dataTable = wrapper.findComponent(DataTable);
 
     expect(dataTable.props('showGridlines')).toBe(true);
@@ -144,16 +161,18 @@ describe('DatastoreTable', () => {
   });
 
   // Test that Column components are rendered for each selected column
-  it('renders Column components for selected columns', () => {
+  it('renders Column components for selected columns', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const columns = wrapper.findAllComponents(Column);
 
     expect(columns.length).toBe(mockColumns.length);
   });
 
   // Test that each Column is configured with correct field and header
-  it('configures columns with correct field and header props', () => {
+  it('configures columns with correct field and header props', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const columns = wrapper.findAllComponents(Column);
 
     columns.forEach((column, index) => {
@@ -164,8 +183,9 @@ describe('DatastoreTable', () => {
   });
 
   // Test that the MultiSelect receives available and selected columns
-  it('configures MultiSelect with column options', () => {
+  it('configures MultiSelect with column options', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const multiSelect = wrapper.findComponent(MultiSelect);
 
     expect(multiSelect.props('modelValue')).toEqual(mockColumns);
@@ -224,8 +244,9 @@ describe('DatastoreTable', () => {
   });
 
   // Test that the component handles empty filteredData gracefully
-  it('handles empty filtered data', () => {
+  it('handles empty filtered data', async () => {
     const wrapper = createWrapper({ filteredData: [] });
+    await showTable(wrapper);
     const dataTable = wrapper.findComponent(DataTable);
 
     expect(dataTable.props('value')).toEqual([]);
@@ -242,17 +263,19 @@ describe('DatastoreTable', () => {
   });
 
   // Test that globalFilterFields is configured with column names
-  it('configures global filter fields', () => {
+  it('configures global filter fields', async () => {
     const wrapper = createWrapper();
+    await showTable(wrapper);
     const dataTable = wrapper.findComponent(DataTable);
 
     expect(dataTable.props('globalFilterFields')).toEqual(['variable', 'frequency', 'realm']);
   });
 
   // Test that variable_units field renders units with proper display limit
-  it('renders variable_units with up to 2 units displayed', () => {
+  it('renders variable_units with up to 2 units displayed', async () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({ selectedColumns: columnsWithUnits });
+    await showTable(wrapper);
 
     const html = wrapper.html();
     expect(html).toContain('K');
@@ -263,6 +286,7 @@ describe('DatastoreTable', () => {
   it('shows "+X more" link for variable_units when more than 2 units exist', async () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({ selectedColumns: columnsWithUnits });
+    await showTable(wrapper);
 
     const html = wrapper.html();
     expect(html).toContain('+1 more');
@@ -280,6 +304,7 @@ describe('DatastoreTable', () => {
         },
       ],
     });
+    await showTable(wrapper);
 
     // Find and click the "+X more" button
     const moreButton = wrapper.find('[role="button"]');
@@ -293,7 +318,7 @@ describe('DatastoreTable', () => {
   });
 
   // Test that variable_units with 2 or fewer units doesn't show "+X more"
-  it('does not show "+X more" for variable_units with 2 or fewer units', () => {
+  it('does not show "+X more" for variable_units with 2 or fewer units', async () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const dataWithFewUnits = [
       {
@@ -305,6 +330,7 @@ describe('DatastoreTable', () => {
       selectedColumns: columnsWithUnits,
       filteredData: dataWithFewUnits,
     });
+    await showTable(wrapper);
 
     const html = wrapper.html();
     expect(html).not.toContain('more');
