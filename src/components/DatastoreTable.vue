@@ -1,6 +1,47 @@
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+    <!-- Header Section - Always Visible -->
+    <div
+      class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"
+    >
+      <div class="flex items-center gap-2">
+        <i class="pi pi-database text-blue-600 text-xl"></i>
+        <span class="text-lg font-semibold text-gray-900 dark:text-white">
+          {{ datastoreName }} Data ({{ filteredData.length?.toLocaleString() }} records)
+        </span>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-start sm:items-center">
+        <Button
+          :label="showTable ? 'Hide Entries' : 'Show Datastore Entries'"
+          :icon="showTable ? 'pi pi-eye-slash' : 'pi pi-eye'"
+          @click="toggleTable"
+          outlined
+          size="small"
+        />
+
+        <MultiSelect
+          v-if="showTable"
+          :model-value="selectedColumns"
+          @update:model-value="onColumnToggle"
+          :options="availableColumns"
+          option-label="header"
+          placeholder="Select Columns"
+          class="w-full sm:w-80"
+          display="chip"
+        >
+          <template #option="{ option }">
+            <span>{{ option.header }}</span>
+          </template>
+        </MultiSelect>
+
+        <Button v-if="showTable" label="Refresh" icon="pi pi-refresh" @click="onRefresh" outlined size="small" />
+      </div>
+    </div>
+
+    <!-- DataTable - Conditionally Rendered -->
     <DataTable
+      v-if="showTable"
       :value="filteredData"
       :paginator="true"
       :rows="25"
@@ -16,39 +57,6 @@
       :global-filter-fields="columns"
       class="datastore-table"
     >
-      <template #header>
-        <div
-          class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700"
-        >
-          <div class="flex items-center gap-2">
-            <i class="pi pi-database text-blue-600 text-xl"></i>
-            <span class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ datastoreName }} Data ({{ filteredData.length?.toLocaleString() }}
-              records)
-            </span>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <!-- Column Toggle -->
-            <MultiSelect
-              :model-value="selectedColumns"
-              @update:model-value="onColumnToggle"
-              :options="availableColumns"
-              option-label="header"
-              placeholder="Select Columns"
-              class="min-w-48"
-              display="chip"
-            >
-              <template #option="{ option }">
-                <span>{{ option.header }}</span>
-              </template>
-            </MultiSelect>
-
-            <Button label="Refresh" icon="pi pi-refresh" @click="onRefresh" outlined size="small" />
-          </div>
-        </div>
-      </template>
-
       <Column
         v-for="column in selectedColumns"
         :key="column.field"
@@ -172,6 +180,13 @@ defineProps<{
 }>();
 
 const emit = defineEmits(['update:selectedColumns', 'refresh']);
+
+// Table visibility state
+const showTable = ref(false);
+
+const toggleTable = () => {
+  showTable.value = !showTable.value;
+};
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
