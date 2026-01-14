@@ -89,7 +89,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
             >
               <div class="flex flex-wrap gap-2">
                 <span
-                  v-for="variable in rowData.variable"
+                  v-for="variable in sortedVariables"
                   :key="variable"
                   class="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-sm font-medium"
                 >
@@ -144,7 +144,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import TagList from './TagList.vue';
@@ -172,6 +172,12 @@ const router = useRouter();
 // Parsed YAML state
 const parsedYaml = ref<any>(null);
 const yamlParseError = ref<string | null>(null);
+
+// Sort variables for our chips
+const sortedVariables = computed(() => {
+  if (!props.rowData?.variable) return [];
+  return [...props.rowData.variable].sort();
+});
 
 // Watch and parse YAML when rowData changes
 watch(
