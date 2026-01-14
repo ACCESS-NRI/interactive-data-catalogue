@@ -37,10 +37,8 @@
           <div>
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h6 class="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200">Open Catalog</h6>
-              <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3">
-                                <code>import intake
-                                    intake.cat.access_nri["{{ rowData.name }}"]</code>
-                            </pre>
+              <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3"><code>import intake
+intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
               <RouterLink
                 :to="{
                   name: 'DatastoreDetail',
@@ -113,9 +111,9 @@
                   <div class="font-medium mb-2">Error parsing YAML:</div>
                   <div class="whitespace-pre-wrap">{{ yamlParseError }}</div>
                   <div class="mt-3">
-                    <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto">
-                                            <code>{{ rowData.yaml }}</code>
-                                        </pre>
+                    <pre
+                      class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto"
+                    ><code>{{ rowData.yaml }}</code></pre>
                   </div>
                 </div>
                 <div
