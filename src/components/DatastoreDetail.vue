@@ -29,6 +29,9 @@
       <div class="flex items-center">
         <i class="pi pi-exclamation-triangle text-red-500 mr-2"></i>
         <span class="text-red-700 dark:text-red-300 font-medium">Error loading datastore:</span>
+        <span class="text-red-700 dark:text-red-300 font-medium"
+          >NCI Datastores currently cannot be accessed through the web viewer</span
+        >
       </div>
       <p class="text-red-600 dark:text-red-400 mt-1">{{ error }}</p>
       <button
