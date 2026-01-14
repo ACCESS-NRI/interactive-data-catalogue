@@ -103,7 +103,7 @@ describe('DatastoreTable', () => {
     await showTable(wrapper);
     const buttons = wrapper.findAllComponents(Button);
     const refreshButton = buttons[1]; // Second button is the refresh button
-    
+
     if (!refreshButton) {
       throw new Error('Refresh button not found');
     }
