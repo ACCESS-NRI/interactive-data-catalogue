@@ -367,42 +367,64 @@ export const useCatalogStore = defineStore('catalog', () => {
     error.value = null;
   }
 
-  // Helper functions for datastore management
-  /**
-   * Build a map of column -> unique sorted option values for use in
-   * MultiSelect filters. Values are stringified and empty values are
-   * ignored.
-   *
-   * @param data - array of rows (objects) to scan for unique values
-   */
-  function generateFilterOptions(data: any[]): Record<string, string[]> {
-    const options: Record<string, Set<string>> = {};
 
-    data.forEach((row) => {
+  /**
+   * Query a sidecar parquet file containing unique values per column.
+   * The sidecar file has one row where each column is a list of unique values.
+   *
+   * @param conn - Active DuckDB connection
+   * @param sidecarFname - Name of the registered sidecar parquet file
+   * @returns Record mapping column names to their unique sorted values
+   */
+  async function getFilterOptions(conn: duckdb.AsyncDuckDBConnection, sidecarFname: string): Promise<Record<string, string[]>> {
+    try {
+      // Query the sidecar file - it has one row with arrays of unique values
+      const queryResult = await conn.query(`SELECT * FROM read_parquet('${sidecarFname}')`);
+      const rows = queryResult.toArray();
+
+      
+      if (rows.length === 0) {
+        console.warn('⚠️ Sidecar file is empty, falling back to empty filter options');
+        return {};
+      }
+
+      const row = rows[0];
+      const filterOptions: Record<string, string[]> = {};
+
+      // Process each column in the sidecar row
       for (const [column, value] of Object.entries(row)) {
-        if (!options[column]) {
-          options[column] = new Set();
+        if (value === null || value === undefined) {
+          filterOptions[column] = [];
+          continue;
         }
 
-        if (Array.isArray(value)) {
-          value.forEach((item) => {
-            if (item != null && String(item).trim()) {
-              options[column]?.add(String(item));
-            }
-          });
-        } else if (value != null && String(value).trim()) {
-          options[column]?.add(String(value));
+        // Handle DuckDB Vector objects
+        if (value && typeof (value as any).toArray === 'function') {
+          const arr = (value as any).toArray()
+            .filter((v: any) => v !== null && v !== undefined && String(v).trim())
+            .map(String);
+          filterOptions[column] = arr.sort();
+        }
+        // Handle regular arrays
+        else if (Array.isArray(value)) {
+          const arr = value
+            .filter((v: any) => v !== null && v !== undefined && String(v).trim())
+            .map(String);
+          filterOptions[column] = arr.sort();
+        }
+        // Single values (shouldn't happen in sidecar, but handle it)
+        else {
+          filterOptions[column] = [String(value)].filter(v => v.trim());
         }
       }
-    });
 
-    // Convert Sets to sorted arrays
-    const result: Record<string, string[]> = {};
-    for (const [column, optionSet] of Object.entries(options)) {
-      result[column] = Array.from(optionSet).sort();
+      console.log('✅ Loaded filter options from sidecar file:', Object.keys(filterOptions).length, 'columns');
+      return filterOptions;
+    } catch (err) {
+      console.error('❌ Error loading filter options from sidecar:', err);
+      // Return empty filter options on error
+      return {};
     }
-
-    return result;
   }
 
   function setupColumns(dataColumns: string[]): string[] {
@@ -454,39 +476,58 @@ export const useCatalogStore = defineStore('catalog', () => {
     try {
       console.log(`🚀 Loading datastore: ${datastoreName}`);
 
-      // Construct the parquet file URL for this specific datastore
+      // Construct URLs for both the main datastore and sidecar files
       const datastoreUrl =
         process.env.NODE_ENV === 'production'
           ? `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
           : `/api/parquet/source/${datastoreName}.parquet`;
+      
+      const sidecarUrl = datastoreUrl.replace('.parquet', '_uniqs.parquet');
 
-      // Fetch parquet file and initialize DuckDB concurrently
-      const [response, dbConnection] = await Promise.all([fetch(datastoreUrl), initializeDuckDB()]);
+      // Fetch both parquet files and initialize DuckDB concurrently
+      const [response, sidecarResponse, dbConnection] = await Promise.all([
+        fetch(datastoreUrl),
+        fetch(sidecarUrl),
+        initializeDuckDB(),
+      ]);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
       }
+      
+      if (!sidecarResponse.ok) {
+        throw new Error(`Failed to fetch sidecar parquet file: ${sidecarResponse.status}`);
+      }
 
-      const arrayBuffer = await response.arrayBuffer();
+      const [arrayBuffer, sidecarArrayBuffer] = await Promise.all([
+        response.arrayBuffer(),
+        sidecarResponse.arrayBuffer(),
+      ]);
+
       const uint8Array = new Uint8Array(arrayBuffer);
+      const sidecarUint8Array = new Uint8Array(sidecarArrayBuffer);
       console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
+      console.log(`📦 Downloaded ${sidecarUint8Array.length} bytes for sidecar file`);
 
       db = dbConnection.db;
       conn = dbConnection.conn;
 
-      // Register the parquet bytes once (transfers the ArrayBuffer to the worker).
+      // Register both parquet files
       const fileName = `${datastoreName}.parquet`;
+      const sidecarFileName = `${datastoreName}_uniqs.parquet`;
       await db.registerFileBuffer(fileName, uint8Array);
+      await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
-      // Query the ESM datastore data and project concurrently (functions
-      // now accept `conn` + `fileName` and must NOT re-register the bytes).
-      const [datastoreData, project] = await Promise.all([
+      // Query the ESM datastore data, project, and filter options concurrently
+      const [datastoreData, project, filterOptions] = await Promise.all([
         queryEsmDatastore(conn, fileName),
         getEsmDatastoreProject(conn, fileName),
+        getFilterOptions(conn, sidecarFileName),
       ]);
+
+
       const columns = Object.keys(datastoreData[0] || {});
       const displayColumns = setupColumns(columns);
-      const filterOptions = generateFilterOptions(datastoreData);
 
       // Also extract project from the datastore (first row path)
 
@@ -585,7 +626,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchMetaCatFile,
     initializeDuckDB,
     queryEsmDatastore,
-    generateFilterOptions,
+    getFilterOptions,
     setupColumns,
   };
 });
