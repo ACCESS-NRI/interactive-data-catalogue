@@ -101,6 +101,7 @@
           :columns="columns"
           :datastore-name="datastoreName"
           @refresh="loadDatastore"
+          @table-shown="loadDatastoreData"
         />
       </div>
     </div>
@@ -126,6 +127,7 @@ const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
 const currentFilters = ref<Record<string, string[]>>({});
+const dataLoadTriggered = ref(false);
 
 const availableColumns = ref<{ field: string; header: string }[]>([]);
 const selectedColumns = ref<{ field: string; header: string }[]>([]);
@@ -135,6 +137,7 @@ const rawData = computed(() => cachedDatastore.value?.data || []);
 const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
 const columns = computed(() => cachedDatastore.value?.columns || []);
 const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
+const isDataLoaded = computed(() => cachedDatastore.value?.dataLoaded || false);
 
 const formatColumnName = (c: string) =>
   c
@@ -170,6 +173,11 @@ const filteredData = computed(() => {
 });
 
 const dynamicFilterOptions = computed(() => {
+  // Skip expensive computation if data isn't loaded yet - just use static filter options
+  if (!isDataLoaded.value || rawData.value.length === 0) {
+    return filterOptions.value;
+  }
+
   const result: Record<string, string[]> = {};
 
   for (const [column, allOptions] of Object.entries(filterOptions.value)) {
@@ -210,22 +218,41 @@ const dynamicFilterOptions = computed(() => {
 
 const loadDatastore = async () => {
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.data.length > 0) {
+  if (existingCache && existingCache.columns.length > 0) {
     setupColumns(existingCache.columns);
     loading.value = false;
-    tableLoading.value = false;
     return;
   }
   loading.value = true;
-  tableLoading.value = true;
   error.value = null;
   try {
-    const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
-    if (datastoreCache.data.length > 0) setupColumns(datastoreCache.columns);
+    console.log('📊 Loading datastore metadata...');
+    const datastoreCache = await catalogStore.loadDatastore(datastoreName.value, false); // metadata only
+    if (datastoreCache.columns.length > 0) setupColumns(datastoreCache.columns);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load datastore';
   } finally {
     loading.value = false;
+  }
+};
+
+const loadDatastoreData = async () => {
+  if (dataLoadTriggered.value || isDataLoaded.value) {
+    console.log('✅ Data already loaded or loading');
+    return;
+  }
+  
+  dataLoadTriggered.value = true;
+  tableLoading.value = true;
+  error.value = null;
+  
+  try {
+    console.log('📥 Loading datastore data rows...');
+    await catalogStore.loadDatastoreData(datastoreName.value);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load datastore data';
+    dataLoadTriggered.value = false; // Allow retry
+  } finally {
     tableLoading.value = false;
   }
 };
@@ -267,12 +294,11 @@ const openFeedbackIssue = () => {
 onMounted(() => {
   initializeFiltersFromUrl();
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.data.length > 0) {
+  if (existingCache && existingCache.columns.length > 0) {
     setupColumns(existingCache.columns);
     loading.value = false;
-    tableLoading.value = false;
   } else {
-    loadDatastore();
+    loadDatastore(); // metadata only
   }
 });
 

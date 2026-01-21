@@ -179,13 +179,19 @@ defineProps<{
   datastoreName: string;
 }>();
 
-const emit = defineEmits(['update:selectedColumns', 'refresh']);
+const emit = defineEmits(['update:selectedColumns', 'refresh', 'table-shown']);
 
 // Table visibility state
 const showTable = ref(false);
 
 const toggleTable = () => {
+  const wasHidden = !showTable.value;
   showTable.value = !showTable.value;
+  
+  // Emit event when table is shown for the first time
+  if (wasHidden && showTable.value) {
+    emit('table-shown');
+  }
 };
 
 const onColumnToggle = (value: any[]) => {
