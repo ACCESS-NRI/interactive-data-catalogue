@@ -367,7 +367,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     error.value = null;
   }
 
-
   /**
    * Query a sidecar parquet file containing unique values per column.
    * The sidecar file has one row where each column is a list of unique values.
@@ -376,13 +375,15 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param sidecarFname - Name of the registered sidecar parquet file
    * @returns Record mapping column names to their unique sorted values
    */
-  async function getFilterOptions(conn: duckdb.AsyncDuckDBConnection, sidecarFname: string): Promise<Record<string, string[]>> {
+  async function getFilterOptions(
+    conn: duckdb.AsyncDuckDBConnection,
+    sidecarFname: string,
+  ): Promise<Record<string, string[]>> {
     try {
       // Query the sidecar file - it has one row with arrays of unique values
       const queryResult = await conn.query(`SELECT * FROM read_parquet('${sidecarFname}')`);
       const rows = queryResult.toArray();
 
-      
       if (rows.length === 0) {
         console.warn('⚠️ Sidecar file is empty, falling back to empty filter options');
         return {};
@@ -400,21 +401,20 @@ export const useCatalogStore = defineStore('catalog', () => {
 
         // Handle DuckDB Vector objects
         if (value && typeof (value as any).toArray === 'function') {
-          const arr = (value as any).toArray()
+          const arr = (value as any)
+            .toArray()
             .filter((v: any) => v !== null && v !== undefined && String(v).trim())
             .map(String);
           filterOptions[column] = arr.sort();
         }
         // Handle regular arrays
         else if (Array.isArray(value)) {
-          const arr = value
-            .filter((v: any) => v !== null && v !== undefined && String(v).trim())
-            .map(String);
+          const arr = value.filter((v: any) => v !== null && v !== undefined && String(v).trim()).map(String);
           filterOptions[column] = arr.sort();
         }
         // Single values (shouldn't happen in sidecar, but handle it)
         else {
-          filterOptions[column] = [String(value)].filter(v => v.trim());
+          filterOptions[column] = [String(value)].filter((v) => v.trim());
         }
       }
 
@@ -481,7 +481,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         process.env.NODE_ENV === 'production'
           ? `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
           : `/api/parquet/source/${datastoreName}.parquet`;
-      
+
       const sidecarUrl = datastoreUrl.replace('.parquet', '_uniqs.parquet');
 
       // Fetch both parquet files and initialize DuckDB concurrently
@@ -494,7 +494,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       if (!response.ok) {
         throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
       }
-      
+
       if (!sidecarResponse.ok) {
         throw new Error(`Failed to fetch sidecar parquet file: ${sidecarResponse.status}`);
       }
@@ -524,7 +524,6 @@ export const useCatalogStore = defineStore('catalog', () => {
         getEsmDatastoreProject(conn, fileName),
         getFilterOptions(conn, sidecarFileName),
       ]);
-
 
       const columns = Object.keys(datastoreData[0] || {});
       const displayColumns = setupColumns(columns);

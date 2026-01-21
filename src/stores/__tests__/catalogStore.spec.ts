@@ -376,7 +376,6 @@ describe('catalogStore', () => {
   });
 
   describe('Utility Functions', () => {
-
     describe('getFilterOptions', () => {
       // Helper to create a mock DuckDB connection
       const createMockConnection = (mockRows: any[]) => ({
