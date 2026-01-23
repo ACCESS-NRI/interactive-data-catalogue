@@ -366,6 +366,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function getEsmDatastoreSize(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<number> {
+    return conn
+      .query(`SELECT count(*) AS n FROM read_parquet('${fileName}')`)
+      .then((table) => table.toArray())
+      .then((rows) => {
+        const n = rows[0]?.n;
+        return typeof n === 'bigint' ? Number(n) : (n ?? 0);
+      });
+  }
+
   /** Reset catalog-related state held by the store. */
   function clearData() {
     data.value = [];
@@ -517,10 +527,11 @@ export const useCatalogStore = defineStore('catalog', () => {
       await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
       // Query the ESM datastore data, project, and filter options concurrently
-      const [datastoreData, project, filterOptions] = await Promise.all([
+      const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
         queryEsmDatastore(conn, fileName),
         getEsmDatastoreProject(conn, fileName),
         getFilterOptions(conn, sidecarFileName),
+        getEsmDatastoreSize(conn, fileName),
       ]);
 
       const columns = Object.keys(datastoreData[0] || {});
@@ -531,7 +542,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       // Update cache with loaded data
       datastoreCache.value[datastoreName] = {
         data: datastoreData,
-        totalRecords: datastoreData.length,
+        totalRecords: numRecords,
         columns: displayColumns,
         filterOptions,
         loading: false,
@@ -625,5 +636,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     queryEsmDatastore,
     getFilterOptions,
     setupColumns,
+    getEsmDatastoreSize,
   };
 });
