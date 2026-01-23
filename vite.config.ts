@@ -21,15 +21,6 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   server: {
-    proxy: {
-      '/api/parquet': {
-        target:
-          'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/parquet/, ''),
-        secure: true,
-      },
-    },
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
