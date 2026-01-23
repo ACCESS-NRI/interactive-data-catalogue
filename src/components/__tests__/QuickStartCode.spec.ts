@@ -232,7 +232,7 @@ describe('QuickStartCode', () => {
     expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('intake.cat.access_nri["test-datastore"]'));
   });
 
-    // Test that clicking a project badge opens the correct NCI join URL
+  // Test that clicking a project badge opens the correct NCI join URL
   it('Correctly opens the NCI login page', async () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
@@ -246,7 +246,7 @@ describe('QuickStartCode', () => {
     expect(buttons.length).toBeGreaterThan(2);
     await buttons[2]!.vm.$emit('click');
 
-    await new Promise((resolve => setTimeout(resolve, 750))); // Wait slightly longer than the timeout
+    await new Promise((resolve) => setTimeout(resolve, 750)); // Wait slightly longer than the timeout
 
     expect(openSpy).toHaveBeenCalledWith('https://are.nci.org.au/pun/sys/dashboard', '_blank');
 
