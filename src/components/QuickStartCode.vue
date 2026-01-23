@@ -43,9 +43,17 @@
         @click="copySearchLink"
         outlined
         size="small"
-        class="text-blue-600 border-blue-600 hover:bg-blue-50"
+        class="text-blue-600 border-blue-600 hover:bg-blue-50 mr-3"
       />
 
+      <Button
+        label="Copy Code and Open ARE Session"
+        icon="pi pi-share"
+        @click="copyCodeAndOpenARESession"
+        outlined
+        size="small"
+        class="text-blue-600 border-blue-600 hover:bg-blue-50"
+      />
       <!-- PrimeVue toast will show copy confirmations -->
     </div>
 
@@ -269,9 +277,9 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`;
     if (numDatasets.value > 1) {
       code += `\n\n# Search contains ${numDatasets.value} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
       code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`;
-      code += `\ndataset_dict = datastore.to_dataset_dict()`;
+      code += `\ndataset_dict = datastore.to_dataset_dict()\ndataset_dict`;
     } else {
-      code += `\ndataset = datastore.to_dask()`;
+      code += `\ndataset = datastore.to_dask()\ndataset`;
     }
   }
 
@@ -339,6 +347,25 @@ const copySearchLink = async (): Promise<void> => {
     triggerCopiedBadge();
   } catch (err) {
     console.error('Failed to copy link:');
+    console.error(err);
+  }
+};
+
+/**
+ * Copies the quick-start code to clipboard and opens the ARE dashboard in a new tab.
+ */
+const copyCodeAndOpenARESession = async (): Promise<void> => {
+  const url = 'https://are.nci.org.au/pun/sys/dashboard';
+  try {
+    await navigator.clipboard.writeText(quickStartCode.value);
+    console.log('Quick-start code copied to clipboard');
+    // show ephemeral confirmation
+    triggerCopiedBadge();
+    // Wait 700ms so user sees the toast before the new tab opens
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    window.open(url, '_blank');
+  } catch (err) {
+    console.error('Failed to copy quick-start code:');
     console.error(err);
   }
 };
