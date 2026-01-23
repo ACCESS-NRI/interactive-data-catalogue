@@ -4,6 +4,7 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
 
+type OptionalProject = string | null;
 /**
  * A single normalized catalog row returned by querying the metacatalog
  * parquet file. All list-like fields are represented as arrays of strings
@@ -54,8 +55,10 @@ export interface DatastoreCache {
   error: string | null;
   /** Timestamp when the datastore was last fetched. */
   lastFetched: Date;
-  project?: string | null;
+  project?: OptionalProject ;
 }
+
+type FilterOptions = Record<string, string[]>;
 
 /**
  * URL to the metacatalog parquet file. Uses a CORS proxy in production
@@ -301,7 +304,7 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function getEsmDatastoreProject(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<string | null> {
+  async function getEsmDatastoreProject(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<OptionalProject> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // Query for a single row and return the first matched project (or null)
     return conn
@@ -378,43 +381,39 @@ export const useCatalogStore = defineStore('catalog', () => {
   async function getFilterOptions(
     conn: duckdb.AsyncDuckDBConnection,
     sidecarFname: string,
-  ): Promise<Record<string, string[]>> {
+  ): Promise<FilterOptions> {
     try {
       // Query the sidecar file - it has one row with arrays of unique values
-      const queryResult = await conn.query(`SELECT * FROM read_parquet('${sidecarFname}')`);
+      const queryResult = await conn.query(` SELECT * FROM read_parquet('${sidecarFname}') `);
       const rows = queryResult.toArray();
 
-      if (rows.length === 0) {
-        console.warn('⚠️ Sidecar file is empty, falling back to empty filter options');
+      if (rows.length !== 1) {
+        console.error('⚠️ Sidecar file does not contain exactly one row');
         return {};
       }
 
       const row = rows[0];
-      const filterOptions: Record<string, string[]> = {};
-
+      const filterOptions: FilterOptions = {};
       // Process each column in the sidecar row
       for (const [column, value] of Object.entries(row)) {
+
+        // Ignore columns users probably won't want to see.
+        if (column === 'path' || column === 'filename') {
+          continue;
+        }
+        // graciously handle (ignore) errors...
         if (value === null || value === undefined) {
           filterOptions[column] = [];
           continue;
         }
 
-        // Handle DuckDB Vector objects
+        // Only handle DuckDB Vector objects - this is what we expect to get
         if (value && typeof (value as any).toArray === 'function') {
           const arr = (value as any)
             .toArray()
             .filter((v: any) => v !== null && v !== undefined && String(v).trim())
             .map(String);
           filterOptions[column] = arr.sort();
-        }
-        // Handle regular arrays
-        else if (Array.isArray(value)) {
-          const arr = value.filter((v: any) => v !== null && v !== undefined && String(v).trim()).map(String);
-          filterOptions[column] = arr.sort();
-        }
-        // Single values (shouldn't happen in sidecar, but handle it)
-        else {
-          filterOptions[column] = [String(value)].filter((v) => v.trim());
         }
       }
 
