@@ -384,19 +384,24 @@ describe('catalogStore', () => {
         }),
       });
 
-      // Test that getFilterOptions extracts unique values from sidecar parquet
-      it('extracts filter options from sidecar file with regular arrays', async () => {
+      // Only DuckDB Vector objects are handled now, so tests must reflect that
+
+      it('extracts filter options from sidecar file with DuckDB Vector objects', async () => {
+        const mockVector = {
+          toArray: () => ['daily', 'monthly'],
+        };
         const mockConn = createMockConnection([
           {
-            frequency: ['daily', 'monthly'],
-            realm: ['atmos', 'ocean'],
-            variable: ['temp', 'pressure'],
+            frequency: mockVector,
+            realm: { toArray: () => ['atmos', 'ocean'] },
+            variable: { toArray: () => ['temp', 'pressure'] },
           },
         ]) as any;
 
         const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
 
-        expect(mockConn.query).toHaveBeenCalledWith("SELECT * FROM read_parquet('test_uniqs.parquet')");
+        // The query string in the implementation has extra spaces, so match exactly
+        expect(mockConn.query).toHaveBeenCalledWith(" SELECT * FROM read_parquet('test_uniqs.parquet') ");
         expect(result).toEqual({
           frequency: ['daily', 'monthly'],
           realm: ['atmos', 'ocean'],
@@ -404,7 +409,6 @@ describe('catalogStore', () => {
         });
       });
 
-      // Test that getFilterOptions handles DuckDB Vector objects with toArray method
       it('handles DuckDB Vector objects', async () => {
         const mockVector = {
           toArray: () => ['value1', 'value2', 'value3'],
@@ -413,7 +417,7 @@ describe('catalogStore', () => {
         const mockConn = createMockConnection([
           {
             column1: mockVector,
-            column2: ['regular', 'array'],
+            column2: { toArray: () => ['regular', 'array'] },
           },
         ]) as any;
 
@@ -423,12 +427,11 @@ describe('catalogStore', () => {
         expect(result.column2).toEqual(['array', 'regular']);
       });
 
-      // Test that getFilterOptions filters out null and empty values
-      it('filters out null, undefined, and empty string values', async () => {
+      it('filters out null, undefined, and empty string values in DuckDB Vector', async () => {
         const mockConn = createMockConnection([
           {
-            field1: ['valid', null, undefined, '', '  ', 'another'],
-            field2: ['good', 'data'],
+            field1: { toArray: () => ['valid', null, undefined, '', '  ', 'another'] },
+            field2: { toArray: () => ['good', 'data'] },
           },
         ]) as any;
 
@@ -438,11 +441,10 @@ describe('catalogStore', () => {
         expect(result.field2).toEqual(['data', 'good']);
       });
 
-      // Test that getFilterOptions sorts values alphabetically
-      it('sorts values alphabetically', async () => {
+      it('sorts values alphabetically in DuckDB Vector', async () => {
         const mockConn = createMockConnection([
           {
-            colors: ['red', 'blue', 'green', 'alpha'],
+            colors: { toArray: () => ['red', 'blue', 'green', 'alpha'] },
           },
         ]) as any;
 
@@ -451,13 +453,12 @@ describe('catalogStore', () => {
         expect(result.colors).toEqual(['alpha', 'blue', 'green', 'red']);
       });
 
-      // Test that getFilterOptions handles null/undefined columns
       it('handles null and undefined column values', async () => {
         const mockConn = createMockConnection([
           {
             field1: null,
             field2: undefined,
-            field3: ['valid'],
+            field3: { toArray: () => ['valid'] },
           },
         ]) as any;
 
@@ -468,7 +469,6 @@ describe('catalogStore', () => {
         expect(result.field3).toEqual(['valid']);
       });
 
-      // Test that getFilterOptions returns empty object for empty sidecar file
       it('returns empty object when sidecar file has no rows', async () => {
         const mockConn = createMockConnection([]) as any;
 
@@ -477,7 +477,6 @@ describe('catalogStore', () => {
         expect(result).toEqual({});
       });
 
-      // Test that getFilterOptions handles query errors gracefully
       it('returns empty object on query error', async () => {
         const mockConn = {
           query: vi.fn().mockRejectedValue(new Error('Query failed')),
@@ -488,19 +487,20 @@ describe('catalogStore', () => {
         expect(result).toEqual({});
       });
 
-      // Test that getFilterOptions handles single scalar values (edge case)
-      it('handles single scalar values as fallback', async () => {
+      it('ignores non-vector values (scalars/arrays)', async () => {
         const mockConn = createMockConnection([
           {
             field1: 'single-value',
             field2: ['array', 'values'],
+            field3: 123,
           },
         ]) as any;
 
         const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
 
-        expect(result.field1).toEqual(['single-value']);
-        expect(result.field2).toEqual(['array', 'values']);
+        expect(result.field1).toBeUndefined();
+        expect(result.field2).toBeUndefined();
+        expect(result.field3).toBeUndefined();
       });
     });
 

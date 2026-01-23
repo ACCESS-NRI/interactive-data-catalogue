@@ -55,7 +55,7 @@ export interface DatastoreCache {
   error: string | null;
   /** Timestamp when the datastore was last fetched. */
   lastFetched: Date;
-  project?: OptionalProject ;
+  project?: OptionalProject;
 }
 
 type FilterOptions = Record<string, string[]>;
@@ -304,7 +304,10 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function getEsmDatastoreProject(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<OptionalProject> {
+  async function getEsmDatastoreProject(
+    conn: duckdb.AsyncDuckDBConnection,
+    fileName: string,
+  ): Promise<OptionalProject> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // Query for a single row and return the first matched project (or null)
     return conn
@@ -378,10 +381,7 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param sidecarFname - Name of the registered sidecar parquet file
    * @returns Record mapping column names to their unique sorted values
    */
-  async function getFilterOptions(
-    conn: duckdb.AsyncDuckDBConnection,
-    sidecarFname: string,
-  ): Promise<FilterOptions> {
+  async function getFilterOptions(conn: duckdb.AsyncDuckDBConnection, sidecarFname: string): Promise<FilterOptions> {
     try {
       // Query the sidecar file - it has one row with arrays of unique values
       const queryResult = await conn.query(` SELECT * FROM read_parquet('${sidecarFname}') `);
@@ -396,7 +396,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       const filterOptions: FilterOptions = {};
       // Process each column in the sidecar row
       for (const [column, value] of Object.entries(row)) {
-
         // Ignore columns users probably won't want to see.
         if (column === 'path' || column === 'filename') {
           continue;
