@@ -376,46 +376,131 @@ describe('catalogStore', () => {
   });
 
   describe('Utility Functions', () => {
-    describe('generateFilterOptions', () => {
-      // Test that generateFilterOptions creates unique sorted options for each column
-      it('generates unique sorted filter options', () => {
-        const data = [
-          { color: 'red', size: 'small' },
-          { color: 'blue', size: 'large' },
-          { color: 'red', size: 'medium' },
-        ];
-
-        const options = store.generateFilterOptions(data);
-
-        expect(options.color).toEqual(['blue', 'red']);
-        expect(options.size).toEqual(['large', 'medium', 'small']);
+    describe('getFilterOptions', () => {
+      // Helper to create a mock DuckDB connection
+      const createMockConnection = (mockRows: any[]) => ({
+        query: vi.fn().mockResolvedValue({
+          toArray: () => mockRows,
+        }),
       });
 
-      // Test that generateFilterOptions handles array values in columns
-      it('handles array values', () => {
-        const data = [{ tags: ['tag1', 'tag2'] }, { tags: ['tag2', 'tag3'] }];
+      // Only DuckDB Vector objects are handled now, so tests must reflect that
 
-        const options = store.generateFilterOptions(data);
+      it('extracts filter options from sidecar file with DuckDB Vector objects', async () => {
+        const mockVector = {
+          toArray: () => ['daily', 'monthly'],
+        };
+        const mockConn = createMockConnection([
+          {
+            frequency: mockVector,
+            realm: { toArray: () => ['atmos', 'ocean'] },
+            variable: { toArray: () => ['temp', 'pressure'] },
+          },
+        ]) as any;
 
-        expect(options.tags).toEqual(['tag1', 'tag2', 'tag3']);
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
+
+        // The query string in the implementation has extra spaces, so match exactly
+        expect(mockConn.query).toHaveBeenCalledWith(" SELECT * FROM read_parquet('test_uniqs.parquet') ");
+        expect(result).toEqual({
+          frequency: ['daily', 'monthly'],
+          realm: ['atmos', 'ocean'],
+          variable: ['pressure', 'temp'],
+        });
       });
 
-      // Test that generateFilterOptions filters out null and empty values
-      it('filters out null and empty values', () => {
-        const data = [{ value: 'valid' }, { value: null }, { value: '' }, { value: '  ' }];
+      it('handles DuckDB Vector objects', async () => {
+        const mockVector = {
+          toArray: () => ['value1', 'value2', 'value3'],
+        };
 
-        const options = store.generateFilterOptions(data);
+        const mockConn = createMockConnection([
+          {
+            column1: mockVector,
+            column2: { toArray: () => ['regular', 'array'] },
+          },
+        ]) as any;
 
-        expect(options.value).toEqual(['valid']);
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
+
+        expect(result.column1).toEqual(['value1', 'value2', 'value3']);
+        expect(result.column2).toEqual(['array', 'regular']);
       });
 
-      // Test that generateFilterOptions handles mixed scalar and array values
-      it('handles mixed scalar and array values', () => {
-        const data = [{ field: 'value1' }, { field: ['value2', 'value3'] }];
+      it('filters out null, undefined, and empty string values in DuckDB Vector', async () => {
+        const mockConn = createMockConnection([
+          {
+            field1: { toArray: () => ['valid', null, undefined, '', '  ', 'another'] },
+            field2: { toArray: () => ['good', 'data'] },
+          },
+        ]) as any;
 
-        const options = store.generateFilterOptions(data);
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
 
-        expect(options.field).toEqual(['value1', 'value2', 'value3']);
+        expect(result.field1).toEqual(['another', 'valid']);
+        expect(result.field2).toEqual(['data', 'good']);
+      });
+
+      it('sorts values alphabetically in DuckDB Vector', async () => {
+        const mockConn = createMockConnection([
+          {
+            colors: { toArray: () => ['red', 'blue', 'green', 'alpha'] },
+          },
+        ]) as any;
+
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
+
+        expect(result.colors).toEqual(['alpha', 'blue', 'green', 'red']);
+      });
+
+      it('handles null and undefined column values', async () => {
+        const mockConn = createMockConnection([
+          {
+            field1: null,
+            field2: undefined,
+            field3: { toArray: () => ['valid'] },
+          },
+        ]) as any;
+
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
+
+        expect(result.field1).toEqual([]);
+        expect(result.field2).toEqual([]);
+        expect(result.field3).toEqual(['valid']);
+      });
+
+      it('returns empty object when sidecar file has no rows', async () => {
+        const mockConn = createMockConnection([]) as any;
+
+        const result = await store.getFilterOptions(mockConn, 'empty_uniqs.parquet');
+
+        expect(result).toEqual({});
+      });
+
+      it('returns empty object on query error', async () => {
+        const mockConn = {
+          query: vi.fn().mockRejectedValue(new Error('Query failed')),
+        } as any;
+
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
+
+        expect(result).toEqual({});
+      });
+
+      it('ignores non-vector values (scalars/arrays)', async () => {
+        const mockConn = createMockConnection([
+          {
+            field1: 'single-value',
+            field2: ['array', 'values'],
+            field3: 123,
+          },
+        ]) as any;
+
+        const result = await store.getFilterOptions(mockConn, 'test_uniqs.parquet');
+
+        expect(result.field1).toBeUndefined();
+        expect(result.field2).toBeUndefined();
+        expect(result.field3).toBeUndefined();
       });
     });
 
