@@ -243,7 +243,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     console.log('📋 Available columns:', columns);
 
     // Read the parquet as raw rows and normalize in JavaScript
-    const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
+    const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}') LIMIT 1000`);
+    // Limit 1000 so we can tell - for certain - that we're getting the right data
     const rawData = queryResult.toArray();
 
     // Transform the data using the same normalization used by
@@ -493,38 +494,42 @@ export const useCatalogStore = defineStore('catalog', () => {
       const sidecarUrl = datastoreUrl.replace('.parquet', '_uniqs.parquet');
 
       // Fetch both parquet files and initialize DuckDB concurrently
-      const [response, sidecarResponse, dbConnection] = await Promise.all([
-        fetch(datastoreUrl),
-        fetch(sidecarUrl),
+      const [sidecarArrayBuffer, dbConnection] = await Promise.all([
+        fetch(sidecarUrl, { method: 'GET' }).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch sidecar parquet file: ${response.status}`);
+          }
+          return response.arrayBuffer();
+        }),
         initializeDuckDB(),
       ]);
+
+      db = dbConnection.db;
+      conn = dbConnection.conn;
+
+      // Create the sidecar array buffer, register the file buffer with the filename
+      const sidecarUint8Array = new Uint8Array(sidecarArrayBuffer);
+      const sidecarFileName = `${datastoreName}_uniqs.parquet`;
+      console.log(`📦 Downloaded ${sidecarUint8Array.length} bytes for sidecar file`);
+
+      await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
+
+      // Fetch both parquet files and initialize DuckDB concurrently
+      const response = await fetch(datastoreUrl, { method: 'GET' });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
       }
 
-      if (!sidecarResponse.ok) {
-        throw new Error(`Failed to fetch sidecar parquet file: ${sidecarResponse.status}`);
-      }
-
-      const [arrayBuffer, sidecarArrayBuffer] = await Promise.all([
-        response.arrayBuffer(),
-        sidecarResponse.arrayBuffer(),
-      ]);
+      const [arrayBuffer] = await Promise.all([response.arrayBuffer()]);
 
       const uint8Array = new Uint8Array(arrayBuffer);
-      const sidecarUint8Array = new Uint8Array(sidecarArrayBuffer);
       console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
-      console.log(`📦 Downloaded ${sidecarUint8Array.length} bytes for sidecar file`);
 
-      db = dbConnection.db;
-      conn = dbConnection.conn;
 
       // Register both parquet files
       const fileName = `${datastoreName}.parquet`;
-      const sidecarFileName = `${datastoreName}_uniqs.parquet`;
       await db.registerFileBuffer(fileName, uint8Array);
-      await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
       // Query the ESM datastore data, project, and filter options concurrently
       const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
