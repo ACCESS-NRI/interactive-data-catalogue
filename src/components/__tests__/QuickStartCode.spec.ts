@@ -217,6 +217,42 @@ describe('QuickStartCode', () => {
     expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('intake.cat.access_nri["test-datastore"]'));
   });
 
+  // Test that the copy code button triggers clipboard write
+  it('copies code to clipboard when copy and open button clicked', async () => {
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [],
+    });
+
+    const buttons = wrapper.findAllComponents({ name: 'Button' });
+    expect(buttons.length).toBeGreaterThan(2);
+    await buttons[2]!.vm.$emit('click');
+
+    expect(writeTextMock).toHaveBeenCalledWith(expect.stringContaining('intake.cat.access_nri["test-datastore"]'));
+  });
+
+  // Test that clicking a project badge opens the correct NCI join URL
+  it('Correctly opens the NCI login page', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    wrapper = createWrapper({
+      datastoreName: 'test-datastore',
+      currentFilters: {},
+      rawData: [],
+    });
+
+    const buttons = wrapper.findAllComponents({ name: 'Button' });
+    expect(buttons.length).toBeGreaterThan(2);
+    await buttons[2]!.vm.$emit('click');
+
+    await new Promise((resolve) => setTimeout(resolve, 750)); // Wait slightly longer than the timeout
+
+    expect(openSpy).toHaveBeenCalledWith('https://are.nci.org.au/pun/sys/dashboard', '_blank');
+
+    openSpy.mockRestore();
+  });
+
   // Test that the copy link button generates correct URL with filters
   it('generates and copies search link with filters', async () => {
     wrapper = createWrapper({
