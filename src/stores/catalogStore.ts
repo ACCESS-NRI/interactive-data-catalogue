@@ -60,7 +60,7 @@ export interface DatastoreCache {
 
 interface RowCountResponse {
   num_rows: number;
-};
+}
 
 interface DatastoreRow {
   [key: string]: string | string[] | null;
@@ -68,7 +68,8 @@ interface DatastoreRow {
 
 type FilterOptions = Record<string, string[]>;
 
-const trackingServicesBaseUrl = process.env.NODE_ENV ===  'production' ? "https://reporting.access-nri-store.cloud.edu.au/" : "http://127.0.0.1:8000/"
+const trackingServicesBaseUrl =
+  process.env.NODE_ENV === 'production' ? 'https://reporting.access-nri-store.cloud.edu.au/' : 'http://127.0.0.1:8000/';
 const METACAT_URL =
   'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
@@ -232,16 +233,14 @@ export const useCatalogStore = defineStore('catalog', () => {
     // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
     //
-    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`;
 
-
-    const transformedData = await fetch(endpoint)
-      .then( response => {
-        if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        }
-        return response.json()
-      })
+    const transformedData = await fetch(endpoint).then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    });
 
     console.log('✅ ESM Datastore transformed data sample:', transformedData.slice(0, 2));
     console.log('📊 Total records:', transformedData.length);
@@ -258,16 +257,14 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function getEsmDatastoreProject(
-    datastoreName: string,
-  ): Promise<OptionalProject> {
-    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`
+  async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`;
     return fetch(endpoint)
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
         }
-        return response.json()
+        return response.json();
       })
       .then((rows: any[]) => {
         const row = rows[0];
@@ -322,12 +319,11 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function getEsmDatastoreSize(datastoreName: string  ): Promise<number> {
-
+  async function getEsmDatastoreSize(datastoreName: string): Promise<number> {
     const endpoint = `${trackingServicesBaseUrl}intake/table/row-count/${datastoreName}`;
 
     return fetch(endpoint)
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -337,7 +333,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       .catch((error) => {
         console.error('Error fetching row count:', error);
         return 0;
-      })
+      });
   }
 
   /** Reset catalog-related state held by the store. */
