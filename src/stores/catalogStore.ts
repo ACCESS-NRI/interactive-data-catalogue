@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import * as duckdb from '@duckdb/duckdb-wasm';
-import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
-import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
+import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
+import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
 
 type OptionalProject = string | null;
 /**
@@ -58,16 +58,14 @@ export interface DatastoreCache {
   project?: OptionalProject;
 }
 
+interface RowCountResponse {
+  num_rows: number;
+};
+
 type FilterOptions = Record<string, string[]>;
 
-/**
- * URL to the metacatalog parquet file. Uses a CORS proxy in production
- * and a local API path in development.
- */
 const METACAT_URL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
-    : '/api/parquet/metacatalog.parquet';
+  'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
 /** DuckDB WASM bundles used by the client; selectBundle picks the best one. */
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
@@ -367,14 +365,24 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
-  async function getEsmDatastoreSize(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<number> {
-    return conn
-      .query(`SELECT count(*) AS n FROM read_parquet('${fileName}')`)
-      .then((table) => table.toArray())
-      .then((rows) => {
-        const n = rows[0]?.n;
-        return typeof n === 'bigint' ? Number(n) : (n ?? 0);
-      });
+  async function getEsmDatastoreSize(datastoreName: string  ): Promise<number> {
+
+    const trackingServicesBaseUrl = process.env.NODE_ENV ===  'production' ? "https://reporting.access-nri-store.cloud.edu.au/" : "http://127.0.0.1:8000/"
+    const endpoint = `${trackingServicesBaseUrl}intake/table/row-count/${datastoreName}`;
+
+
+    return fetch(endpoint)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data: RowCountResponse) => data.num_rows)
+      .catch((error) => {
+        console.error('Error fetching row count:', error);
+        return 0;
+      })
   }
 
   /** Reset catalog-related state held by the store. */
@@ -486,10 +494,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       console.log(`🚀 Loading datastore: ${datastoreName}`);
 
       // Construct URLs for both the main datastore and sidecar files
-      const datastoreUrl =
-        process.env.NODE_ENV === 'production'
-          ? `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
-          : `/api/parquet/source/${datastoreName}.parquet`;
+      const datastoreUrl = `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`;
 
       const sidecarUrl = datastoreUrl.replace('.parquet', '_uniqs.parquet');
 
@@ -514,29 +519,17 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
-      // Fetch both parquet files and initialize DuckDB concurrently
-      const response = await fetch(datastoreUrl, { method: 'GET' });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
-      }
-
-      const [arrayBuffer] = await Promise.all([response.arrayBuffer()]);
-
-      const uint8Array = new Uint8Array(arrayBuffer);
-      console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
-
-
-      // Register both parquet files
+      // Now deal with lazily fetching the full array buffer
       const fileName = `${datastoreName}.parquet`;
-      await db.registerFileBuffer(fileName, uint8Array);
+
+      await db.registerFileURL(fileName, datastoreUrl, duckdb.DuckDBDataProtocol.HTTP, true);
 
       // Query the ESM datastore data, project, and filter options concurrently
       const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
         queryEsmDatastore(conn, fileName),
         getEsmDatastoreProject(conn, fileName),
         getFilterOptions(conn, sidecarFileName),
-        getEsmDatastoreSize(conn, fileName),
+        getEsmDatastoreSize(datastoreName),
       ]);
 
       const columns = Object.keys(datastoreData[0] || {});
