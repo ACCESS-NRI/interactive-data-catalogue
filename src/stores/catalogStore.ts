@@ -62,6 +62,10 @@ interface RowCountResponse {
   num_rows: number;
 };
 
+interface DatastoreRow {
+  [key: string]: string | string[] | null;
+}
+
 type FilterOptions = Record<string, string[]>;
 
 const trackingServicesBaseUrl = process.env.NODE_ENV ===  'production' ? "https://reporting.access-nri-store.cloud.edu.au/" : "http://127.0.0.1:8000/"
@@ -224,7 +228,7 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param datastoreName - The name of the datastore, passed to the tracking
    * services server as part of the url, eg. `.../intake/table/datastore-content/WOA23`
    */
-  async function queryEsmDatastore(datastoreName: string): Promise<any[]> {
+  async function queryEsmDatastore(datastoreName: string): Promise<DatastoreRow[]> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
     //
