@@ -64,6 +64,7 @@ interface RowCountResponse {
 
 type FilterOptions = Record<string, string[]>;
 
+const trackingServicesBaseUrl = process.env.NODE_ENV ===  'production' ? "https://reporting.access-nri-store.cloud.edu.au/" : "http://127.0.0.1:8000/"
 const METACAT_URL =
   'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
@@ -304,14 +305,16 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param datastoreName - Logical name used to register the buffer
    */
   async function getEsmDatastoreProject(
-    conn: duckdb.AsyncDuckDBConnection,
-    fileName: string,
+    datastoreName: string,
   ): Promise<OptionalProject> {
-    // NOTE: the parquet file buffer must be registered by the caller.
-    // Query for a single row and return the first matched project (or null)
-    return conn
-      .query(`SELECT path FROM read_parquet('${fileName}') LIMIT 1`)
-      .then((table) => table.toArray())
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`
+    return fetch(endpoint)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        return response.json()
+      })
       .then((rows: any[]) => {
         const row = rows[0];
         if (!row) return null;
@@ -367,9 +370,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   async function getEsmDatastoreSize(datastoreName: string  ): Promise<number> {
 
-    const trackingServicesBaseUrl = process.env.NODE_ENV ===  'production' ? "https://reporting.access-nri-store.cloud.edu.au/" : "http://127.0.0.1:8000/"
     const endpoint = `${trackingServicesBaseUrl}intake/table/row-count/${datastoreName}`;
-
 
     return fetch(endpoint)
       .then(response => {
@@ -527,7 +528,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       // Query the ESM datastore data, project, and filter options concurrently
       const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
         queryEsmDatastore(conn, fileName),
-        getEsmDatastoreProject(conn, fileName),
+        getEsmDatastoreProject(datastoreName),
         getFilterOptions(conn, sidecarFileName),
         getEsmDatastoreSize(datastoreName),
       ]);
