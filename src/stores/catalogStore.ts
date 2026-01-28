@@ -474,11 +474,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
-      // Now deal with lazily fetching the full array buffer
-      const fileName = `${datastoreName}.parquet`;
-
-      await db.registerFileURL(fileName, datastoreUrl, duckdb.DuckDBDataProtocol.HTTP, true);
-
       // Query the ESM datastore data, project, and filter options concurrently
       const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
         queryEsmDatastore(datastoreName),
