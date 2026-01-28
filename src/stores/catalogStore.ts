@@ -218,76 +218,26 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   /**
-   * Read a generic ESM datastore parquet and normalize each column to
-   * either a scalar or an array of strings. This function dynamically
-   * inspects the parquet schema and builds a query that coercively
-   * converts columns into VARCHAR[] when possible.
+   * Read an esm datastore from the `datastore-content` endpoint, and get a JS
+   * array containing the data
    *
-   * @param db - DuckDB Async instance
-   * @param conn - Active connection associated with `db`
-   * @param uint8Array - Bytes of the datastore parquet
-   * @param datastoreName - Logical name used to register the buffer
+   * @param datastoreName - The name of the datastore, passed to the tracking
+   * services server as part of the url, eg. `.../intake/table/datastore-content/WOA23`
    */
-  async function queryEsmDatastore(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<any[]> {
+  async function queryEsmDatastore(datastoreName: string): Promise<any[]> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
-    const schemaResult = await conn.query(`DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1`);
+    //
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`
 
-    const schemaData = schemaResult.toArray();
-    console.log('📊 ESM Datastore schema:', schemaData);
-    // Get all column names from the schema
-    const columns = schemaData
-      .map((row: any) => row.column_name)
-      .filter((col: string) => col !== 'filename' && col !== 'path');
-    console.log('📋 Available columns:', columns);
 
-    // Read the parquet as raw rows and normalize in JavaScript
-    const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}') LIMIT 1000`);
-    // Limit 1000 so we can tell - for certain - that we're getting the right data
-    const rawData = queryResult.toArray();
-
-    // Transform the data using the same normalization used by
-    // `queryMetaCatalogPq`: always produce an array of strings for
-    // each column (empty array for null/undefined).
-    const transformedData = rawData.map((row: any) => {
-      const processGenericField = (value: any): string[] => {
-        if (value === null || value === undefined) return [];
-
-        // DuckDB Vector-like objects (expose toArray)
-        if (value && typeof value.toArray === 'function') {
-          return value
-            .toArray()
-            .filter((v: any) => v !== null && v !== undefined)
-            .map(String);
+    const transformedData = await fetch(endpoint)
+      .then( response => {
+        if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
         }
-
-        // Regular arrays
-        if (Array.isArray(value)) {
-          return value.filter((v) => v !== null && v !== undefined).map(String);
-        }
-
-        // Strings may be JSON arrays or scalars
-        if (typeof value === 'string') {
-          try {
-            const parsed = JSON.parse(value);
-            return Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
-          } catch {
-            return [value];
-          }
-        }
-
-        // Fallback: stringify single value
-        return [String(value)];
-      };
-
-      const transformedRow: any = {};
-      columns.forEach((column) => {
-        const arr = processGenericField(row[column]);
-        transformedRow[column] = arr.length === 0 ? null : arr.length === 1 ? arr[0] : arr;
-      });
-
-      return transformedRow;
-    });
+        return response.json()
+      })
 
     console.log('✅ ESM Datastore transformed data sample:', transformedData.slice(0, 2));
     console.log('📊 Total records:', transformedData.length);
@@ -527,7 +477,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       // Query the ESM datastore data, project, and filter options concurrently
       const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
-        queryEsmDatastore(conn, fileName),
+        queryEsmDatastore(datastoreName),
         getEsmDatastoreProject(datastoreName),
         getFilterOptions(conn, sidecarFileName),
         getEsmDatastoreSize(datastoreName),
