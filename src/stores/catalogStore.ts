@@ -230,9 +230,6 @@ export const useCatalogStore = defineStore('catalog', () => {
    * services server as part of the url, eg. `.../intake/table/datastore-content/WOA23`
    */
   async function queryEsmDatastore(datastoreName: string): Promise<DatastoreRow[]> {
-    // NOTE: the parquet file buffer must be registered by the caller.
-    // First, inspect the schema to understand the columns
-    //
     const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`;
 
     const transformedData = await fetch(endpoint).then((response) => {
@@ -266,14 +263,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
         return response.json();
       })
-      .then((rows: any[]) => {
-        const row = rows[0];
-        if (!row) return null;
-        const pathValue = row['path'];
-        if (!pathValue) return null;
-        const match = String(pathValue).match(/\/g\/data\/([^\/]+)\//);
-        return match?.[1] ?? null;
-      });
+      .then(response => response.project);
   }
 
   // Actions
