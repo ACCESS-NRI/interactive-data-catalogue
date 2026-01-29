@@ -263,7 +263,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
         return response.json();
       })
-      .then(response => response.project);
+      .then((response) => response.project);
   }
 
   // Actions
