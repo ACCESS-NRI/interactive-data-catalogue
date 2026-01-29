@@ -7,7 +7,7 @@
       <div class="flex items-center gap-2">
         <i class="pi pi-database text-blue-600 text-xl"></i>
         <span class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ datastoreName }} Data ({{ filteredData.length?.toLocaleString() }} records)
+          {{ datastoreName }} Data ({{ totalRecords?.toLocaleString() }} records)
         </span>
       </div>
 
@@ -42,20 +42,16 @@
     <!-- DataTable - Conditionally Rendered -->
     <DataTable
       v-if="showTable"
-      :value="filteredData"
-      :paginator="true"
-      :rows="25"
-      :rows-per-page-options="[10, 25, 50, 100]"
-      :total-records="filteredData.length"
-      :loading="tableLoading"
-      data-key="__index_level_0__"
-      show-gridlines
-      striped-rows
-      removable-sort
-      resizable-columns
-      column-resize-mode="expand"
-      :global-filter-fields="columns"
-      class="datastore-table"
+      lazy
+      :value="results"
+      :loading="isFetching"
+      paginator
+      :first="offset"
+      :rows="limit"
+      :rowsPerPageOptions="rowOptions"
+      :totalRecords="totalRecords"
+      tableStyle="min-width: 50rem"
+      @page="onPageChange"
     >
       <Column
         v-for="column in selectedColumns"
@@ -160,17 +156,19 @@
     </DataTable>
     <DatastoreEntryModal v-model="showDataStoreEntryModal" :title="modalTitle" :items="modalItems" />
   </div>
+
 </template>
 
 <script setup lang="ts">
 import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
+import { Column } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
 
-defineProps<{
+const props = defineProps<{
   filteredData: any[];
   tableLoading: boolean;
   selectedColumns: Array<{ field: string; header: string }>;
@@ -179,24 +177,32 @@ defineProps<{
   datastoreName: string;
 }>();
 
-const emit = defineEmits(['update:selectedColumns', 'refresh']);
 
-// Table visibility state
-const showTable = ref(false);
+const url = computed(
+  () =>
+  `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?offset=${offset.value}&limit=${limit.value}`
+);
 
+const page = ref(0);
+const results = computed(() => data.value?.results);
+const totalRecords = computed(() => data.value?.count);
+
+const showTable = ref(true);
 const toggleTable = () => {
   showTable.value = !showTable.value;
 };
 
-const onColumnToggle = (value: any[]) => {
-  emit('update:selectedColumns', value);
-};
+const rowOptions = [5, 10, 25, 50];
 
-const onRefresh = () => {
-  emit('refresh');
-};
+const limit = ref(rowOptions[0]);
+const offset = computed(() => Number(limit.value * page.value));
 
-// Modal state for showing full array/field contents
+const { isFetching, error, data } = useFetch(url, { refetch: true }).json();
+
+async function onPageChange(event) {
+  page.value = event.page;
+}
+
 const showDataStoreEntryModal = ref(false);
 const modalTitle = ref('');
 const modalItems = ref<any>([]);
@@ -206,6 +212,7 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   modalItems.value = Array.isArray(items) ? items : [items];
   showDataStoreEntryModal.value = true;
 };
+
 </script>
 
 <style scoped></style>
