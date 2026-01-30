@@ -9,10 +9,9 @@
     </div>
     <p class="text-orange-700 dark:text-orange-300 text-sm">
       This dataset contains multiple variable cell methods. You may need to filter by
-      <code class="px-1 py-0.5 bg-orange-100 dark:bg-orange-900 rounded text-xs font-mono">variable_cell_methods</code>
+      <code class="px-1 py-0.5 bg-orange-100 dark:bg-orange-900 rounded text-xs font-mono">temporal_label</code>
       to select the specific temporal aggregation you need before calling
-      <code class="px-1 py-0.5 bg-orange-100 dark:bg-orange-900 rounded text-xs font-mono">to_dask()</code>,
-      unless the dataset contains files with moe than one variable cell method.
+      <code class="px-1 py-0.5 bg-orange-100 dark:bg-orange-900 rounded text-xs font-mono">to_dask()</code>.
     </p>
   </div>
 </template>
