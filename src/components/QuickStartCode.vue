@@ -215,7 +215,7 @@ const numDatasets = computed(() => {
  * The warning should be displayed when:
  * 1. xarray mode is enabled (isXArrayMode is true)
  * 2. User has filtered down to a single dataset (numDatasets === 1)
- * 3. There are multiple variable_cell_methods options available in dynamicFilterOptions
+ * 3. There are multiple temporal_label options available in dynamicFilterOptions
  *
  * This indicates the user may need to further filter by variable_cell_methods
  * before calling to_dask().
@@ -225,11 +225,11 @@ const shouldShowCellMethodsWarning = computed((): boolean => {
   if (numDatasets.value !== 1) return false;
 
   // Don't show warning if user has already filtered by variable_cell_methods
-  const hasFilteredCellMethods = (props.currentFilters['variable_cell_methods']?.length ?? 0) > 0;
-  if (hasFilteredCellMethods) return false;
+  const hasFilteredTemporalLabels = (props.currentFilters['temporal_label']?.length ?? 0) > 0;
+  if (hasFilteredTemporalLabels) return false;
 
-  const cellMethodsOptions = props.dynamicFilterOptions['variable_cell_methods'];
-  return !!(cellMethodsOptions && cellMethodsOptions.length > 1);
+  const temporalLabelOptions = props.dynamicFilterOptions['temporal_label'];
+  return !!(temporalLabelOptions && temporalLabelOptions.length > 1);
 });
 
 /**
@@ -255,7 +255,7 @@ First we import intake and connect to a Dask cluster - we can then access the da
 import intake
 from dask.distributed import Client
 
-client = Client(threads_per_worker=1) 
+client = Client(threads_per_worker=1)
 
 datastore = intake.cat.access_nri["${props.datastoreName}"]`;
 
