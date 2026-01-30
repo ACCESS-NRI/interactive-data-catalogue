@@ -156,7 +156,6 @@
     </DataTable>
     <DatastoreEntryModal v-model="showDataStoreEntryModal" :title="modalTitle" :items="modalItems" />
   </div>
-
 </template>
 
 <script setup lang="ts">
@@ -164,9 +163,17 @@ import DataTable from 'primevue/datatable';
 import { Column } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
-import { ref, computed, watch } from 'vue';
+import { ref, computed}  from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
+
+type PageEvent = {
+  page: number;
+  first: number;
+  rows: number;
+  pageCount: number;
+};
+
 
 const props = defineProps<{
   filteredData: any[];
@@ -177,10 +184,9 @@ const props = defineProps<{
   datastoreName: string;
 }>();
 
-
 const url = computed(
   () =>
-  `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?offset=${offset.value}&limit=${limit.value}`
+    `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?offset=${offset.value}&limit=${limit.value}`,
 );
 
 const page = ref(0);
@@ -192,14 +198,16 @@ const toggleTable = () => {
   showTable.value = !showTable.value;
 };
 
-const rowOptions = [5, 10, 25, 50];
+const rowOptions : number[] = [5, 10, 25, 50];
 
 const limit = ref(rowOptions[0]);
-const offset = computed(() => Number(limit.value * page.value));
+const offset = computed(() => Number((limit.value?? 0) * page.value));
 
+// error is not used - but we will probably want to later!
+// @ts-expect-error
 const { isFetching, error, data } = useFetch(url, { refetch: true }).json();
 
-async function onPageChange(event) {
+async function onPageChange(event: PageEvent) {
   page.value = event.page;
 }
 
@@ -213,6 +221,15 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   showDataStoreEntryModal.value = true;
 };
 
+const emit = defineEmits(['update:selectedColumns', 'refresh']);
+
+const onColumnToggle = (value: any[]) => {
+  emit('update:selectedColumns', value);
+};
+
+const onRefresh = () => {
+  emit('refresh');
+};
 </script>
 
 <style scoped></style>
