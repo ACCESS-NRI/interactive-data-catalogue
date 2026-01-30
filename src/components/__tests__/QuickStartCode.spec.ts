@@ -463,6 +463,7 @@ describe('QuickStartCode', () => {
       rawData: [{ file_id: 'dataset1' }],
       dynamicFilterOptions: {
         variable_cell_methods: ['time: mean', 'time: point', 'area: mean'],
+        temporal_label: ['mean', 'point', 'mean'],
       },
     });
 

@@ -49,7 +49,7 @@ describe('MultipleCellMethodsWarning', () => {
 
     const codeElements = wrapper.findAll('code');
     expect(codeElements.length).toBeGreaterThanOrEqual(2);
-    expect(codeElements.some((el) => el.text().includes('variable_cell_methods'))).toBe(true);
+    expect(codeElements.some((el) => el.text().includes('temporal_label'))).toBe(true);
     expect(codeElements.some((el) => el.text().includes('to_dask()'))).toBe(true);
   });
 
