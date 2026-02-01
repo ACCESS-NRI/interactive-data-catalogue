@@ -163,7 +163,7 @@ import DataTable from 'primevue/datatable';
 import { Column } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
-import { ref, computed}  from 'vue';
+import { ref, computed, watch, }  from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
 
@@ -173,7 +173,6 @@ type PageEvent = {
   rows: number;
   pageCount: number;
 };
-
 
 const props = defineProps<{
   filteredData: any[];
@@ -186,12 +185,15 @@ const props = defineProps<{
 
 const url = computed(
   () =>
-    `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?offset=${offset.value}&limit=${limit.value}`,
+  `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?offset=${offset.value}&limit=${limit.value}`,
 );
 
 const page = ref(0);
 const results = computed(() => data.value?.results);
 const totalRecords = computed(() => data.value?.count);
+const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
+
+
 
 const showTable = ref(true);
 const toggleTable = () => {
@@ -221,7 +223,7 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   showDataStoreEntryModal.value = true;
 };
 
-const emit = defineEmits(['update:selectedColumns', 'refresh']);
+const emit = defineEmits(['update:selectedColumns', 'refresh', 'setNumDatasets']);
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
@@ -230,6 +232,10 @@ const onColumnToggle = (value: any[]) => {
 const onRefresh = () => {
   emit('refresh');
 };
+
+watch(numDatasets, (newVal) => {
+  emit('setNumDatasets',newVal);
+});
 </script>
 
 <style scoped></style>

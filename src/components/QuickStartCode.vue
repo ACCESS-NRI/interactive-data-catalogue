@@ -112,6 +112,8 @@ interface Props {
    * Used to determine if there are multiple variable_cell_methods options available.
    */
   dynamicFilterOptions: Record<string, string[]>;
+
+  numDatasets: number;
 }
 
 /** The typed props object (available in <script setup> via defineProps). */
@@ -189,25 +191,7 @@ const requiredProjects = computed(() => {
   return Array.from(projects).sort();
 });
 
-/**
- * Number of unique datasets present in `props.rawData`.
- *
- * This counts unique `file_id` values using a Set. Useful for deciding
- * whether the generated xarray snippet should produce a dictionary of
- * datasets or a single dataset.
- */
-const numDatasets = computed(() => {
-  // Use a Set to count unique datasets - one fileId per dataset
-  const fileIds = new Set<string>();
-
-  props.rawData.forEach((row) => {
-    if (row['file_id']) {
-      fileIds.add(row['file_id']);
-    }
-  });
-
-  return fileIds.size;
-});
+const numDatasets = props.numDatasets;
 
 /**
  * Determine whether to show the MultipleCellMethodsWarning.
@@ -222,7 +206,7 @@ const numDatasets = computed(() => {
  */
 const shouldShowCellMethodsWarning = computed((): boolean => {
   if (!isXArrayMode.value) return false;
-  if (numDatasets.value !== 1) return false;
+  if (numDatasets !== 1) return false;
 
   // Don't show warning if user has already filtered by variable_cell_methods
   const hasFilteredCellMethods = (props.currentFilters['variable_cell_methods']?.length ?? 0) > 0;
@@ -274,8 +258,8 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`;
 
   // Add XArray conversion if in XArray mode
   if (isXArrayMode.value) {
-    if (numDatasets.value > 1) {
-      code += `\n\n# Search contains ${numDatasets.value} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
+    if (numDatasets > 1) {
+      code += `\n\n# Search contains ${numDatasets} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
       code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`;
       code += `\ndataset_dict = datastore.to_dataset_dict()\ndataset_dict`;
     } else {

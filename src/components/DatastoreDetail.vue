@@ -83,6 +83,7 @@
           :current-filters="currentFilters"
           :raw-data="filteredData"
           :dynamic-filter-options="dynamicFilterOptions"
+          :num-datasets="numDatasets"
           class="mb-6"
         />
 
@@ -101,6 +102,7 @@
           :columns="columns"
           :datastore-name="datastoreName"
           @refresh="loadDatastore"
+          @set-num-datasets="numDatasets = $event"
         />
       </div>
     </div>
@@ -126,6 +128,7 @@ const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
 const currentFilters = ref<Record<string, string[]>>({});
+const numDatasets = ref(0);
 
 const availableColumns = ref<{ field: string; header: string }[]>([]);
 const selectedColumns = ref<{ field: string; header: string }[]>([]);
