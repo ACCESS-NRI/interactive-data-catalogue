@@ -69,7 +69,7 @@ interface DatastoreRow {
 type FilterOptions = Record<string, string[]>;
 
 const trackingServicesBaseUrl =
-  process.env.NODE_ENV === 'production' ? 'https://reporting.access-nri-store.cloud.edu.au/' : 'http://127.0.0.1:8000/';
+  process.env.NODE_ENV === 'production' ? 'https://reporting-dev.access-nri-store.cloud.edu.au/' : 'http://127.0.0.1:8000/';
 const METACAT_URL =
   'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
