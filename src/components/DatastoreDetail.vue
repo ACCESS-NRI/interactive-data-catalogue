@@ -148,7 +148,12 @@ const formatColumnName = (c: string) =>
     })
     .join(' ');
 
+/* Setup available and selected columns based on datastore columns. Exclude useless 
+* columns like 'path' and 'filename' 
+*/ 
 const setupColumns = (dataColumns: string[]) => {
+
+  dataColumns = dataColumns.filter((col) => col !== 'path' && col !== 'filename');
   availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
   selectedColumns.value = [...availableColumns.value];
 };

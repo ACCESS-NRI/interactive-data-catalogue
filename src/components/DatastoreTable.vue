@@ -189,10 +189,9 @@ const url = computed(
 );
 
 const page = ref(0);
-const results = computed(() => data.value?.results);
-const totalRecords = computed(() => data.value?.count);
+const results = computed(() => data.value?.records || []);
+const totalRecords = computed(() => data.value?.total);
 const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
-
 
 
 const showTable = ref(true);
@@ -236,6 +235,7 @@ const onRefresh = () => {
 watch(numDatasets, (newVal) => {
   emit('setNumDatasets',newVal);
 });
+
 </script>
 
 <style scoped></style>
