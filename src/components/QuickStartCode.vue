@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue';
-import {  trackingServicesBaseUrl } from '../stores/catalogStore';
+import { trackingServicesBaseUrl } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -161,13 +161,12 @@ const hasActiveFilters = computed(() => {
   return Object.values(props.currentFilters).some((value) => value && value.length > 0);
 });
 
-
 /**
  * Read a generic ESM datastore parquet file and get the project from the first
  * row's path column.
  *
  * @param datastoreName - The name of tesm datastore that we want the project for
-*/
+ */
 async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
   const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`;
   return fetch(endpoint)
@@ -179,7 +178,6 @@ async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalPr
     })
     .then((response) => response.project);
 }
-
 
 const requiredProjects = ref<string[]>(['xp65']);
 
@@ -203,11 +201,12 @@ onMounted(() => {
 });
 
 // Watch for datastore name changes
-watch(() => props.datastoreName, () => {
-  loadRequiredProjects();
-});
-
-
+watch(
+  () => props.datastoreName,
+  () => {
+    loadRequiredProjects();
+  },
+);
 
 const numDatasets = props.numDatasets;
 

@@ -598,7 +598,6 @@ describe('catalogStore', () => {
       expect(cache.lastFetched).toBeInstanceOf(Date);
     });
 
-
     // Test that DatastoreCache handles error state correctly
     it('datastore cache handles error state', () => {
       const cache: DatastoreCache = {
