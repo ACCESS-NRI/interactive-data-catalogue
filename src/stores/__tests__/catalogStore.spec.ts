@@ -598,21 +598,6 @@ describe('catalogStore', () => {
       expect(cache.lastFetched).toBeInstanceOf(Date);
     });
 
-    // Test that DatastoreCache accepts optional project field
-    it('datastore cache accepts optional project field', () => {
-      const cache: DatastoreCache = {
-        data: [],
-        totalRecords: 0,
-        columns: [],
-        filterOptions: {},
-        loading: false,
-        error: null,
-        lastFetched: new Date(),
-        project: 'test-project',
-      };
-
-      expect(cache.project).toBe('test-project');
-    });
 
     // Test that DatastoreCache handles error state correctly
     it('datastore cache handles error state', () => {

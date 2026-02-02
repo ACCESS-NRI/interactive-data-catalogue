@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue';
-import { useCatalogStore, trackingServicesBaseUrl } from '../stores/catalogStore';
+import {  trackingServicesBaseUrl } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -80,7 +80,6 @@ import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
 import MultipleCellMethodsWarning from './MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
 import 'highlight.js/lib/common';
-import { isOptionalChain } from 'typescript';
 
 // Props
 /**

@@ -305,7 +305,6 @@ describe('QuickStartCode', () => {
         loading: false,
         error: null,
         lastFetched: new Date(),
-        project: 'tm70',
       },
     };
 
