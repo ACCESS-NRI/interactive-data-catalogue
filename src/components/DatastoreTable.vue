@@ -168,6 +168,7 @@ import { ref, computed, watch } from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
+import { trackingServicesBaseUrl } from '../stores/catalogStore';
 
 type PageEvent = {
   page: number;
@@ -202,11 +203,11 @@ const url = computed(() => {
     params.append('sortOrder', String(sortOrder.value));
   }
 
-  const urlStr = `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
+  const endpoint = `${trackingServicesBaseUrl}intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
 
-  console.log('Fetching data from URL: ', urlStr);
+  console.log('Fetching data from URL: ', endpoint);
 
-  return urlStr;
+  return endpoint;
 });
 
 const results = computed(() => data.value?.records || []);
