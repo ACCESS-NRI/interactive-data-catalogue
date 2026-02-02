@@ -216,6 +216,7 @@ const url = computed(() => {
 const results = computed(() => data.value?.records || []);
 const totalRecords = computed(() => data.value?.total);
 const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
+const dynamicFilterOptions = computed(() => data.value?.dynamic_filter_options || {});
 
 const showTable = ref(true);
 const toggleTable = () => {
@@ -256,7 +257,7 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   showDataStoreEntryModal.value = true;
 };
 
-const emit = defineEmits(['update:selectedColumns', 'refresh', 'setNumDatasets']);
+const emit = defineEmits(['update:selectedColumns', 'refresh', 'setNumDatasets', 'setDynamicFilterOptions']);
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
@@ -268,6 +269,10 @@ const onRefresh = () => {
 
 watch(numDatasets, (newVal) => {
   emit('setNumDatasets', newVal);
+});
+
+watch(dynamicFilterOptions, (newVal) => {
+  emit('setDynamicFilterOptions', newVal);
 });
 </script>
 
