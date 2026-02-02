@@ -183,7 +183,6 @@ describe('catalogStore', () => {
       it('clears specific datastore cache', () => {
         store.datastoreCache = {
           'test-datastore': {
-            data: [],
             totalRecords: 0,
             columns: [],
             filterOptions: {},
@@ -192,7 +191,6 @@ describe('catalogStore', () => {
             lastFetched: new Date(),
           },
           'other-datastore': {
-            data: [],
             totalRecords: 0,
             columns: [],
             filterOptions: {},
@@ -212,7 +210,6 @@ describe('catalogStore', () => {
       it('clears all datastore cache when no name provided', () => {
         store.datastoreCache = {
           'test-datastore': {
-            data: [],
             totalRecords: 0,
             columns: [],
             filterOptions: {},
@@ -234,7 +231,6 @@ describe('catalogStore', () => {
       // Test that getDatastoreFromCache returns cached datastore when present
       it('returns cached datastore', () => {
         const mockCache: DatastoreCache = {
-          data: [{ test: 'data' }],
           totalRecords: 1,
           columns: ['test'],
           filterOptions: {},
@@ -261,7 +257,6 @@ describe('catalogStore', () => {
       it('returns true when datastore is loading', () => {
         store.datastoreCache = {
           'test-datastore': {
-            data: [],
             totalRecords: 0,
             columns: [],
             filterOptions: {},
@@ -278,7 +273,6 @@ describe('catalogStore', () => {
       it('returns false when datastore is not loading', () => {
         store.datastoreCache = {
           'test-datastore': {
-            data: [],
             totalRecords: 0,
             columns: [],
             filterOptions: {},
@@ -301,7 +295,6 @@ describe('catalogStore', () => {
       // Test that loadDatastore returns cached data without refetching
       it('returns cached datastore without refetching', async () => {
         const mockCache: DatastoreCache = {
-          data: [{ test: 'data' }],
           totalRecords: 1,
           columns: ['test'],
           filterOptions: {},
@@ -323,7 +316,6 @@ describe('catalogStore', () => {
       it('waits for in-progress load', async () => {
         store.datastoreCache = {
           'test-datastore': {
-            data: [],
             totalRecords: 0,
             columns: [],
             filterOptions: {},
@@ -338,14 +330,12 @@ describe('catalogStore', () => {
           const cache = store.datastoreCache['test-datastore'];
           if (cache) {
             cache.loading = false;
-            cache.data = [{ test: 'data' }];
           }
         }, 50);
 
         const result = await store.loadDatastore('test-datastore');
 
         expect(result.loading).toBe(false);
-        expect(result.data).toBeDefined();
       });
 
       // Test that loadDatastore handles fetch errors and stores error message
@@ -580,7 +570,6 @@ describe('catalogStore', () => {
     // Test that DatastoreCache structure contains all required fields
     it('datastore cache has required structure', () => {
       const cache: DatastoreCache = {
-        data: [{ test: 'data' }],
         totalRecords: 1,
         columns: ['test'],
         filterOptions: { test: ['data'] },
@@ -589,7 +578,6 @@ describe('catalogStore', () => {
         lastFetched: new Date(),
       };
 
-      expect(cache.data).toEqual([{ test: 'data' }]);
       expect(cache.totalRecords).toBe(1);
       expect(cache.columns).toEqual(['test']);
       expect(cache.filterOptions).toEqual({ test: ['data'] });
@@ -601,7 +589,6 @@ describe('catalogStore', () => {
     // Test that DatastoreCache accepts optional project field
     it('datastore cache accepts optional project field', () => {
       const cache: DatastoreCache = {
-        data: [],
         totalRecords: 0,
         columns: [],
         filterOptions: {},
@@ -617,7 +604,6 @@ describe('catalogStore', () => {
     // Test that DatastoreCache handles error state correctly
     it('datastore cache handles error state', () => {
       const cache: DatastoreCache = {
-        data: [],
         totalRecords: 0,
         columns: [],
         filterOptions: {},

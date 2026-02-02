@@ -41,8 +41,6 @@ export interface CatalogRow {
  * reuse previously-loaded data without re-downloading or re-parsing.
  */
 export interface DatastoreCache {
-  /** Raw transformed rows for use in tables and filters. */
-  data: any[];
   /** Number of records in `data`. */
   totalRecords: number;
   /** Column names available for display in tables. */
@@ -226,7 +224,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   /**
    * Read an esm datastore from the `datastore-content` endpoint, and get a JS
-   * array containing the data
+   * array containing the data. Truncated to 100 rows by the server.
    *
    * @param datastoreName - The name of the datastore, passed to the tracking
    * services server as part of the url, eg. `.../intake/table/datastore-content/WOA23`
@@ -234,26 +232,20 @@ export const useCatalogStore = defineStore('catalog', () => {
   async function queryEsmDatastore(datastoreName: string): Promise<DatastoreRow[]> {
     const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`;
 
-    const transformedData = await fetch(endpoint).then((response) => {
+    const esmDatastoreDataHead = await fetch(endpoint).then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
       }
       return response.json();
     });
 
-    console.log('✅ ESM Datastore transformed data sample:', transformedData.slice(0, 2));
-    console.log('📊 Total records:', transformedData.length);
-
-    return transformedData;
+    return esmDatastoreDataHead;
   }
 
   /**
    * Read a generic ESM datastore parquet file and get the project from the first
    * row's path column.
    *
-   * @param db - DuckDB Async instance
-   * @param conn - Active connection associated with `db`
-   * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
   async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
@@ -421,7 +413,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
     // Initialize cache entry
     datastoreCache.value[datastoreName] = {
-      data: [],
       totalRecords: 0,
       columns: [],
       filterOptions: {},
@@ -476,7 +467,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       // Update cache with metadata only (no data rows stored)
       datastoreCache.value[datastoreName] = {
-        data: [], // Don't store data - it's fetched on-demand by DatastoreTable
         totalRecords: numRecords,
         columns: displayColumns,
         filterOptions,
@@ -495,7 +485,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load datastore';
 
       datastoreCache.value[datastoreName] = {
-        data: [],
         totalRecords: 0,
         columns: [],
         filterOptions: {},
@@ -515,7 +504,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   function createEmptyCache(): DatastoreCache {
     return {
-      data: [],
       totalRecords: 0,
       columns: [],
       filterOptions: {},

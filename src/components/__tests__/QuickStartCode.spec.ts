@@ -298,7 +298,6 @@ describe('QuickStartCode', () => {
     const store = useCatalogStore();
     store.datastoreCache = {
       'test-datastore': {
-        data: [],
         totalRecords: 0,
         columns: [],
         filterOptions: {},
