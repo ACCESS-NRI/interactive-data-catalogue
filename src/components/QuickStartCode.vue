@@ -69,8 +69,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useCatalogStore } from '../stores/catalogStore';
+import { computed, ref, onMounted, watch } from 'vue';
+import { useCatalogStore, trackingServicesBaseUrl } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -80,6 +80,7 @@ import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
 import MultipleCellMethodsWarning from './MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
 import 'highlight.js/lib/common';
+import { isOptionalChain } from 'typescript';
 
 // Props
 /**
@@ -109,6 +110,8 @@ interface Props {
 
   numDatasets: number;
 }
+
+type OptionalProject = string | null;
 
 /** The typed props object (available in <script setup> via defineProps). */
 const props = defineProps<Props>();
@@ -159,31 +162,53 @@ const hasActiveFilters = computed(() => {
   return Object.values(props.currentFilters).some((value) => value && value.length > 0);
 });
 
+
 /**
- * Compute the set of projects that the generated quick-start code will
- * require access to.
+ * Read a generic ESM datastore parquet file and get the project from the first
+ * row's path column.
  *
- * Behavior:
- * - Always includes the 'xp65' project by default.
- * - Scans each row in `props.rawData` for a `path` field and attempts
- *   to extract a NCI project name using the pattern `/g/data/{PROJECT}/...`.
- * - Returns a sorted array of unique project names.
- */
-const requiredProjects = computed(() => {
+ * @param datastoreName - The name of tesm datastore that we want the project for
+*/
+async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
+  const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`;
+  return fetch(endpoint)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then((response) => response.project);
+}
+
+
+const requiredProjects = ref<string[]>(['xp65']);
+
+// Load the project asynchronously
+const loadRequiredProjects = async () => {
   const XP65 = 'xp65';
   const projects = new Set<string>();
   projects.add(XP65);
 
-  // Read the cached project (populated when the datastore is loaded).
-
-  const cachedProject = useCatalogStore().getDatastoreFromCache(props.datastoreName)?.project ?? null;
-
+  const cachedProject = await getEsmDatastoreProject(props.datastoreName);
   if (cachedProject) {
     projects.add(cachedProject);
   }
 
-  return Array.from(projects).sort();
+  requiredProjects.value = Array.from(projects).sort();
+};
+
+// Call on component mount
+onMounted(() => {
+  loadRequiredProjects();
 });
+
+// Watch for datastore name changes
+watch(() => props.datastoreName, () => {
+  loadRequiredProjects();
+});
+
+
 
 const numDatasets = props.numDatasets;
 

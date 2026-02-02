@@ -55,7 +55,6 @@ export interface DatastoreCache {
   error: string | null;
   /** Timestamp when the datastore was last fetched. */
   lastFetched: Date;
-  project?: OptionalProject;
 }
 
 interface RowCountResponse {
@@ -68,7 +67,7 @@ interface DatastoreRow {
 
 type FilterOptions = Record<string, string[]>;
 
-const trackingServicesBaseUrl =
+export const trackingServicesBaseUrl =
   process.env.NODE_ENV === 'production'
     ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
     : 'http://127.0.0.1:8000/';
@@ -247,26 +246,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     return transformedData;
   }
 
-  /**
-   * Read a generic ESM datastore parquet file and get the project from the first
-   * row's path column.
-   *
-   * @param db - DuckDB Async instance
-   * @param conn - Active connection associated with `db`
-   * @param uint8Array - Bytes of the datastore parquet
-   * @param datastoreName - Logical name used to register the buffer
-   */
-  async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
-    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`;
-    return fetch(endpoint)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then((response) => response.project);
-  }
 
   // Actions
   /**
@@ -427,7 +406,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       filterOptions: {},
       loading: true,
       error: null,
-      project: null,
       lastFetched: new Date(),
     };
 
@@ -464,9 +442,8 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       // Query metadata: project, filter options, and row count
       // Note: We fetch a small sample just to get column names
-      const [sampleData, project, filterOptions, numRecords] = await Promise.all([
+      const [sampleData, filterOptions, numRecords] = await Promise.all([
         queryEsmDatastore(datastoreName), // Gets first 100 rows just for column names
-        getEsmDatastoreProject(datastoreName),
         getFilterOptions(conn, sidecarFileName),
         getEsmDatastoreSize(datastoreName),
       ]);
@@ -482,7 +459,6 @@ export const useCatalogStore = defineStore('catalog', () => {
         filterOptions,
         loading: false,
         error: null,
-        project,
         lastFetched: new Date(),
       };
 
@@ -501,7 +477,6 @@ export const useCatalogStore = defineStore('catalog', () => {
         filterOptions: {},
         loading: false,
         error: errorMessage,
-        project: null,
         lastFetched: new Date(),
       };
 
