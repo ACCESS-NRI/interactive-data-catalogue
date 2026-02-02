@@ -69,7 +69,9 @@ interface DatastoreRow {
 type FilterOptions = Record<string, string[]>;
 
 const trackingServicesBaseUrl =
-  process.env.NODE_ENV === 'production' ? 'https://reporting.access-nri-store.cloud.edu.au/' : 'http://127.0.0.1:8000/';
+  process.env.NODE_ENV === 'production'
+    ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
+    : 'http://127.0.0.1:8000/';
 const METACAT_URL =
   'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
@@ -392,17 +394,18 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Datastore management functions
   /**
-   * Load or return a cached ESM datastore. If the datastore is not cached
-   * the function will fetch the parquet file, parse it via DuckDB and
-   * populate the cache entry for later reuse.
+   * Load or return cached ESM datastore metadata. This only fetches column names,
+   * filter options, and row count - not the actual data rows. The DatastoreTable
+   * component handles fetching actual data with server-side pagination via the
+   * esm-datastore endpoint.
    *
    * @param datastoreName - logical name used to locate the parquet file
    */
   async function loadDatastore(datastoreName: string): Promise<DatastoreCache> {
     // Check if already cached and not loading
     const cached = datastoreCache.value[datastoreName];
-    if (cached && cached.data.length > 0 && !cached.loading) {
-      console.log(`✅ Using cached data for ${datastoreName}`);
+    if (cached && cached.columns.length > 0 && !cached.loading) {
+      console.log(`✅ Using cached metadata for ${datastoreName}`);
       return cached;
     }
 
@@ -432,14 +435,13 @@ export const useCatalogStore = defineStore('catalog', () => {
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     try {
-      console.log(`🚀 Loading datastore: ${datastoreName}`);
+      console.log(`🚀 Loading datastore metadata: ${datastoreName}`);
 
-      // Construct URLs for both the main datastore and sidecar files
+      // Construct URL for the sidecar file containing unique values
       const datastoreUrl = `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`;
-
       const sidecarUrl = datastoreUrl.replace('.parquet', '_uniqs.parquet');
 
-      // Fetch both parquet files and initialize DuckDB concurrently
+      // Fetch sidecar file and initialize DuckDB concurrently
       const [sidecarArrayBuffer, dbConnection] = await Promise.all([
         fetch(sidecarUrl, { method: 'GET' }).then((response) => {
           if (!response.ok) {
@@ -453,29 +455,28 @@ export const useCatalogStore = defineStore('catalog', () => {
       db = dbConnection.db;
       conn = dbConnection.conn;
 
-      // Create the sidecar array buffer, register the file buffer with the filename
+      // Register the sidecar file with DuckDB
       const sidecarUint8Array = new Uint8Array(sidecarArrayBuffer);
       const sidecarFileName = `${datastoreName}_uniqs.parquet`;
       console.log(`📦 Downloaded ${sidecarUint8Array.length} bytes for sidecar file`);
 
       await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
-      // Query the ESM datastore data, project, and filter options concurrently
-      const [datastoreData, project, filterOptions, numRecords] = await Promise.all([
-        queryEsmDatastore(datastoreName),
+      // Query metadata: project, filter options, and row count
+      // Note: We fetch a small sample just to get column names
+      const [sampleData, project, filterOptions, numRecords] = await Promise.all([
+        queryEsmDatastore(datastoreName), // Gets first 100 rows just for column names
         getEsmDatastoreProject(datastoreName),
         getFilterOptions(conn, sidecarFileName),
         getEsmDatastoreSize(datastoreName),
       ]);
 
-      const columns = Object.keys(datastoreData[0] || {});
+      const columns = Object.keys(sampleData[0] || {});
       const displayColumns = setupColumns(columns);
 
-      // Also extract project from the datastore (first row path)
-
-      // Update cache with loaded data
+      // Update cache with metadata only (no data rows stored)
       datastoreCache.value[datastoreName] = {
-        data: datastoreData,
+        data: [], // Don't store data - it's fetched on-demand by DatastoreTable
         totalRecords: numRecords,
         columns: displayColumns,
         filterOptions,
@@ -485,10 +486,12 @@ export const useCatalogStore = defineStore('catalog', () => {
         lastFetched: new Date(),
       };
 
-      console.log(`✅ Loaded ${datastoreData.length} records for ${datastoreName}`);
+      console.log(
+        `✅ Loaded metadata for ${datastoreName}: ${displayColumns.length} columns, ${numRecords} total records`,
+      );
       return datastoreCache.value[datastoreName];
     } catch (err) {
-      console.error('❌ Error loading datastore:', err);
+      console.error('❌ Error loading datastore metadata:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load datastore';
 
       datastoreCache.value[datastoreName] = {
