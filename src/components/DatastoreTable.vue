@@ -52,6 +52,7 @@
       :totalRecords="totalRecords"
       tableStyle="min-width: 50rem"
       @page="onPageChange"
+      @sort="onSort"
     >
       <Column
         v-for="column in selectedColumns"
@@ -166,6 +167,7 @@ import MultiSelect from 'primevue/multiselect';
 import { ref, computed, watch, }  from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
+import type { DataTableSortEvent } from 'primevue/datatable';
 
 type PageEvent = {
   page: number;
@@ -183,12 +185,24 @@ const props = defineProps<{
   datastoreName: string;
 }>();
 
-const url = computed(
-  () =>
-  `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?offset=${offset.value}&limit=${limit.value}`,
-);
-
 const page = ref(0);
+const sortField = ref<string | null>(null);
+const sortOrder = ref<1 | -1 | null>(null);
+
+const url = computed(() => {
+  const params = new URLSearchParams({
+    offset: String(offset.value),
+    limit: String(limit.value),
+  });
+  if (sortField.value) {
+    params.append('sortField', sortField.value);
+  }
+  if (sortOrder.value) {
+    params.append('sortOrder', String(sortOrder.value));
+  }
+  return `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
+});
+
 const results = computed(() => data.value?.records || []);
 const totalRecords = computed(() => data.value?.total);
 const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
@@ -210,6 +224,18 @@ const { isFetching, error, data } = useFetch(url, { refetch: true }).json();
 
 async function onPageChange(event: PageEvent) {
   page.value = event.page;
+  limit.value = event.rows;
+}
+
+
+function onSort(event: DataTableSortEvent) {
+  if (typeof event.sortField === 'string') {
+    sortField.value = event.sortField;
+  } else {
+    sortField.value = null;
+  }
+  sortOrder.value = event.sortOrder === 0 ? null : (event.sortOrder as 1 | -1);
+  page.value = 0; // Reset to first page when sorting
 }
 
 const showDataStoreEntryModal = ref(false);
