@@ -178,6 +178,7 @@ type PageEvent = {
 
 const props = defineProps<{
   tableLoading: boolean;
+  filters: Record<string, string[]>;
   selectedColumns: Array<{ field: string; header: string }>;
   availableColumns: Array<{ field: string; header: string }>;
   columns: string[];
@@ -192,6 +193,7 @@ const url = computed(() => {
   const params = new URLSearchParams({
     offset: String(offset.value),
     limit: String(limit.value),
+    filters : JSON.stringify(props.filters),
   });
   if (sortField.value) {
     params.append('sortField', sortField.value);
@@ -199,7 +201,16 @@ const url = computed(() => {
   if (sortOrder.value) {
     params.append('sortOrder', String(sortOrder.value));
   }
-  return `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
+
+  if (Object.keys(props.filters)?.length || 0 > 0) {
+    params.append('filters', JSON.stringify(props.filters));
+  }
+
+  const urlStr =  `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`
+
+  console.log("Fetching data from URL: ", urlStr);
+
+  return urlStr;
 });
 
 const results = computed(() => data.value?.records || []);

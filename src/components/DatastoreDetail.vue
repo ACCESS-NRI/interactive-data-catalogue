@@ -99,6 +99,7 @@
           :available-columns="availableColumns"
           :columns="columns"
           :datastore-name="datastoreName"
+          :filters="currentFilters"
           @refresh="loadDatastore"
           @set-num-datasets="numDatasets = $event"
         />
