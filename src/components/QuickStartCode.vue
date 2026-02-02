@@ -102,12 +102,6 @@ interface Props {
   currentFilters: Record<string, string[]>;
 
   /**
-   * The raw data rows returned by the catalog/search. Each row is expected
-   * to be an object and may contain fields such as `path` and `file_id`.
-   */
-  rawData: any[];
-
-  /**
    * Dynamic filter options for each column (filtered based on other active filters).
    * Used to determine if there are multiple variable_cell_methods options available.
    */

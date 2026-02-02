@@ -81,7 +81,6 @@
         <QuickStartCode
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
-          :raw-data="filteredData"
           :dynamic-filter-options="dynamicFilterOptions"
           :num-datasets="numDatasets"
           class="mb-6"
@@ -95,7 +94,6 @@
         />
 
         <DatastoreTable
-          :filtered-data="filteredData"
           :table-loading="tableLoading"
           v-model:selectedColumns="selectedColumns"
           :available-columns="availableColumns"
@@ -148,34 +146,14 @@ const formatColumnName = (c: string) =>
     })
     .join(' ');
 
-/* Setup available and selected columns based on datastore columns. Exclude useless 
-* columns like 'path' and 'filename' 
-*/ 
+/* Setup available and selected columns based on datastore columns. Exclude useless
+ * columns like 'path' and 'filename'
+ */
 const setupColumns = (dataColumns: string[]) => {
-
   dataColumns = dataColumns.filter((col) => col !== 'path' && col !== 'filename');
   availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
   selectedColumns.value = [...availableColumns.value];
 };
-
-const filteredData = computed(() => {
-  let data = rawData.value;
-  for (const [column, filterValues] of Object.entries(currentFilters.value)) {
-    if (filterValues && filterValues.length > 0) {
-      data = data.filter((row: Record<string, any>) => {
-        const cellValue = row[column];
-        return filterValues.some((fv) => {
-          if (Array.isArray(cellValue))
-            return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
-          return String(cellValue || '')
-            .toLowerCase()
-            .includes(fv.toLowerCase());
-        });
-      });
-    }
-  }
-  return data;
-});
 
 const dynamicFilterOptions = computed(() => {
   const result: Record<string, string[]> = {};

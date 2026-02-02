@@ -164,7 +164,7 @@ import DataTable from 'primevue/datatable';
 import { Column } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
-import { ref, computed, watch, }  from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
@@ -177,7 +177,6 @@ type PageEvent = {
 };
 
 const props = defineProps<{
-  filteredData: any[];
   tableLoading: boolean;
   selectedColumns: Array<{ field: string; header: string }>;
   availableColumns: Array<{ field: string; header: string }>;
@@ -207,16 +206,15 @@ const results = computed(() => data.value?.records || []);
 const totalRecords = computed(() => data.value?.total);
 const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
 
-
 const showTable = ref(true);
 const toggleTable = () => {
   showTable.value = !showTable.value;
 };
 
-const rowOptions : number[] = [5, 10, 25, 50];
+const rowOptions: number[] = [5, 10, 25, 50];
 
 const limit = ref(rowOptions[0]);
-const offset = computed(() => Number((limit.value?? 0) * page.value));
+const offset = computed(() => Number((limit.value ?? 0) * page.value));
 
 // error is not used - but we will probably want to later!
 // @ts-expect-error
@@ -226,7 +224,6 @@ async function onPageChange(event: PageEvent) {
   page.value = event.page;
   limit.value = event.rows;
 }
-
 
 function onSort(event: DataTableSortEvent) {
   if (typeof event.sortField === 'string') {
@@ -259,9 +256,8 @@ const onRefresh = () => {
 };
 
 watch(numDatasets, (newVal) => {
-  emit('setNumDatasets',newVal);
+  emit('setNumDatasets', newVal);
 });
-
 </script>
 
 <style scoped></style>
