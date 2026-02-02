@@ -161,7 +161,7 @@
 
 <script setup lang="ts">
 import DataTable from 'primevue/datatable';
-import { Column } from 'primevue';
+import Column from 'primevue/column';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref, computed, watch } from 'vue';
@@ -193,7 +193,7 @@ const url = computed(() => {
   const params = new URLSearchParams({
     offset: String(offset.value),
     limit: String(limit.value),
-    filters : JSON.stringify(props.filters),
+    filters: JSON.stringify(props.filters || {}),
   });
   if (sortField.value) {
     params.append('sortField', sortField.value);
@@ -202,13 +202,9 @@ const url = computed(() => {
     params.append('sortOrder', String(sortOrder.value));
   }
 
-  if (Object.keys(props.filters)?.length || 0 > 0) {
-    params.append('filters', JSON.stringify(props.filters));
-  }
+  const urlStr = `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
 
-  const urlStr =  `http://localhost:8000/intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`
-
-  console.log("Fetching data from URL: ", urlStr);
+  console.log('Fetching data from URL: ', urlStr);
 
   return urlStr;
 });

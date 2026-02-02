@@ -57,6 +57,7 @@ describe('DatastoreTable', () => {
         availableColumns: mockColumns,
         columns: ['variable', 'frequency', 'realm'],
         datastoreName: 'test-datastore',
+        filters: {},
         ...props,
       },
       global: {
