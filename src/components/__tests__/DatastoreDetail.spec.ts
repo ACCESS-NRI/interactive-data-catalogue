@@ -272,8 +272,8 @@ describe('DatastoreDetail', () => {
     expect(wrapper.vm.currentFilters).toEqual({});
   });
 
-  // Test that filters are correctly set in the component
-  it('sets filters correctly', async () => {
+  // Test that filtered data correctly applies filter logic to raw data
+  it('filters data based on current filters', async () => {
     await router.isReady();
 
     vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
@@ -285,7 +285,9 @@ describe('DatastoreDetail', () => {
     wrapper.vm.currentFilters = { frequency: ['daily'] };
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.vm.currentFilters.frequency).toEqual(['daily']);
+    const filtered = wrapper.vm.filteredData;
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].frequency).toBe('daily');
   });
 
   // Test that column names are formatted with proper capitalization
@@ -365,7 +367,7 @@ describe('DatastoreDetail', () => {
     // Check QuickStartCode props
     const quickStart = wrapper.findComponent({ name: 'QuickStartCode' });
     expect(quickStart.props('datastoreName')).toBe('test-datastore');
-    expect(quickStart.props('numDatasets')).toBeDefined();
+    expect(quickStart.props('rawData')).toEqual(mockDatastoreData);
 
     // Check FilterSelectors props
     const filters = wrapper.findComponent({ name: 'FilterSelectors' });
@@ -378,11 +380,11 @@ describe('DatastoreDetail', () => {
     // Check DatastoreTable props
     const table = wrapper.findComponent({ name: 'DatastoreTable' });
     expect(table.props('datastoreName')).toBe('test-datastore');
-    expect(table.props('columns')).toBeDefined();
+    expect(table.props('filteredData')).toEqual(mockDatastoreData);
   });
 
-  // Test that filters handle array values correctly
-  it('filters array values correctly', async () => {
+  // Test that filters handle array values in data correctly
+  it('filters array values in data correctly', async () => {
     await router.isReady();
 
     vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
@@ -394,11 +396,13 @@ describe('DatastoreDetail', () => {
     wrapper.vm.currentFilters = { variable: ['temp'] };
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.vm.currentFilters.variable).toEqual(['temp']);
+    const filtered = wrapper.vm.filteredData;
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].variable).toContain('temp');
   });
 
-  // Test that empty filters are correctly set
-  it('handles empty filters correctly', async () => {
+  // Test that empty filters show all data
+  it('shows all data when no filters are applied', async () => {
     await router.isReady();
 
     vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
@@ -409,7 +413,7 @@ describe('DatastoreDetail', () => {
     wrapper.vm.currentFilters = {};
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.vm.currentFilters).toEqual({});
+    expect(wrapper.vm.filteredData).toEqual(mockDatastoreData);
   });
 
   // Test that selected columns can be updated

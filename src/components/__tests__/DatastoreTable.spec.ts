@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+import { describe, it, expect } from 'vitest';
+import { mount } from '@vue/test-utils';
 import DatastoreTable from '../DatastoreTable.vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -9,9 +9,14 @@ import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 
-// Mock the fetch API
-const mockFetchResponse = {
-  records: [
+describe('DatastoreTable', () => {
+  const mockColumns = [
+    { field: 'variable', header: 'Variable' },
+    { field: 'frequency', header: 'Frequency' },
+    { field: 'realm', header: 'Realm' },
+  ];
+
+  const mockData = [
     {
       __index_level_0__: 1,
       variable: ['temp', 'pressure', 'humidity', 'wind'],
@@ -26,38 +31,18 @@ const mockFetchResponse = {
       frequency: 'monthly',
       realm: 'ocean',
     },
-  ],
-  total: 2,
-  unique_file_ids: ['file1', 'file2'],
-};
-
-describe('DatastoreTable', () => {
-  const mockColumns = [
-    { field: 'variable', header: 'Variable' },
-    { field: 'frequency', header: 'Frequency' },
-    { field: 'realm', header: 'Realm' },
   ];
-
-  beforeEach(() => {
-    // Mock fetch for all tests
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockFetchResponse),
-      } as Response),
-    );
-  });
 
   // Helper to create wrapper with PrimeVue components
   const createWrapper = (props: any = {}) => {
     return mount(DatastoreTable, {
       props: {
+        filteredData: mockData,
         tableLoading: false,
         selectedColumns: mockColumns,
         availableColumns: mockColumns,
         columns: ['variable', 'frequency', 'realm'],
         datastoreName: 'test-datastore',
-        filters: {},
         ...props,
       },
       global: {
@@ -80,7 +65,6 @@ describe('DatastoreTable', () => {
         },
         stubs: {
           DatastoreEntryModal: true,
-          // Don't stub DataTable and other PrimeVue components
         },
       },
     });
@@ -90,7 +74,6 @@ describe('DatastoreTable', () => {
   const showTable = async (wrapper: any) => {
     const showButton = wrapper.findAllComponents(Button)[0];
     await showButton.trigger('click');
-    await flushPromises();
   };
 
   // Test that the datastore name is displayed in the header
@@ -100,116 +83,114 @@ describe('DatastoreTable', () => {
   });
 
   // Test that the record count is displayed with proper locale formatting
-  it('renders record count with locale formatting', async () => {
-    const wrapper = createWrapper();
-    await flushPromises();
-    expect(wrapper.text()).toContain('records');
+  it('renders record count with locale formatting', () => {
+    const wrapper = createWrapper({ filteredData: mockData });
+    expect(wrapper.text()).toContain('2 records');
   });
 
   // Test that the component shows the loading state when tableLoading is true
   it('passes loading state to DataTable', async () => {
     const wrapper = createWrapper({ tableLoading: true });
     await showTable(wrapper);
-    await flushPromises();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Extra wait for component rendering
-    // Verify the component rendered
-    expect(wrapper.exists()).toBe(true);
+    const dataTable = wrapper.findComponent(DataTable);
+    expect(dataTable.exists()).toBe(true);
+    expect(dataTable.props('loading')).toBe(true);
   });
 
   // Test that the refresh button emits the refresh event when clicked
   it('emits refresh event when refresh button is clicked', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
     const buttons = wrapper.findAllComponents(Button);
-    const refreshButton = buttons.find((b) => b.props('label') === 'Refresh');
+    const refreshButton = buttons[1]; // Second button is the refresh button
 
-    if (refreshButton) {
-      await refreshButton.trigger('click');
-      expect(wrapper.emitted('refresh')).toBeTruthy();
-      expect(wrapper.emitted('refresh')).toHaveLength(1);
+    if (!refreshButton) {
+      throw new Error('Refresh button not found');
     }
+
+    await refreshButton.trigger('click');
+
+    expect(wrapper.emitted('refresh')).toBeTruthy();
+    expect(wrapper.emitted('refresh')).toHaveLength(1);
   });
 
   // Test that column toggle emits update event with selected columns
   it('emits update:selectedColumns when columns are toggled', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
     const multiSelect = wrapper.findComponent(MultiSelect);
 
-    if (multiSelect.exists()) {
-      const newColumns = [{ field: 'variable', header: 'Variable' }];
-      await multiSelect.vm.$emit('update:model-value', newColumns);
+    const newColumns = [{ field: 'variable', header: 'Variable' }];
+    await multiSelect.vm.$emit('update:model-value', newColumns);
 
-      expect(wrapper.emitted('update:selectedColumns')).toBeTruthy();
-      expect(wrapper.emitted('update:selectedColumns')?.[0]).toEqual([newColumns]);
-    }
+    expect(wrapper.emitted('update:selectedColumns')).toBeTruthy();
+    expect(wrapper.emitted('update:selectedColumns')?.[0]).toEqual([newColumns]);
   });
 
   // Test that the DataTable receives correct pagination configuration
   it('configures DataTable with pagination props', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
     const dataTable = wrapper.findComponent(DataTable);
 
-    if (dataTable.exists()) {
-      expect(dataTable.props('paginator')).toBe(true);
-    }
+    expect(dataTable.props('paginator')).toBe(true);
+    expect(dataTable.props('rows')).toBe(25);
+    expect(dataTable.props('rowsPerPageOptions')).toEqual([10, 25, 50, 100]);
   });
 
-  // Test that DataTable receives the fetched data
-  it('fetches and displays data from server', async () => {
+  // Test that DataTable receives the filtered data
+  it('passes filteredData to DataTable', async () => {
+    const wrapper = createWrapper({ filteredData: mockData });
+    await showTable(wrapper);
+    const dataTable = wrapper.findComponent(DataTable);
+
+    expect(dataTable.props('value')).toEqual(mockData);
+    expect(dataTable.props('totalRecords')).toBe(2);
+  });
+
+  // Test that DataTable is configured with correct table features
+  it('configures DataTable with gridlines, sorting, and resizing', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
+    const dataTable = wrapper.findComponent(DataTable);
 
-    // Data should be fetched from the mocked server
-    expect(global.fetch).toHaveBeenCalled();
+    expect(dataTable.props('showGridlines')).toBe(true);
+    expect(dataTable.props('stripedRows')).toBe(true);
+    expect(dataTable.props('removableSort')).toBe(true);
+    expect(dataTable.props('resizableColumns')).toBe(true);
   });
 
   // Test that Column components are rendered for each selected column
   it('renders Column components for selected columns', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Extra wait for component rendering
+    const columns = wrapper.findAllComponents(Column);
 
-    // Even if Column components aren't deeply found, the table should render
-    expect(wrapper.exists()).toBe(true);
+    expect(columns.length).toBe(mockColumns.length);
   });
 
   // Test that each Column is configured with correct field and header
   it('configures columns with correct field and header props', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
     const columns = wrapper.findAllComponents(Column);
 
-    if (columns.length > 0) {
-      columns.forEach((column, index) => {
-        if (index < mockColumns.length) {
-          expect(column.props('field')).toBe(mockColumns[index]?.field);
-          expect(column.props('header')).toBe(mockColumns[index]?.header);
-          expect(column.props('sortable')).toBe(true);
-        }
-      });
-    }
+    columns.forEach((column, index) => {
+      expect(column.props('field')).toBe(mockColumns[index]?.field);
+      expect(column.props('header')).toBe(mockColumns[index]?.header);
+      expect(column.props('sortable')).toBe(true);
+    });
   });
 
   // Test that the MultiSelect receives available and selected columns
   it('configures MultiSelect with column options', async () => {
     const wrapper = createWrapper();
     await showTable(wrapper);
-    await flushPromises();
     const multiSelect = wrapper.findComponent(MultiSelect);
 
-    if (multiSelect.exists()) {
-      expect(multiSelect.props('modelValue')).toEqual(mockColumns);
-      expect(multiSelect.props('options')).toEqual(mockColumns);
-      expect(multiSelect.props('optionLabel')).toBe('header');
-    }
+    expect(multiSelect.props('modelValue')).toEqual(mockColumns);
+    expect(multiSelect.props('options')).toEqual(mockColumns);
+    expect(multiSelect.props('optionLabel')).toBe('header');
   });
 
   // Test that the modal refs are initialized with correct default values
@@ -262,19 +243,15 @@ describe('DatastoreTable', () => {
     expect(modal.props('items')).toEqual([]);
   });
 
-  // Test that the component handles empty data gracefully
-  it('handles empty data', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ records: [], total: 0, unique_file_ids: [] }),
-      } as Response),
-    );
+  // Test that the component handles empty filteredData gracefully
+  it('handles empty filtered data', async () => {
+    const wrapper = createWrapper({ filteredData: [] });
+    await showTable(wrapper);
+    const dataTable = wrapper.findComponent(DataTable);
 
-    const wrapper = createWrapper();
-    await flushPromises();
-    // Verify the component renders with empty data
-    expect(wrapper.exists()).toBe(true);
+    expect(dataTable.props('value')).toEqual([]);
+    expect(dataTable.props('totalRecords')).toBe(0);
+    expect(wrapper.text()).toContain('0 records');
   });
 
   // Test that the component handles missing datastoreName
@@ -285,15 +262,24 @@ describe('DatastoreTable', () => {
     expect(text.includes('Data') || text.includes('0 records')).toBe(true);
   });
 
-  // Test that the component renders with variable_units
-  it('renders with variable_units column', async () => {
+  // Test that globalFilterFields is configured with column names
+  it('configures global filter fields', async () => {
+    const wrapper = createWrapper();
+    await showTable(wrapper);
+    const dataTable = wrapper.findComponent(DataTable);
+
+    expect(dataTable.props('globalFilterFields')).toEqual(['variable', 'frequency', 'realm']);
+  });
+
+  // Test that variable_units field renders units with proper display limit
+  it('renders variable_units with up to 2 units displayed', async () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({ selectedColumns: columnsWithUnits });
     await showTable(wrapper);
-    await flushPromises();
 
-    // Table should render without errors
-    expect(wrapper.exists()).toBe(true);
+    const html = wrapper.html();
+    expect(html).toContain('K');
+    expect(html).toContain('Pa');
   });
 
   // Test that variable_units shows "+X more" link when there are more than 2 units
@@ -301,80 +287,52 @@ describe('DatastoreTable', () => {
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({ selectedColumns: columnsWithUnits });
     await showTable(wrapper);
-    await flushPromises();
 
-    // After data loads, check for the "+X more" button
     const html = wrapper.html();
-    if (html.includes('+')) {
-      expect(html).toContain('more');
-    }
+    expect(html).toContain('+1 more');
   });
 
   // Test that clicking "+X more" on variable_units opens the modal
   it('opens modal when clicking "+X more" on variable_units field', async () => {
-    // Mock response with more units
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            records: [
-              {
-                __index_level_0__: 1,
-                variable_units: ['K', 'Pa', 'kg/kg', 'W/m2'],
-              },
-            ],
-            total: 1,
-            unique_file_ids: ['file1'],
-          }),
-      } as Response),
-    );
-
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
     const wrapper = createWrapper({
       selectedColumns: columnsWithUnits,
+      filteredData: [
+        {
+          __index_level_0__: 1,
+          variable_units: ['K', 'Pa', 'kg/kg', 'W/m2'],
+        },
+      ],
     });
     await showTable(wrapper);
-    await flushPromises();
 
-    // Find and click the "+X more" button if it exists
+    // Find and click the "+X more" button
     const moreButton = wrapper.find('[role="button"]');
-    if (moreButton.exists()) {
-      await moreButton.trigger('click');
+    expect(moreButton.exists()).toBe(true);
 
-      expect(wrapper.vm.showDataStoreEntryModal).toBe(true);
-      expect(wrapper.vm.modalTitle).toBe('Variable Units');
-    }
+    await moreButton.trigger('click');
+
+    expect(wrapper.vm.showDataStoreEntryModal).toBe(true);
+    expect(wrapper.vm.modalTitle).toBe('Variable Units');
+    expect(wrapper.vm.modalItems).toEqual(['K', 'Pa', 'kg/kg', 'W/m2']);
   });
 
   // Test that variable_units with 2 or fewer units doesn't show "+X more"
   it('does not show "+X more" for variable_units with 2 or fewer units', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            records: [
-              {
-                __index_level_0__: 1,
-                variable_units: ['K', 'Pa'],
-              },
-            ],
-            total: 1,
-            unique_file_ids: ['file1'],
-          }),
-      } as Response),
-    );
-
     const columnsWithUnits = [{ field: 'variable_units', header: 'Variable Units' }];
+    const dataWithFewUnits = [
+      {
+        __index_level_0__: 1,
+        variable_units: ['K', 'Pa'],
+      },
+    ];
     const wrapper = createWrapper({
       selectedColumns: columnsWithUnits,
+      filteredData: dataWithFewUnits,
     });
     await showTable(wrapper);
-    await flushPromises();
 
     const html = wrapper.html();
-    // Should not show more button when only 2 units
-    expect(html).not.toContain('+1 more');
+    expect(html).not.toContain('more');
   });
 });
