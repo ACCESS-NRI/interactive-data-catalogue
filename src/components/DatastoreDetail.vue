@@ -81,8 +81,8 @@
         <QuickStartCode
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
+          :raw-data="filteredData"
           :dynamic-filter-options="dynamicFilterOptions"
-          :num-datasets="numDatasets"
           class="mb-6"
         />
 
@@ -94,15 +94,13 @@
         />
 
         <DatastoreTable
+          :filtered-data="filteredData"
           :table-loading="tableLoading"
           v-model:selectedColumns="selectedColumns"
           :available-columns="availableColumns"
           :columns="columns"
           :datastore-name="datastoreName"
-          :filters="currentFilters"
           @refresh="loadDatastore"
-          @set-num-datasets="numDatasets = $event"
-          @set-dynamic-filter-options="handleDynamicFilterOptionsUpdate"
         />
       </div>
     </div>
@@ -128,16 +126,15 @@ const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
 const currentFilters = ref<Record<string, string[]>>({});
-const numDatasets = ref(0);
 
 const availableColumns = ref<{ field: string; header: string }[]>([]);
 const selectedColumns = ref<{ field: string; header: string }[]>([]);
 
 const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
+const rawData = computed(() => cachedDatastore.value?.data || []);
 const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
 const columns = computed(() => cachedDatastore.value?.columns || []);
 const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
-const dynamicFilterOptions = ref<Record<string, string[]>>({});
 
 const formatColumnName = (c: string) =>
   c
@@ -148,26 +145,73 @@ const formatColumnName = (c: string) =>
     })
     .join(' ');
 
-/* Setup available and selected columns based on datastore columns. Exclude useless
- * columns like 'path' and 'filename'
- */
 const setupColumns = (dataColumns: string[]) => {
-  dataColumns = dataColumns.filter((col) => col !== 'path' && col !== 'filename');
   availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
   selectedColumns.value = [...availableColumns.value];
 };
 
-// Handler to receive dynamic filter options from the API via DatastoreTable
-const handleDynamicFilterOptionsUpdate = (options: Record<string, string[]>) => {
-  dynamicFilterOptions.value = options;
-};
+const filteredData = computed(() => {
+  let data = rawData.value;
+  for (const [column, filterValues] of Object.entries(currentFilters.value)) {
+    if (filterValues && filterValues.length > 0) {
+      data = data.filter((row: Record<string, any>) => {
+        const cellValue = row[column];
+        return filterValues.some((fv) => {
+          if (Array.isArray(cellValue))
+            return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+          return String(cellValue || '')
+            .toLowerCase()
+            .includes(fv.toLowerCase());
+        });
+      });
+    }
+  }
+  return data;
+});
+
+const dynamicFilterOptions = computed(() => {
+  const result: Record<string, string[]> = {};
+
+  for (const [column, allOptions] of Object.entries(filterOptions.value)) {
+    let availableData = rawData.value;
+
+    // Apply all OTHER active filters (not the current column)
+    for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
+      if (filterColumn !== column && filterValues && filterValues.length > 0) {
+        availableData = availableData.filter((row: Record<string, any>) => {
+          const cellValue = row[filterColumn];
+          return filterValues.some((fv) => {
+            if (Array.isArray(cellValue))
+              return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+            return String(cellValue || '')
+              .toLowerCase()
+              .includes(fv.toLowerCase());
+          });
+        });
+      }
+    }
+
+    // Find which options from this column exist in the filtered data
+    const validOptions = new Set<string>();
+    for (const row of availableData) {
+      const cellValue = row[column];
+      if (Array.isArray(cellValue)) {
+        cellValue.forEach((val: any) => validOptions.add(String(val)));
+      } else if (cellValue !== null && cellValue !== undefined) {
+        validOptions.add(String(cellValue));
+      }
+    }
+
+    result[column] = allOptions.filter((option) => validOptions.has(option));
+  }
+
+  return result;
+});
 
 const loadDatastore = async () => {
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.columns.length > 0) {
+  if (existingCache && existingCache.data.length > 0) {
     setupColumns(existingCache.columns);
-    // Initialize dynamic filter options with static options until API updates them
-    dynamicFilterOptions.value = existingCache.filterOptions;
     loading.value = false;
     tableLoading.value = false;
     return;
@@ -177,11 +221,7 @@ const loadDatastore = async () => {
   error.value = null;
   try {
     const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
-    if (datastoreCache.columns.length > 0) {
-      setupColumns(datastoreCache.columns);
-      // Initialize dynamic filter options with static options until API updates them
-      dynamicFilterOptions.value = datastoreCache.filterOptions;
-    }
+    if (datastoreCache.data.length > 0) setupColumns(datastoreCache.columns);
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load datastore';
   } finally {
@@ -227,10 +267,8 @@ const openFeedbackIssue = () => {
 onMounted(() => {
   initializeFiltersFromUrl();
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.columns.length > 0) {
+  if (existingCache && existingCache.data.length > 0) {
     setupColumns(existingCache.columns);
-    // Initialize dynamic filter options with static options until API updates them
-    dynamicFilterOptions.value = existingCache.filterOptions;
     loading.value = false;
     tableLoading.value = false;
   } else {
