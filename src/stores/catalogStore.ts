@@ -4,6 +4,8 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
 
+declare const __IS_PROD__: boolean;
+
 type OptionalProject = string | null;
 /**
  * A single normalized catalog row returned by querying the metacatalog
@@ -69,7 +71,7 @@ interface DatastoreRow {
 type FilterOptions = Record<string, string[]>;
 
 export const trackingServicesBaseUrl =
-  process.env.NODE_ENV === 'production'
+  __IS_PROD__
     ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
     : 'http://127.0.0.1:8000/';
 const METACAT_URL =
@@ -313,6 +315,8 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   async function getEsmDatastoreSize(datastoreName: string): Promise<number> {
     const endpoint = `${trackingServicesBaseUrl}intake/table/row-count/${datastoreName}`;
+
+    console.log(trackingServicesBaseUrl)
 
     return fetch(endpoint)
       .then((response) => {
