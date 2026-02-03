@@ -17,6 +17,7 @@
     "@duckdb/duckdb-wasm": "^1.30.0",
     "@highlightjs/vue-plugin": "^2.1.0",
     "@primevue/themes": "^4.4.1",
+    "@vueuse/core": "^14.1.0",
     "js-yaml": "^4.1.1",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
