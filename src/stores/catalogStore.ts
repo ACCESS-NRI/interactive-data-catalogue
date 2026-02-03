@@ -68,7 +68,7 @@ interface DatastoreRow {
 
 type FilterOptions = Record<string, string[]>;
 
-export const trackingServicesBaseUrl =
+const trackingServicesBaseUrl =
   process.env.NODE_ENV === 'production'
     ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
     : 'http://127.0.0.1:8000/';
