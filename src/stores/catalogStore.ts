@@ -70,10 +70,9 @@ interface DatastoreRow {
 
 type FilterOptions = Record<string, string[]>;
 
-export const trackingServicesBaseUrl =
-  __IS_PROD__
-    ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
-    : 'http://127.0.0.1:8000/';
+export const trackingServicesBaseUrl = __IS_PROD__
+  ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
+  : 'http://127.0.0.1:8000/';
 const METACAT_URL =
   'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
@@ -315,8 +314,6 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   async function getEsmDatastoreSize(datastoreName: string): Promise<number> {
     const endpoint = `${trackingServicesBaseUrl}intake/table/row-count/${datastoreName}`;
-
-    console.log(trackingServicesBaseUrl)
 
     return fetch(endpoint)
       .then((response) => {

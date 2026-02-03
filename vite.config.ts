@@ -13,8 +13,7 @@ const getGitCommitSha = () => {
 };
 
 // https://vite.dev/config/
-export default defineConfig(({ command, mode }) => {
-
+export default defineConfig(({ command }) => {
   const isProd = command === 'build';
   return {
     base: isProd ? '/catalog-viewer-spa/' : '/',
@@ -64,5 +63,5 @@ export default defineConfig(({ command, mode }) => {
         ],
       },
     },
-  }
+  };
 });
