@@ -70,15 +70,15 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useCatalogStore } from '../stores/catalogStore';
+import { useCatalogStore } from '../../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
-import MultipleCellMethodsWarning from './MultipleCellMethodsWarning.vue';
-import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
+import RequiredProjectsWarning from '../RequiredProjectsWarning.vue';
+import MultipleCellMethodsWarning from '../MultipleCellMethodsWarning.vue';
+import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
 import 'highlight.js/lib/common';
 
 // Props

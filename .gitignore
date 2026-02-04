@@ -24,3 +24,5 @@ coverage
 *.sln
 *.sw?
 
+# Playing around 
+duckdb_testing/

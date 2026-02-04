@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import * as duckdb from '@duckdb/duckdb-wasm';
-import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
-import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
+import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
+import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
 
 type OptionalProject = string | null;
 /**
@@ -58,16 +58,18 @@ export interface DatastoreCache {
   project?: OptionalProject;
 }
 
+interface DatastoreRow {
+  [key: string]: string | string[] | null;
+}
+
 type FilterOptions = Record<string, string[]>;
 
-/**
- * URL to the metacatalog parquet file. Uses a CORS proxy in production
- * and a local API path in development.
- */
-const METACAT_URL =
+export const trackingServicesBaseUrl =
   process.env.NODE_ENV === 'production'
-    ? 'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet'
-    : '/api/parquet/metacatalog.parquet';
+    ? 'https://reporting-dev.access-nri-store.cloud.edu.au/'
+    : 'http://127.0.0.1:8000/';
+const METACAT_URL =
+  'https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/metacatalog.parquet';
 
 /** DuckDB WASM bundles used by the client; selectBundle picks the best one. */
 const DUCKDB_BUNDLES: duckdb.DuckDBBundles = {
@@ -219,6 +221,48 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   /**
+   * Get just the record count for an ESM datastore without loading the full data
+   *
+   * @param datastoreName - The name of the datastore
+   * @returns Promise<number> - The total number of records
+   */
+  async function getEsmDatastoreRecordCount(datastoreName: string): Promise<number> {
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`;
+
+    const transformedData = await fetch(endpoint).then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    });
+
+    return transformedData.length;
+  }
+
+  /**
+   * Read an esm datastore from the `datastore-content` endpoint, and get a JS
+   * array containing the data
+   *
+   * @param datastoreName - The name of the datastore, passed to the tracking
+   * services server as part of the url, eg. `.../intake/table/datastore-content/WOA23`
+   */
+  async function queryEsmDatastore(datastoreName: string): Promise<DatastoreRow[]> {
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`;
+
+    const transformedData = await fetch(endpoint).then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    });
+
+    console.log('✅ ESM Datastore transformed data sample:', transformedData.slice(0, 2));
+    console.log('📊 Total records:', transformedData.length);
+
+    return transformedData;
+  }
+
+  /**
    * Read a generic ESM datastore parquet and normalize each column to
    * either a scalar or an array of strings. This function dynamically
    * inspects the parquet schema and builds a query that coercively
@@ -229,7 +273,7 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function queryEsmDatastore(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<any[]> {
+  async function loadEsmDatastore(conn: duckdb.AsyncDuckDBConnection, fileName: string): Promise<any[]> {
     // NOTE: the parquet file buffer must be registered by the caller.
     // First, inspect the schema to understand the columns
     const schemaResult = await conn.query(`DESCRIBE SELECT * FROM read_parquet('${fileName}') LIMIT 1`);
@@ -304,23 +348,16 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function getEsmDatastoreProject(
-    conn: duckdb.AsyncDuckDBConnection,
-    fileName: string,
-  ): Promise<OptionalProject> {
-    // NOTE: the parquet file buffer must be registered by the caller.
-    // Query for a single row and return the first matched project (or null)
-    return conn
-      .query(`SELECT path FROM read_parquet('${fileName}') LIMIT 1`)
-      .then((table) => table.toArray())
-      .then((rows: any[]) => {
-        const row = rows[0];
-        if (!row) return null;
-        const pathValue = row['path'];
-        if (!pathValue) return null;
-        const match = String(pathValue).match(/\/g\/data\/([^\/]+)\//);
-        return match?.[1] ?? null;
-      });
+  async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`;
+    return fetch(endpoint)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then((response) => response.project);
   }
 
   // Actions
@@ -363,6 +400,40 @@ export const useCatalogStore = defineStore('catalog', () => {
       if (conn) await conn.close();
       if (db) await db.terminate();
       loading.value = false;
+    }
+  }
+
+  /**
+   * The sidecar file metadata contains the total number of rows in the datastore.
+   * This function just grabs that
+   *
+   * @param conn - Active DuckDB connection
+   * @param sidecarFname - Name of the registered sidecar parquet file
+   * @returns Record mapping column names to their unique sorted values
+   */
+  async function getEsmDatastoreSize(conn: duckdb.AsyncDuckDBConnection, sidecarFname: string): Promise<number> {
+    try {
+      // Query the sidecar file - it has one row with arrays of unique values
+      const queryResult = await conn.query(` SELECT key, value FROM parquet_kv_metadata('${sidecarFname}') `);
+
+      const decoder = new TextDecoder('utf-8');
+
+      const metadata: Record<string, string> = Object.fromEntries(
+        queryResult.toArray().map((r) => [
+          decoder.decode(r.key), // Uint8Array -> string
+          decoder.decode(r.value),
+        ]),
+      );
+
+      if (metadata.num_records) {
+        return parseInt(metadata.num_records, 10);
+      } else {
+        throw new Error('num_records not found in parquet metadata');
+      }
+    } catch (err) {
+      console.error('Could not load esm-datastore size: setting over threshold to enable SSR', err);
+      // Return empty filter options on error
+      return 1000000;
     }
   }
 
@@ -432,17 +503,18 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Datastore management functions
   /**
-   * Load or return a cached ESM datastore. If the datastore is not cached
-   * the function will fetch the parquet file, parse it via DuckDB and
-   * populate the cache entry for later reuse.
+   * Load or return cached ESM datastore metadata. This only fetches column names,
+   * filter options, and row count - not the actual data rows. The DatastoreTable
+   * component handles fetching actual data with server-side pagination via the
+   * esm-datastore endpoint.
    *
    * @param datastoreName - logical name used to locate the parquet file
    */
   async function loadDatastore(datastoreName: string): Promise<DatastoreCache> {
     // Check if already cached and not loading
     const cached = datastoreCache.value[datastoreName];
-    if (cached && cached.data.length > 0 && !cached.loading) {
-      console.log(`✅ Using cached data for ${datastoreName}`);
+    if (cached && cached.columns.length > 0 && !cached.loading) {
+      console.log(`✅ Using cached metadata for ${datastoreName}`);
       return cached;
     }
 
@@ -472,78 +544,100 @@ export const useCatalogStore = defineStore('catalog', () => {
     let conn: duckdb.AsyncDuckDBConnection | null = null;
 
     try {
-      console.log(`🚀 Loading datastore: ${datastoreName}`);
+      console.log(`🚀 Loading datastore metadata: ${datastoreName}`);
 
-      // Construct URLs for both the main datastore and sidecar files
-      const datastoreUrl =
-        process.env.NODE_ENV === 'production'
-          ? `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`
-          : `/api/parquet/source/${datastoreName}.parquet`;
-
+      // Construct URL for the sidecar file containing unique values
+      const datastoreUrl = `https://object-store.rc.nectar.org.au/v1/AUTH_685340a8089a4923a71222ce93d5d323/access-nri-intake-catalog/source/${datastoreName}.parquet`;
       const sidecarUrl = datastoreUrl.replace('.parquet', '_uniqs.parquet');
 
-      // Fetch both parquet files and initialize DuckDB concurrently
-      const [response, sidecarResponse, dbConnection] = await Promise.all([
-        fetch(datastoreUrl),
-        fetch(sidecarUrl),
+      // Fetch sidecar file and initialize DuckDB concurrently
+      const [sidecarArrayBuffer, dbConnection] = await Promise.all([
+        fetch(sidecarUrl, { method: 'GET' }).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch sidecar parquet file: ${response.status}`);
+          }
+          return response.arrayBuffer();
+        }),
         initializeDuckDB(),
       ]);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
-      }
-
-      if (!sidecarResponse.ok) {
-        throw new Error(`Failed to fetch sidecar parquet file: ${sidecarResponse.status}`);
-      }
-
-      const [arrayBuffer, sidecarArrayBuffer] = await Promise.all([
-        response.arrayBuffer(),
-        sidecarResponse.arrayBuffer(),
-      ]);
-
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const sidecarUint8Array = new Uint8Array(sidecarArrayBuffer);
-      console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
-      console.log(`📦 Downloaded ${sidecarUint8Array.length} bytes for sidecar file`);
 
       db = dbConnection.db;
       conn = dbConnection.conn;
 
-      // Register both parquet files
-      const fileName = `${datastoreName}.parquet`;
+      // Register the sidecar file with DuckDB
+      const sidecarUint8Array = new Uint8Array(sidecarArrayBuffer);
       const sidecarFileName = `${datastoreName}_uniqs.parquet`;
-      await db.registerFileBuffer(fileName, uint8Array);
+      console.log(`📦 Downloaded ${sidecarUint8Array.length} bytes for sidecar file`);
+
       await db.registerFileBuffer(sidecarFileName, sidecarUint8Array);
 
-      // Query the ESM datastore data, project, and filter options concurrently
-      const [datastoreData, project, filterOptions] = await Promise.all([
-        queryEsmDatastore(conn, fileName),
-        getEsmDatastoreProject(conn, fileName),
+      // Query metadata: project, filter options, and row count
+      // Note: We fetch a small sample just to get column names
+      const [project, filterOptions, numRecords] = await Promise.all([
+        getEsmDatastoreProject(datastoreName),
         getFilterOptions(conn, sidecarFileName),
+        getEsmDatastoreSize(conn, sidecarFileName),
       ]);
 
-      const columns = Object.keys(datastoreData[0] || {});
+      // Query metadata: project, filter options, and row count
+      // Note: We fetch a small sample just to get column names
+      const sampleData = await queryEsmDatastore(datastoreName); // Gets first 100 rows just for column names
+      const columns = Object.keys(sampleData[0] || {});
       const displayColumns = setupColumns(columns);
 
-      // Also extract project from the datastore (first row path)
+      if (numRecords > 10_000) {
+        console.log('⚠️ Datastore exceeds 10,000 records - skipping data load for cache');
+        // Update cache with metadata only (no data rows stored)
+        datastoreCache.value[datastoreName] = {
+          data: [], // Don't store data - fetched on demand
+          totalRecords: numRecords,
+          columns: displayColumns,
+          filterOptions,
+          loading: false,
+          error: null,
+          project,
+          lastFetched: new Date(),
+        };
+      } else {
+        console.log(`ℹ️ Datastore has ${numRecords} records - loading full data into cache`);
+        // Small datastore - load all the data directly and bang it into the cache
 
-      // Update cache with loaded data
-      datastoreCache.value[datastoreName] = {
-        data: datastoreData,
-        totalRecords: datastoreData.length,
-        columns: displayColumns,
-        filterOptions,
-        loading: false,
-        error: null,
-        project,
-        lastFetched: new Date(),
-      };
+        // Fetch both parquet files and initialize DuckDB concurrently
+        const response = await fetch(datastoreUrl);
 
-      console.log(`✅ Loaded ${datastoreData.length} records for ${datastoreName}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+
+        const uint8Array = new Uint8Array(arrayBuffer);
+        console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
+
+        const fileName = `${datastoreName}.parquet`;
+        await db.registerFileBuffer(fileName, uint8Array);
+        // Query the ESM datastore data, project, and filter options concurrently
+        const datastoreData = await loadEsmDatastore(conn, fileName);
+
+        // Update cache with metadata only (no data rows stored)
+        datastoreCache.value[datastoreName] = {
+          data: datastoreData,
+          totalRecords: numRecords,
+          columns: displayColumns,
+          filterOptions,
+          loading: false,
+          error: null,
+          project,
+          lastFetched: new Date(),
+        };
+      }
+
+      console.log(
+        `✅ Loaded metadata for ${datastoreName}: ${displayColumns.length} columns, ${numRecords} total records`,
+      );
       return datastoreCache.value[datastoreName];
     } catch (err) {
-      console.error('❌ Error loading datastore:', err);
+      console.error('❌ Error loading datastore metadata:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load datastore';
 
       datastoreCache.value[datastoreName] = {
@@ -623,7 +717,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchMetaCatFile,
     initializeDuckDB,
     queryEsmDatastore,
+    getEsmDatastoreRecordCount,
     getFilterOptions,
     setupColumns,
+    getEsmDatastoreSize,
   };
 });

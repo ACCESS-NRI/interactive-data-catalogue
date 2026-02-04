@@ -7,7 +7,7 @@
       <div class="flex items-center gap-2">
         <i class="pi pi-database text-blue-600 text-xl"></i>
         <span class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ datastoreName }} Data ({{ filteredData.length?.toLocaleString() }} records)
+          {{ datastoreName }} Data ({{ totalRecords?.toLocaleString() }} records)
         </span>
       </div>
 
@@ -42,20 +42,17 @@
     <!-- DataTable - Conditionally Rendered -->
     <DataTable
       v-if="showTable"
-      :value="filteredData"
-      :paginator="true"
-      :rows="25"
-      :rows-per-page-options="[10, 25, 50, 100]"
-      :total-records="filteredData.length"
-      :loading="tableLoading"
-      data-key="__index_level_0__"
-      show-gridlines
-      striped-rows
-      removable-sort
-      resizable-columns
-      column-resize-mode="expand"
-      :global-filter-fields="columns"
-      class="datastore-table"
+      lazy
+      :value="results"
+      :loading="isFetching"
+      paginator
+      :first="offset"
+      :rows="limit"
+      :rowsPerPageOptions="rowOptions"
+      :totalRecords="totalRecords"
+      tableStyle="min-width: 50rem"
+      @page="onPageChange"
+      @sort="onSort"
     >
       <Column
         v-for="column in selectedColumns"
@@ -167,36 +164,86 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
-import { ref } from 'vue';
-import DatastoreEntryModal from './DatastoreEntryModal.vue';
+import { ref, computed, watch } from 'vue';
+import { useFetch } from '@vueuse/core';
+import DatastoreEntryModal from '../DatastoreEntryModal.vue';
+import type { DataTableSortEvent } from 'primevue/datatable';
+import { trackingServicesBaseUrl } from '../../stores/catalogStore';
 
-defineProps<{
-  filteredData: any[];
+type PageEvent = {
+  page: number;
+  first: number;
+  rows: number;
+  pageCount: number;
+};
+
+const props = defineProps<{
   tableLoading: boolean;
+  filters: Record<string, string[]>;
   selectedColumns: Array<{ field: string; header: string }>;
   availableColumns: Array<{ field: string; header: string }>;
   columns: string[];
   datastoreName: string;
 }>();
 
-const emit = defineEmits(['update:selectedColumns', 'refresh']);
+const page = ref(0);
+const sortField = ref<string | null>(null);
+const sortOrder = ref<1 | -1 | null>(null);
 
-// Table visibility state
-const showTable = ref(false);
+const url = computed(() => {
+  const params = new URLSearchParams({
+    offset: String(offset.value),
+    limit: String(limit.value),
+    filters: JSON.stringify(props.filters || {}),
+  });
+  if (sortField.value) {
+    params.append('sortField', sortField.value);
+  }
+  if (sortOrder.value) {
+    params.append('sortOrder', String(sortOrder.value));
+  }
 
+  const endpoint = `${trackingServicesBaseUrl}intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
+
+  console.log('Fetching data from URL: ', endpoint);
+
+  return endpoint;
+});
+
+const results = computed(() => data.value?.records || []);
+const totalRecords = computed(() => data.value?.total);
+const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
+const dynamicFilterOptions = computed(() => data.value?.dynamic_filter_options || {});
+
+const showTable = ref(true);
 const toggleTable = () => {
   showTable.value = !showTable.value;
 };
 
-const onColumnToggle = (value: any[]) => {
-  emit('update:selectedColumns', value);
-};
+const rowOptions: number[] = [5, 10, 25, 50];
 
-const onRefresh = () => {
-  emit('refresh');
-};
+const limit = ref(rowOptions[0]);
+const offset = computed(() => Number((limit.value ?? 0) * page.value));
 
-// Modal state for showing full array/field contents
+// error is not used - but we will probably want to later!
+// @ts-expect-error
+const { isFetching, error, data } = useFetch(url, { refetch: true }).json();
+
+async function onPageChange(event: PageEvent) {
+  page.value = event.page;
+  limit.value = event.rows;
+}
+
+function onSort(event: DataTableSortEvent) {
+  if (typeof event.sortField === 'string') {
+    sortField.value = event.sortField;
+  } else {
+    sortField.value = null;
+  }
+  sortOrder.value = event.sortOrder === 0 ? null : (event.sortOrder as 1 | -1);
+  page.value = 0; // Reset to first page when sorting
+}
+
 const showDataStoreEntryModal = ref(false);
 const modalTitle = ref('');
 const modalItems = ref<any>([]);
@@ -206,6 +253,24 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   modalItems.value = Array.isArray(items) ? items : [items];
   showDataStoreEntryModal.value = true;
 };
+
+const emit = defineEmits(['update:selectedColumns', 'refresh', 'setNumDatasets', 'setDynamicFilterOptions']);
+
+const onColumnToggle = (value: any[]) => {
+  emit('update:selectedColumns', value);
+};
+
+const onRefresh = () => {
+  emit('refresh');
+};
+
+watch(numDatasets, (newVal) => {
+  emit('setNumDatasets', newVal);
+});
+
+watch(dynamicFilterOptions, (newVal) => {
+  emit('setDynamicFilterOptions', newVal);
+});
 </script>
 
 <style scoped></style>
