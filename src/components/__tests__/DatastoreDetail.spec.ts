@@ -376,7 +376,7 @@ describe('DatastoreDetail', () => {
     expect(filters.props('dynamicFilterOptions')).toBeDefined();
 
     // Check DatastoreTable props
-    const table = wrapper.findComponent({ name: 'DatastoreTable' });
+    const table = wrapper.findComponent({ name: 'LazyDatastoreTable' });
     expect(table.props('datastoreName')).toBe('test-datastore');
     expect(table.props('columns')).toBeDefined();
   });
