@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
-import DatastoreDetail from '../lazy/LazyDatastoreDetail.vue';
+import LazyDatastoreDetail from '../lazy/LazyDatastoreDetail.vue';
 import { useCatalogStore } from '../../stores/catalogStore';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 
 describe('DatastoreDetail', () => {
   let wrapper: VueWrapper<any>;
@@ -54,7 +55,7 @@ describe('DatastoreDetail', () => {
         {
           path: '/datastore/:name',
           name: 'DatastoreDetail',
-          component: DatastoreDetail,
+          component: LazyDatastoreDetail,
         },
       ],
     });
@@ -68,14 +69,14 @@ describe('DatastoreDetail', () => {
 
   // Helper to create wrapper with global config and stubs
   const createWrapper = () => {
-    return mount(DatastoreDetail, {
+    return mount(LazyDatastoreDetail, {
       global: {
-        plugins: [pinia, router, PrimeVue],
+        plugins: [pinia, router, PrimeVue, ToastService],
         stubs: {
           Button: true,
           DatastoreHeader: true,
-          QuickStartCode: true,
-          DatastoreTable: true,
+          LazyQuickStartCode: true,
+          LazyDatastoreTable: true,
           FilterSelectors: true,
           RouterLink: {
             template: '<a><slot /></a>',
@@ -362,8 +363,8 @@ describe('DatastoreDetail', () => {
     expect(header.props('datastoreName')).toBe('test-datastore');
     expect(header.props('totalRecords')).toBe(2);
 
-    // Check QuickStartCode props
-    const quickStart = wrapper.findComponent({ name: 'QuickStartCode' });
+    // Check LazyQuickStartCode props
+    const quickStart = wrapper.findComponent({ name: 'LazyQuickStartCode' });
     expect(quickStart.props('datastoreName')).toBe('test-datastore');
     expect(quickStart.props('numDatasets')).toBeDefined();
 
