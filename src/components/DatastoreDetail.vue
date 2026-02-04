@@ -93,7 +93,7 @@
           @clear="clearFilters"
         />
 
-        <DatastoreTable
+        <LazyDatastoreTable
           :table-loading="tableLoading"
           v-model:selectedColumns="selectedColumns"
           :available-columns="availableColumns"
@@ -116,7 +116,7 @@ import { useCatalogStore } from '../stores/catalogStore';
 import Button from 'primevue/button';
 import DatastoreHeader from './DatastoreHeader.vue';
 import QuickStartCode from './QuickStartCode.vue';
-import DatastoreTable from './DatastoreTable.vue';
+import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from './FilterSelectors.vue';
 
 const route = useRoute();

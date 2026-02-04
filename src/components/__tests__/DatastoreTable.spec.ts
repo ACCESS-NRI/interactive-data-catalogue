@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import DatastoreTable from '../DatastoreTable.vue';
+import LazyDatastoreTable from '../LazyDatastoreTable.vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -31,7 +31,7 @@ const mockFetchResponse = {
   unique_file_ids: ['file1', 'file2'],
 };
 
-describe('DatastoreTable', () => {
+describe('LazyDatastoreTable', () => {
   const mockColumns = [
     { field: 'variable', header: 'Variable' },
     { field: 'frequency', header: 'Frequency' },
@@ -50,7 +50,7 @@ describe('DatastoreTable', () => {
 
   // Helper to create wrapper with PrimeVue components
   const createWrapper = (props: any = {}) => {
-    return mount(DatastoreTable, {
+    return mount(LazyDatastoreTable, {
       props: {
         tableLoading: false,
         selectedColumns: mockColumns,

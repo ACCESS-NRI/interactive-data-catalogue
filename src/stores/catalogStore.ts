@@ -58,10 +58,6 @@ export interface DatastoreCache {
   project?: OptionalProject;
 }
 
-interface RowCountResponse {
-  num_rows: number;
-}
-
 interface DatastoreRow {
   [key: string]: string | string[] | null;
 }
