@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import LazyDatastoreTable from '../LazyDatastoreTable.vue';
+import LazyDatastoreTable from '../lazy/LazyDatastoreTable.vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';

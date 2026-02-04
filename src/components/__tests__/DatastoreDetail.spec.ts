@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
-import DatastoreDetail from '../DatastoreDetail.vue';
-import { useCatalogStore } from '../../stores/lazyCatalogStore';
+import DatastoreDetail from '../lazy/LazyDatastoreDetail.vue';
+import { useCatalogStore } from '../../stores/catalogStore';
 import PrimeVue from 'primevue/config';
 
 describe('DatastoreDetail', () => {

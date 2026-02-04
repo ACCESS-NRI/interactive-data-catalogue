@@ -166,9 +166,9 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref, computed, watch } from 'vue';
 import { useFetch } from '@vueuse/core';
-import DatastoreEntryModal from './DatastoreEntryModal.vue';
+import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
-import { trackingServicesBaseUrl } from '../stores/lazyCatalogStore';
+import { trackingServicesBaseUrl } from '../../stores/catalogStore';
 
 type PageEvent = {
   page: number;

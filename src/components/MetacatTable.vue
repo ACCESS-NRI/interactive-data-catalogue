@@ -198,7 +198,7 @@ import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
 import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
-import { useCatalogStore } from '../stores/lazyCatalogStore';
+import { useCatalogStore } from '../stores/catalogStore';
 
 /**
  * Catalog table uses the catalog store to fetch and display catalog entries.

@@ -70,15 +70,15 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useCatalogStore } from '../stores/lazyCatalogStore';
+import { useCatalogStore } from '../../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
-import MultipleCellMethodsWarning from './MultipleCellMethodsWarning.vue';
-import LongUrlConfirmDialog from './LongUrlConfirmDialog.vue';
+import RequiredProjectsWarning from '../RequiredProjectsWarning.vue';
+import MultipleCellMethodsWarning from '../MultipleCellMethodsWarning.vue';
+import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
 import 'highlight.js/lib/common';
 
 // Props
@@ -185,8 +185,6 @@ const requiredProjects = computed(() => {
   return Array.from(projects).sort();
 });
 
-const numDatasets = props.numDatasets;
-
 /**
  * Determine whether to show the MultipleCellMethodsWarning.
  *
@@ -200,7 +198,7 @@ const numDatasets = props.numDatasets;
  */
 const shouldShowCellMethodsWarning = computed((): boolean => {
   if (!isXArrayMode.value) return false;
-  if (numDatasets !== 1) return false;
+  if (props.numDatasets !== 1) return false;
 
   // Don't show warning if user has already filtered by variable_cell_methods
   const hasFilteredTemporalLabels = (props.currentFilters['temporal_label']?.length ?? 0) > 0;
@@ -252,8 +250,8 @@ datastore = intake.cat.access_nri["${props.datastoreName}"]`;
 
   // Add XArray conversion if in XArray mode
   if (isXArrayMode.value) {
-    if (numDatasets > 1) {
-      code += `\n\n# Search contains ${numDatasets} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
+    if (props.numDatasets > 1) {
+      code += `\n\n# Search contains ${props.numDatasets} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
       code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`;
       code += `\ndataset_dict = datastore.to_dataset_dict()\ndataset_dict`;
     } else {
