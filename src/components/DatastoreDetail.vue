@@ -114,7 +114,7 @@ import { useCatalogStore } from '../stores/catalogStore';
 import Button from 'primevue/button';
 import DatastoreHeader from './DatastoreHeader.vue';
 import QuickStartCode from './QuickStartCode.vue';
-import DatastoreTable from './DatastoreTable.vue';
+import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from './FilterSelectors.vue';
 
 const route = useRoute();
