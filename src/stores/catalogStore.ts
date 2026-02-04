@@ -221,6 +221,25 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   /**
+   * Get just the record count for an ESM datastore without loading the full data
+   *
+   * @param datastoreName - The name of the datastore
+   * @returns Promise<number> - The total number of records
+   */
+  async function getEsmDatastoreRecordCount(datastoreName: string): Promise<number> {
+    const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-content/${datastoreName}`;
+
+    const transformedData = await fetch(endpoint).then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    });
+
+    return transformedData.length;
+  }
+
+  /**
    * Read an esm datastore from the `datastore-content` endpoint, and get a JS
    * array containing the data
    *
@@ -700,6 +719,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     fetchMetaCatFile,
     initializeDuckDB,
     queryEsmDatastore,
+    getEsmDatastoreRecordCount,
     getFilterOptions,
     setupColumns,
     getEsmDatastoreSize,
