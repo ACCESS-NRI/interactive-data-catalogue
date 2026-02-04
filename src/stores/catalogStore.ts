@@ -308,25 +308,25 @@ export const useCatalogStore = defineStore('catalog', () => {
   }
 
   /**
-  * The sidecar file metadata contains the total number of rows in the datastore.
-  * This function just grabs that
-  *
-  * @param conn - Active DuckDB connection
-  * @param sidecarFname - Name of the registered sidecar parquet file
-  * @returns Record mapping column names to their unique sorted values
-  */
+   * The sidecar file metadata contains the total number of rows in the datastore.
+   * This function just grabs that
+   *
+   * @param conn - Active DuckDB connection
+   * @param sidecarFname - Name of the registered sidecar parquet file
+   * @returns Record mapping column names to their unique sorted values
+   */
   async function getEsmDatastoreSize(conn: duckdb.AsyncDuckDBConnection, sidecarFname: string): Promise<number> {
     try {
       // Query the sidecar file - it has one row with arrays of unique values
       const queryResult = await conn.query(` SELECT key, value FROM parquet_kv_metadata('${sidecarFname}') `);
 
-      const decoder = new TextDecoder("utf-8");
+      const decoder = new TextDecoder('utf-8');
 
       const metadata: Record<string, string> = Object.fromEntries(
-        queryResult.toArray().map(r => [
-          decoder.decode(r.key),     // Uint8Array -> string
-          decoder.decode(r.value)
-        ])
+        queryResult.toArray().map((r) => [
+          decoder.decode(r.key), // Uint8Array -> string
+          decoder.decode(r.value),
+        ]),
       );
 
       if (metadata.num_records) {
@@ -334,7 +334,6 @@ export const useCatalogStore = defineStore('catalog', () => {
       } else {
         throw new Error('num_records not found in parquet metadata');
       }
-
     } catch (err) {
       console.error('Could not load esm-datastore size: setting over threshold to enable SSR', err);
       // Return empty filter options on error
@@ -486,7 +485,7 @@ export const useCatalogStore = defineStore('catalog', () => {
 
       // Query metadata: project, filter options, and row count
       // Note: We fetch a small sample just to get column names
-      const sampleData =  await queryEsmDatastore(datastoreName); // Gets first 100 rows just for column names
+      const sampleData = await queryEsmDatastore(datastoreName); // Gets first 100 rows just for column names
       const columns = Object.keys(sampleData[0] || {});
       const displayColumns = setupColumns(columns);
 
@@ -504,7 +503,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         };
       } else {
         // Small datastore - load all the data directly and bang it into the cache
-        const esmDatastore =  await queryEsmDatastore(datastoreName); // Gets first 100 rows just for column names
+        const esmDatastore = await queryEsmDatastore(datastoreName); // Gets first 100 rows just for column names
 
         // Update cache with metadata only (no data rows stored)
         datastoreCache.value[datastoreName] = {
