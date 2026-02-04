@@ -586,7 +586,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       const displayColumns = setupColumns(columns);
 
       if (numRecords > 10_000) {
-        console.log("⚠️ Datastore exceeds 10,000 records - skipping data load for cache");
+        console.log('⚠️ Datastore exceeds 10,000 records - skipping data load for cache');
         // Update cache with metadata only (no data rows stored)
         datastoreCache.value[datastoreName] = {
           data: [], // Don't store data - fetched on demand
@@ -603,7 +603,7 @@ export const useCatalogStore = defineStore('catalog', () => {
         // Small datastore - load all the data directly and bang it into the cache
 
         // Fetch both parquet files and initialize DuckDB concurrently
-        const response  = await fetch(datastoreUrl);
+        const response = await fetch(datastoreUrl);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch datastore parquet file: ${response.status}`);
@@ -614,12 +614,10 @@ export const useCatalogStore = defineStore('catalog', () => {
         const uint8Array = new Uint8Array(arrayBuffer);
         console.log(`📦 Downloaded ${uint8Array.length} bytes for ${datastoreName}`);
 
-
         const fileName = `${datastoreName}.parquet`;
         await db.registerFileBuffer(fileName, uint8Array);
-      // Query the ESM datastore data, project, and filter options concurrently
+        // Query the ESM datastore data, project, and filter options concurrently
         const datastoreData = await loadEsmDatastore(conn, fileName);
-
 
         // Update cache with metadata only (no data rows stored)
         datastoreCache.value[datastoreName] = {

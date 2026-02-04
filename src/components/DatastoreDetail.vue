@@ -27,7 +27,7 @@ const shouldUseLazy = computed(() => totalRecords.value > 10000);
 
 const initializeComponent = async () => {
   isLoading.value = true;
-  
+
   // Check if we already have cached data
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
   if (existingCache && existingCache.totalRecords > 0) {
@@ -37,15 +37,19 @@ const initializeComponent = async () => {
     // The child component will load the data and populate the cache
     totalRecords.value = 999999;
   }
-  
+
   isLoading.value = false;
 };
 
 // Watch for route changes
-watch(() => datastoreName.value, () => {
-  componentKey.value++; // Force component remount
-  initializeComponent();
-}, { immediate: true });
+watch(
+  () => datastoreName.value,
+  () => {
+    componentKey.value++; // Force component remount
+    initializeComponent();
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   initializeComponent();
