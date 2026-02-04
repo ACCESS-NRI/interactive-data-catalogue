@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useCatalogStore } from '../stores/catalogStore';
+import { useCatalogStore } from '../stores/lazyCatalogStore';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';

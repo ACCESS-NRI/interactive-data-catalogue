@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import CatalogRowDetailModal from '../MetacatRowDetailModal.vue';
-import type { CatalogRow } from '../../stores/catalogStore';
+import type { CatalogRow } from '../../stores/lazyCatalogStore';
 
 // Mock router
 const router = createRouter({

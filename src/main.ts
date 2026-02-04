@@ -41,7 +41,7 @@ app.mount('#app');
 
 // Expose store globally for debugging
 if (import.meta.env.DEV) {
-  import('./stores/catalogStore').then(({ useCatalogStore }) => {
+  import('./stores/lazyCatalogStore').then(({ useCatalogStore }) => {
     (window as any).catalogStore = useCatalogStore();
   });
 }

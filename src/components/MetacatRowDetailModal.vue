@@ -150,8 +150,8 @@ import Button from 'primevue/button';
 import TagList from './TagList.vue';
 import YamlTree from './YamlTree.vue';
 import { load as loadYaml } from 'js-yaml';
-import type { CatalogRow } from '../stores/catalogStore';
-import { useCatalogStore } from '../stores/catalogStore';
+import type { CatalogRow } from '../stores/lazyCatalogStore';
+import { useCatalogStore } from '../stores/lazyCatalogStore';
 import { useRouter } from 'vue-router';
 
 // Props

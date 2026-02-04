@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import MetacatTable from '../MetacatTable.vue';
-import { useCatalogStore } from '../../stores/catalogStore';
+import { useCatalogStore } from '../../stores/lazyCatalogStore';
 import PrimeVue from 'primevue/config';
 
 describe('MetacatTable', () => {

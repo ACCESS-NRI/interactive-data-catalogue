@@ -112,7 +112,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useCatalogStore } from '../stores/catalogStore';
+import { useCatalogStore } from '../stores/lazyCatalogStore';
 import Button from 'primevue/button';
 import DatastoreHeader from './DatastoreHeader.vue';
 import QuickStartCode from './QuickStartCode.vue';

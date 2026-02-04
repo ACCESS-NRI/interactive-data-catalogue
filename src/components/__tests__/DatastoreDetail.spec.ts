@@ -3,7 +3,7 @@ import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import DatastoreDetail from '../DatastoreDetail.vue';
-import { useCatalogStore } from '../../stores/catalogStore';
+import { useCatalogStore } from '../../stores/lazyCatalogStore';
 import PrimeVue from 'primevue/config';
 
 describe('DatastoreDetail', () => {

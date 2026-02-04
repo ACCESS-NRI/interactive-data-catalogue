@@ -168,7 +168,7 @@ import { ref, computed, watch } from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from './DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
-import { trackingServicesBaseUrl } from '../stores/catalogStore';
+import { trackingServicesBaseUrl } from '../stores/lazyCatalogStore';
 
 type PageEvent = {
   page: number;
