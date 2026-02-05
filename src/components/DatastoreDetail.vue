@@ -29,9 +29,20 @@ const initializeComponent = async () => {
   isLoading.value = true;
 
   // Check if we already have cached data
+
+  // TODO: This fails too aggressively. If the datastore is still loading into
+  // the cache, we fall back to lazy mode, even though it might be small enough for eager loading.
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.totalRecords > 0) {
+  if (existingCache && !existingCache.loading && existingCache.totalRecords > 0) {
     totalRecords.value = existingCache.totalRecords;
+  } else if (existingCache && existingCache.loading) {
+    console.log(`⏳ Already loading ${datastoreName.value}, waiting...`);
+    // Poll until loading is complete
+    while (catalogStore.getDatastoreFromCache(datastoreName.value)?.loading) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    const updatedCache = catalogStore.getDatastoreFromCache(datastoreName.value);
+    totalRecords.value = updatedCache?.totalRecords || 999999;
   } else {
     // No cache exists - default to lazy loading for safety
     // The child component will load the data and populate the cache

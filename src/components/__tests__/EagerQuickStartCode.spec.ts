@@ -1,11 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
-import QuickStartCode from '../lazy/LazyQuickStartCode.vue';
+import EagerQuickStartCode from '../eager/EagerQuickStartCode.vue';
 import { useCatalogStore } from '../../stores/catalogStore';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
+
+// Mock useToast
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({
+    add: vi.fn(),
+  }),
+}));
 
 // Mock clipboard API
 const writeTextMock = vi.fn(() => Promise.resolve());
@@ -41,12 +48,17 @@ describe('QuickStartCode', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount();
+    }
+  });
+
   // Helper to create wrapper with required props and global config
   const createWrapper = (props: any) => {
-    return mount(QuickStartCode, {
+    return mount(EagerQuickStartCode, {
       props: {
         dynamicFilterOptions: {},
-        numDatasets: 1, // Default to 1 dataset
         ...props,
       },
       global: {
@@ -69,7 +81,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).toContain('Quick Start');
@@ -80,7 +92,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'my-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).toContain('intake.cat.access_nri["my-datastore"]');
@@ -93,7 +105,7 @@ describe('QuickStartCode', () => {
       currentFilters: {
         project: ['xp65'],
       },
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).toContain("datastore.search(project='xp65')");
@@ -106,7 +118,7 @@ describe('QuickStartCode', () => {
       currentFilters: {
         variable: ['tas', 'pr', 'huss'],
       },
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).toContain('datastore.search(variable=["tas","pr","huss"])');
@@ -121,7 +133,7 @@ describe('QuickStartCode', () => {
         variable: ['tas'],
         frequency: ['1mon'],
       },
-      numDatasets: 0,
+      rawData: [],
     });
 
     const text = wrapper.text();
@@ -137,7 +149,7 @@ describe('QuickStartCode', () => {
       currentFilters: {
         project: ['xp65'],
       },
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).toContain('with current filters');
@@ -148,7 +160,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).not.toContain('with current filters');
@@ -159,7 +171,10 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [
+        { file_id: 'dataset1', path: '/g/data/xp65/file1.nc' },
+        { file_id: 'dataset1', path: '/g/data/xp65/file2.nc' },
+      ],
     });
 
     // Component starts in xarray mode by default
@@ -171,7 +186,11 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 3,
+      rawData: [
+        { file_id: 'dataset1', path: '/g/data/xp65/file1.nc' },
+        { file_id: 'dataset2', path: '/g/data/xp65/file2.nc' },
+        { file_id: 'dataset3', path: '/g/data/xp65/file3.nc' },
+      ],
     });
 
     const text = wrapper.text();
@@ -184,7 +203,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [{ file_id: 'dataset1' }],
     });
 
     // Find and toggle the switch to ESM mode (off)
@@ -201,7 +220,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -216,7 +235,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -233,7 +252,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -255,7 +274,7 @@ describe('QuickStartCode', () => {
         project: ['xp65'],
         variable: ['tas', 'pr'],
       },
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -271,7 +290,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -286,7 +305,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     const warningComponent = wrapper.findComponent({ name: 'RequiredProjectsWarning' });
@@ -312,7 +331,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     const warningComponent = wrapper.findComponent({ name: 'RequiredProjectsWarning' });
@@ -334,7 +353,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: longFilters,
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -359,7 +378,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: longFilters,
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -386,7 +405,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: longFilters,
-      numDatasets: 0,
+      rawData: [],
     });
 
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -406,7 +425,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [{ file_id: 'dataset1' }],
     });
 
     // Should start in xarray mode
@@ -424,12 +443,12 @@ describe('QuickStartCode', () => {
     expect(wrapper.text()).toContain('to_dask()');
   });
 
-  // Test that zero datasets doesn't break the component
+  // Test that empty rawData doesn't break the component
   it('handles empty rawData gracefully', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 0,
+      rawData: [],
     });
 
     expect(wrapper.text()).toContain('Quick Start');
@@ -437,12 +456,12 @@ describe('QuickStartCode', () => {
     expect(wrapper.text()).toContain('intake.cat.access_nri["test-datastore"]');
   });
 
-  // Test that datasets are handled correctly
+  // Test that rawData without file_id is handled correctly
   it('handles rawData without file_id', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 2,
+      rawData: [{ path: '/g/data/xp65/file1.nc' }, { path: '/g/data/xp65/file2.nc' }],
     });
 
     // Should still render without errors
@@ -454,7 +473,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [{ file_id: 'dataset1' }],
       dynamicFilterOptions: {
         variable_cell_methods: ['time: mean', 'time: point', 'area: mean'],
         temporal_label: ['mean', 'point', 'mean'],
@@ -469,7 +488,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [{ file_id: 'dataset1' }],
       dynamicFilterOptions: {
         variable_cell_methods: ['time: mean'],
       },
@@ -483,7 +502,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 2,
+      rawData: [{ file_id: 'dataset1' }, { file_id: 'dataset2' }],
       dynamicFilterOptions: {
         variable_cell_methods: ['time: mean', 'time: point'],
       },
@@ -497,7 +516,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [{ file_id: 'dataset1' }],
       dynamicFilterOptions: {
         variable_cell_methods: ['time: mean', 'time: point'],
       },
@@ -515,7 +534,7 @@ describe('QuickStartCode', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
       currentFilters: {},
-      numDatasets: 1,
+      rawData: [{ file_id: 'dataset1' }],
       dynamicFilterOptions: {},
     });
 
