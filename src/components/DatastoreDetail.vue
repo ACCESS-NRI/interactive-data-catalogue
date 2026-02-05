@@ -36,12 +36,13 @@ const initializeComponent = async () => {
   if (existingCache && !existingCache.loading && existingCache.totalRecords > 0) {
     totalRecords.value = existingCache.totalRecords;
   } else if (existingCache && existingCache.loading) {
-    console.log(`⏳ Already loading ${datastoreName}, waiting...`);
+    console.log(`⏳ Already loading ${datastoreName.value}, waiting...`);
     // Poll until loading is complete
-    while (existingCache.loading) {
+    while (catalogStore.getDatastoreFromCache(datastoreName.value)?.loading) {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    totalRecords.value = existingCache.totalRecords;
+    const updatedCache = catalogStore.getDatastoreFromCache(datastoreName.value);
+    totalRecords.value = updatedCache?.totalRecords || 999999;
   } else {
     // No cache exists - default to lazy loading for safety
     // The child component will load the data and populate the cache
