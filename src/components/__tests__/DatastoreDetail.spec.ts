@@ -68,7 +68,7 @@ describe('DatastoreDetail', () => {
   const mountComponent = async (datastoreName: string = 'test-datastore') => {
     // Push route to set params
     await router.push(`/datastore/${datastoreName}`);
-    
+
     return mount(DatastoreDetail, {
       global: {
         plugins: [router],
@@ -84,29 +84,28 @@ describe('DatastoreDetail', () => {
     it('shows appropriate component after initialization', async () => {
       // Mock store to return no cache
       vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(null);
-      
+
       const wrapper = await mountComponent();
-      
+
       // Wait for initialization to complete
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Component should show either loading state or lazy component (defaults to lazy when no cache)
-      expect(wrapper.find('.pi-spinner').exists() || 
-             wrapper.find('[data-testid="lazy-component"]').exists()).toBe(true);
+      expect(wrapper.find('.pi-spinner').exists() || wrapper.find('[data-testid="lazy-component"]').exists()).toBe(
+        true,
+      );
     });
 
     it('hides loading indicator after initialization', async () => {
       // Mock store to return cached data
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 5000 })
-      );
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 5000 }));
 
       const wrapper = await mountComponent();
-      
+
       // Wait for initialization
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(wrapper.find('.pi-spinner').exists()).toBe(false);
     });
@@ -115,15 +114,13 @@ describe('DatastoreDetail', () => {
   describe('Component Selection Logic', () => {
     it('renders EagerDatastoreDetail for small datasets (≤ 10000 records)', async () => {
       // Mock store to return small dataset
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 5000 })
-      );
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 5000 }));
 
       const wrapper = await mountComponent();
-      
+
       // Wait for initialization
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(wrapper.find('[data-testid="eager-component"]').exists()).toBe(true);
       expect(wrapper.find('[data-testid="lazy-component"]').exists()).toBe(false);
@@ -131,15 +128,13 @@ describe('DatastoreDetail', () => {
 
     it('renders LazyDatastoreDetail for large datasets (> 10000 records)', async () => {
       // Mock store to return large dataset
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 50000 })
-      );
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 50000 }));
 
       const wrapper = await mountComponent();
-      
+
       // Wait for initialization
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(wrapper.find('[data-testid="lazy-component"]').exists()).toBe(true);
       expect(wrapper.find('[data-testid="eager-component"]').exists()).toBe(false);
@@ -150,10 +145,10 @@ describe('DatastoreDetail', () => {
       vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(null);
 
       const wrapper = await mountComponent();
-      
+
       // Wait for initialization
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(wrapper.find('[data-testid="lazy-component"]').exists()).toBe(true);
       expect(wrapper.find('[data-testid="eager-component"]').exists()).toBe(false);
@@ -166,11 +161,11 @@ describe('DatastoreDetail', () => {
         loading: false,
         totalRecords: 1500,
       });
-      
+
       const getDatastoreFromCacheSpy = vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(mockCache);
 
       await mountComponent('cached-datastore');
-      
+
       expect(getDatastoreFromCacheSpy).toHaveBeenCalledWith('cached-datastore');
     });
 
@@ -188,42 +183,43 @@ describe('DatastoreDetail', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const wrapper = await mountComponent('loading-datastore');
-      
+
       // Wait for polling to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
       await wrapper.vm.$nextTick();
 
       expect(consoleSpy).toHaveBeenCalledWith('⏳ Already loading loading-datastore, waiting...');
-      
+
       consoleSpy.mockRestore();
     });
 
     it('defaults to large dataset value when cache is loading and never completes', async () => {
       // Mock store to always return loading state
       vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ loading: true, totalRecords: 0 })
+        createMockDatastoreCache({ loading: true, totalRecords: 0 }),
       );
 
       const wrapper = await mountComponent();
-      
+
       // Wait for initial render
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Should show loading initially, then default to lazy loading
       // The component defaults to 999999 records which triggers lazy mode
-      expect(wrapper.find('[data-testid="lazy-component"]').exists() || 
-             wrapper.find('.pi-spinner').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="lazy-component"]').exists() || wrapper.find('.pi-spinner').exists()).toBe(
+        true,
+      );
     });
   });
 
   describe('Route Changes', () => {
     it('reinitializes when datastore name changes', async () => {
       const wrapper = await mountComponent('datastore-1');
-      
-      const getDatastoreFromCacheSpy = vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 1000 })
-      );
+
+      const getDatastoreFromCacheSpy = vi
+        .spyOn(store, 'getDatastoreFromCache')
+        .mockReturnValue(createMockDatastoreCache({ totalRecords: 1000 }));
 
       // Change route
       await router.push('/datastore/datastore-2');
@@ -234,9 +230,9 @@ describe('DatastoreDetail', () => {
 
     it('increments component key on route change to force remount', async () => {
       const wrapper = await mountComponent('datastore-1');
-      
+
       const initialKey = (wrapper.vm as any).componentKey;
-      
+
       // Change route
       await router.push('/datastore/datastore-2');
       await wrapper.vm.$nextTick();
@@ -247,19 +243,17 @@ describe('DatastoreDetail', () => {
 
     it('passes correct key prop to child components', async () => {
       // Mock store to return small dataset
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 5000 })
-      );
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 5000 }));
 
       const wrapper = await mountComponent();
-      
+
       // Wait for the async initialization to complete
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const eagerComponent = wrapper.findComponent({ name: 'EagerDatastoreDetail' });
       expect(eagerComponent.exists()).toBe(true);
-      
+
       // Component should have loaded and not be in loading state
       expect(wrapper.find('.pi-spinner').exists()).toBe(false);
     });
@@ -268,13 +262,13 @@ describe('DatastoreDetail', () => {
   describe('Computed Properties', () => {
     it('correctly computes shouldUseLazy based on totalRecords', async () => {
       const wrapper = await mountComponent();
-      
+
       // Test with small dataset
       (wrapper.vm as any).totalRecords = 5000;
       await wrapper.vm.$nextTick();
       expect((wrapper.vm as any).shouldUseLazy).toBe(false);
 
-      // Test with large dataset  
+      // Test with large dataset
       (wrapper.vm as any).totalRecords = 15000;
       await wrapper.vm.$nextTick();
       expect((wrapper.vm as any).shouldUseLazy).toBe(true);
@@ -287,7 +281,7 @@ describe('DatastoreDetail', () => {
 
     it('correctly computes datastoreName from route params', async () => {
       const wrapper = await mountComponent('my-test-datastore');
-      
+
       expect((wrapper.vm as any).datastoreName).toBe('my-test-datastore');
     });
   });
@@ -296,20 +290,21 @@ describe('DatastoreDetail', () => {
     it('initializes component properly on mount', async () => {
       // Mock store to return no cache initially
       vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(null);
-      
+
       const wrapper = await mountComponent();
-      
+
       // Verify component is in loading state or has rendered correctly
-      expect(wrapper.find('.pi-spinner').exists() || 
-             wrapper.find('[data-testid="lazy-component"]').exists()).toBe(true);
+      expect(wrapper.find('.pi-spinner').exists() || wrapper.find('[data-testid="lazy-component"]').exists()).toBe(
+        true,
+      );
     });
 
     it('watches for datastoreName changes', async () => {
       const wrapper = await mountComponent('initial-datastore');
-      
-      const getDatastoreFromCacheSpy = vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 1000 })
-      );
+
+      const getDatastoreFromCacheSpy = vi
+        .spyOn(store, 'getDatastoreFromCache')
+        .mockReturnValue(createMockDatastoreCache({ totalRecords: 1000 }));
 
       // Change the route parameter
       await router.push('/datastore/changed-datastore');
@@ -324,29 +319,29 @@ describe('DatastoreDetail', () => {
       vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(null);
 
       const wrapper = await mountComponent();
-      
+
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Should not throw and should default to lazy loading
       expect(wrapper.find('[data-testid="lazy-component"]').exists()).toBe(true);
     });
 
     it('handles cache with zero totalRecords', async () => {
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(
-        createMockDatastoreCache({ totalRecords: 0 })
-      );
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 0 }));
 
       const wrapper = await mountComponent();
-      
+
       // Wait for initialization to complete
       await wrapper.vm.$nextTick();
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Should use eager component for zero records (≤ 10000)
       // Note: The component logic may default to lazy if cache doesn't exist initially
-      expect(wrapper.find('[data-testid="eager-component"]').exists() ||
-             wrapper.find('[data-testid="lazy-component"]').exists()).toBe(true);
+      expect(
+        wrapper.find('[data-testid="eager-component"]').exists() ||
+          wrapper.find('[data-testid="lazy-component"]').exists(),
+      ).toBe(true);
       expect(wrapper.find('.pi-spinner').exists()).toBe(false);
     });
 
@@ -362,8 +357,8 @@ describe('DatastoreDetail', () => {
       });
 
       const wrapper = await mountComponent();
-      
-      await new Promise(resolve => setTimeout(resolve, 150));
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
       await wrapper.vm.$nextTick();
 
       // Should default to lazy loading when totalRecords is undefined
