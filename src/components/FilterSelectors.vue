@@ -1,5 +1,5 @@
 <template>
-  <section class="bg-white rounded-lg shadow p-6 mb-6">
+  <section class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
     <h6 class="font-semibold mb-4">Filters</h6>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="(options, column) in filterOptions" :key="column">
