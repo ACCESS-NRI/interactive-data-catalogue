@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "NODE_ENV=dev vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "test": "NODE_ENV=dev vitest",
