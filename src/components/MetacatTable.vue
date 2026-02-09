@@ -54,28 +54,32 @@
         @row-click="showRowDetail($event.data)"
       >
         <template #header>
-          <div
-            class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700"
-          >
-            <div class="flex items-center gap-2">
+          <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700">
+            <!-- Column 1: Catalog Entries -->
+            <div class="flex items-center gap-2 flex-shrink-0">
               <i class="pi pi-database text-blue-600 text-xl"></i>
               <span class="text-lg font-semibold text-gray-900 dark:text-white">
                 Catalog Entries ({{ catalogStore.data.length }})
               </span>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <!-- Global Search -->
-              <div class="relative">
-                <i class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                <InputText
-                  v-model="globalSearchValue"
-                  placeholder="Search all fields..."
-                  class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-80"
-                />
+            <!-- Column 2: Search (centered, flexible) -->
+            <div class="flex-1 flex justify-center max-w-60">
+              <div class="relative min-w-60">
+                <IconField>
+                  <InputIcon class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <InputText
+                    v-model="globalSearchValue"
+                    placeholder="     Search all fields..."
+                    class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                  />
+                  <!-- This stupid spacing is because I cannot for the life of me get the icon do do what it should -->
+                </IconField>
               </div>
+            </div>
 
-              <!-- Column Toggle -->
+            <!-- Column 3: MultiSelect -->
+            <div class="flex-shrink-0">
               <MultiSelect
                 :model-value="selectedColumns"
                 @update:model-value="onToggle"
@@ -193,6 +197,7 @@ import { ref, computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
+import { InputIcon } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
