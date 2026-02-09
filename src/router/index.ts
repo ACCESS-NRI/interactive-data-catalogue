@@ -8,7 +8,7 @@ const routes = [
     name: 'Home',
     component: MetacatTable,
     meta: {
-      title: 'ACCESS-NRI Intake',
+      title: 'ACCESS-NRI Data Catalogue',
     },
   },
   {
