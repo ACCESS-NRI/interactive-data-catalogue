@@ -36,13 +36,13 @@ describe('MetacatHeader', () => {
   // Test that the main title is rendered correctly
   it('renders the main title', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('ACCESS-NRI Interactive Intake Catalog');
+    expect(wrapper.text()).toContain('ACCESS-NRI Interactive Data Catalog');
   });
 
   // Test that the description text is displayed
   it('renders the description', () => {
     const wrapper = createWrapper();
-    expect(wrapper.text()).toContain('Explore the ACCESS-NRI Intake Catalog');
+    expect(wrapper.text()).toContain('Explore the ACCESS-NRI Interactive Catalogue');
   });
 
   // Test that intake-esm documentation link is present with correct attributes
