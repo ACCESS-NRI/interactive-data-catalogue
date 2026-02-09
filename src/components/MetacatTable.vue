@@ -67,11 +67,11 @@
             <div class="flex-1 flex justify-center max-w-60">
               <div class="relative min-w-60">
                 <IconField>
-                  <InputIcon class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
+                  <InputIcon class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <InputText
-                  v-model="globalSearchValue"
-                  placeholder="     Search all fields..." 
-                  class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                    v-model="globalSearchValue"
+                    placeholder="     Search all fields..."
+                    class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
                   />
                   <!-- This stupid spacing is because I cannot for the life of me get the icon do do what it should -->
                 </IconField>
