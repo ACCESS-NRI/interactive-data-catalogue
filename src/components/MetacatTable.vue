@@ -59,7 +59,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
               <i class="pi pi-database text-blue-600 text-xl"></i>
               <span class="text-lg font-semibold text-gray-900 dark:text-white">
-                Catalog Entries ({{ catalogStore.data.length }})
+                Catalogue Entries ({{ catalogStore.data.length }})
               </span>
             </div>
 

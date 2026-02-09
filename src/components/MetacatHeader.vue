@@ -2,9 +2,9 @@
   <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <!-- Left side - Title and description -->
     <div class="flex-1">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ACCESS-NRI Interactive Intake Catalog</h1>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ACCESS-NRI Interactive Data Catalogue</h1>
       <div class="flex items-center gap-5">
-        <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Intake Catalog</p>
+        <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
         <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
           <a
             :href="commitUrl"
