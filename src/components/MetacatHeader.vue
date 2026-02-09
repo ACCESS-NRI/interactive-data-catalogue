@@ -36,7 +36,7 @@
     <!-- Right side - Documentation links -->
     <div class="flex-shrink-0">
       <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 lg:text-right">Documentation</div>
-      <div class="flex flex-col space-y-2">
+      <div class="flex flex-col space-y-2 items-end">
         <a
           href="https://intake-esm.readthedocs.io/"
           target="_blank"

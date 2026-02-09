@@ -54,45 +54,81 @@
         @row-click="showRowDetail($event.data)"
       >
         <template #header>
-          <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700">
-            <!-- Column 1: Catalog Entries -->
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <i class="pi pi-database text-blue-600 text-xl"></i>
-              <span class="text-lg font-semibold text-gray-900 dark:text-white">
-                Catalogue Entries ({{ catalogStore.data.length }})
-              </span>
-            </div>
+          <div class="p-4 bg-gray-50 dark:bg-gray-700">
+            <!-- Mobile Layout (< md screens) -->
+            <div class="md:hidden space-y-4">
+              <!-- Catalog Entries -->
+              <div class="flex items-center gap-2">
+                <i class="pi pi-database text-blue-600 text-xl"></i>
+                <span class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Catalog Entries ({{ catalogStore.data.length }})
+                </span>
+              </div>
 
-            <!-- Column 2: Search (centered, flexible) -->
-            <div class="flex-1 flex justify-center max-w-60">
-              <div class="relative min-w-60">
+              <!-- Search -->
+              <div>
                 <IconField>
-                  <InputIcon class="pi pi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <InputText
-                    v-model="globalSearchValue"
-                    placeholder="     Search all fields..."
-                    class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
-                  />
-                  <!-- This stupid spacing is because I cannot for the life of me get the icon do do what it should -->
+                  <InputText v-model="globalSearchValue" placeholder="Search all fields..." class="w-full" />
                 </IconField>
+              </div>
+
+              <!-- MultiSelect -->
+              <div>
+                <MultiSelect
+                  :model-value="selectedColumns"
+                  @update:model-value="onToggle"
+                  :options="columns"
+                  option-label="header"
+                  placeholder="Select Columns"
+                  class="w-full"
+                  display="chip"
+                >
+                  <template #option="{ option }">
+                    <span>{{ option.header }}</span>
+                  </template>
+                </MultiSelect>
               </div>
             </div>
 
-            <!-- Column 3: MultiSelect -->
-            <div class="flex-shrink-0">
-              <MultiSelect
-                :model-value="selectedColumns"
-                @update:model-value="onToggle"
-                :options="columns"
-                option-label="header"
-                placeholder="Select Columns"
-                class="min-w-48"
-                display="chip"
-              >
-                <template #option="{ option }">
-                  <span>{{ option.header }}</span>
-                </template>
-              </MultiSelect>
+            <!-- Desktop Layout (>= md screens) - Your original layout -->
+            <div class="hidden md:flex items-center gap-4 overflow-x-auto">
+              <!-- Column 1: Catalog Entries -->
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <i class="pi pi-database text-blue-600 text-xl"></i>
+                <span class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Catalog Entries ({{ catalogStore.data.length }})
+                </span>
+              </div>
+
+              <!-- Column 2: Search (centered, flexible) -->
+              <div class="flex-1 flex justify-center max-w-60">
+                <div class="relative min-w-60">
+                  <IconField>
+                    <InputText
+                      v-model="globalSearchValue"
+                      placeholder="Search all fields..."
+                      class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                    />
+                  </IconField>
+                </div>
+              </div>
+
+              <!-- Column 3: MultiSelect -->
+              <div class="flex-shrink-0">
+                <MultiSelect
+                  :model-value="selectedColumns"
+                  @update:model-value="onToggle"
+                  :options="columns"
+                  option-label="header"
+                  placeholder="Select Columns"
+                  class="min-w-48"
+                  display="chip"
+                >
+                  <template #option="{ option }">
+                    <span>{{ option.header }}</span>
+                  </template>
+                </MultiSelect>
+              </div>
             </div>
           </div>
         </template>
@@ -197,7 +233,6 @@ import { ref, computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
-import { InputIcon } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
