@@ -233,7 +233,6 @@ import { ref, computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import InputText from 'primevue/inputtext';
-import { InputIcon } from 'primevue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
