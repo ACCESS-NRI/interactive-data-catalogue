@@ -35,7 +35,6 @@
           </template>
         </MultiSelect>
 
-        <Button v-if="showTable" label="Refresh" icon="pi pi-refresh" @click="onRefresh" outlined size="small" />
       </div>
     </div>
 
@@ -254,15 +253,12 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   showDataStoreEntryModal.value = true;
 };
 
-const emit = defineEmits(['update:selectedColumns', 'refresh', 'setNumDatasets', 'setDynamicFilterOptions']);
+const emit = defineEmits(['update:selectedColumns',  'setNumDatasets', 'setDynamicFilterOptions']);
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
 };
 
-const onRefresh = () => {
-  emit('refresh');
-};
 
 watch(numDatasets, (newVal) => {
   emit('setNumDatasets', newVal);
