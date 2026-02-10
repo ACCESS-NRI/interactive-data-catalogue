@@ -28,7 +28,7 @@ describe('CatalogRowDetailModal', () => {
     realm: ['ocean', 'atmos'],
     frequency: ['mon', 'day'],
     variable: ['tos', 'tas', 'pr', 'uas', 'vas'],
-    yaml: 'driver: zarr\nargs:\n  urlpath: /path/to/data\n  consolidated: true',
+    yaml: 'sources:\n test-catalog: \n    metadata: \n      driver: zarr \n      args: \n        urlpath: /path/to/data \n        consolidated: true',
   };
 
   beforeEach(() => {
@@ -255,7 +255,7 @@ describe('CatalogRowDetailModal', () => {
       rowData: mockCatalogRow,
     });
 
-    expect(wrapper.text()).toContain('Configuration (YAML)');
+    expect(wrapper.text()).toContain('Metadata (YAML)');
   });
 
   // Test that YamlTree component is rendered for valid YAML

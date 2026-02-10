@@ -96,7 +96,13 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 
           <!-- Configuration YAML -->
           <div v-if="rowData.yaml">
-            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Configuration (YAML)</h6>
+            <h6 v-if="parseFailure" class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+              Datastore Configuration (YAML)
+            </h6>
+            <h6 v-else class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+              Datastore Metadata (YAML)
+            </h6>
+
             <div class="border border-gray-200 dark:border-gray-600 rounded-lg">
               <div class="bg-gray-50 dark:bg-gray-700 p-4">
                 <div v-if="parsedYaml">
@@ -168,6 +174,8 @@ const router = useRouter();
 const parsedYaml = ref<any>(null);
 const yamlParseError = ref<string | null>(null);
 
+const parseFailure = ref(false);
+
 // Sort variables for our chips
 const sortedVariables = computed(() => {
   if (!props.rowData?.variable) return [];
@@ -188,8 +196,10 @@ watch(
     yamlParseError.value = null;
     if (!yaml) return;
     try {
-      parsedYaml.value = loadYaml(yaml as string);
+      const yamlData = loadYaml(yaml as string);
+      parsedYaml.value = yamlData?.sources[props?.rowData?.name ?? '-999']?.metadata ?? yamlData;
     } catch (err: any) {
+      parseFailure.value = true;
       yamlParseError.value = err?.message || String(err);
       console.warn('YAML parse error', err);
     }
