@@ -213,7 +213,7 @@ const totalRecords = computed(() => data.value?.total);
 const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
 const dynamicFilterOptions = computed(() => data.value?.dynamic_filter_options || {});
 
-const showTable = ref(true);
+const showTable = ref(false);
 const toggleTable = () => {
   showTable.value = !showTable.value;
 };

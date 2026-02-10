@@ -97,7 +97,6 @@ describe('DatastoreTable', () => {
     expect(dataTable.props('loading')).toBe(true);
   });
 
-
   // Test that column toggle emits update event with selected columns
   it('emits update:selectedColumns when columns are toggled', async () => {
     const wrapper = createWrapper();
