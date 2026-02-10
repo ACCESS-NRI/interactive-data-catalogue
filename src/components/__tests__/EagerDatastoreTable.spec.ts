@@ -85,7 +85,7 @@ describe('DatastoreTable', () => {
   // Test that the record count is displayed with proper locale formatting
   it('renders record count with locale formatting', () => {
     const wrapper = createWrapper({ filteredData: mockData });
-    expect(wrapper.text()).toContain('2 records');
+    expect(wrapper.text()).toContain('2 Data Files');
   });
 
   // Test that the component shows the loading state when tableLoading is true
@@ -251,7 +251,7 @@ describe('DatastoreTable', () => {
 
     expect(dataTable.props('value')).toEqual([]);
     expect(dataTable.props('totalRecords')).toBe(0);
-    expect(wrapper.text()).toContain('0 records');
+    expect(wrapper.text()).toContain('0 Data Files');
   });
 
   // Test that the component handles missing datastoreName
