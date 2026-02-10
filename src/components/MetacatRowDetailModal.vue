@@ -81,21 +81,16 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
         <div class="lg:col-span-3">
           <!-- Variables -->
           <div class="mb-6">
-            <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-              Variables ({{ rowData.variable.length }} total)
-            </h6>
             <div
               class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 max-h-64 overflow-y-auto"
             >
-              <div class="flex flex-wrap gap-2">
-                <span
-                  v-for="variable in sortedVariables"
-                  :key="variable"
-                  class="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-sm font-medium"
-                >
-                  {{ variable }}
-                </span>
-              </div>
+              <TagList
+                :title="variablesTitle"
+                :items="sortedVariables"
+                chipClass="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-sm font-medium"
+                :clickable="true"
+                @chip-click="(value) => handleFilterClick('variable', value)"
+              />
             </div>
           </div>
 
@@ -177,6 +172,12 @@ const yamlParseError = ref<string | null>(null);
 const sortedVariables = computed(() => {
   if (!props.rowData?.variable) return [];
   return [...props.rowData.variable].sort();
+});
+
+// Computed title for variables including count
+const variablesTitle = computed(() => {
+  const count = props.rowData?.variable?.length || 0;
+  return `Variables (${count} total)`;
 });
 
 // Watch and parse YAML when rowData changes
