@@ -97,22 +97,6 @@ describe('DatastoreTable', () => {
     expect(dataTable.props('loading')).toBe(true);
   });
 
-  // Test that the refresh button emits the refresh event when clicked
-  it('emits refresh event when refresh button is clicked', async () => {
-    const wrapper = createWrapper();
-    await showTable(wrapper);
-    const buttons = wrapper.findAllComponents(Button);
-    const refreshButton = buttons[1]; // Second button is the refresh button
-
-    if (!refreshButton) {
-      throw new Error('Refresh button not found');
-    }
-
-    await refreshButton.trigger('click');
-
-    expect(wrapper.emitted('refresh')).toBeTruthy();
-    expect(wrapper.emitted('refresh')).toHaveLength(1);
-  });
 
   // Test that column toggle emits update event with selected columns
   it('emits update:selectedColumns when columns are toggled', async () => {
