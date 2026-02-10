@@ -96,9 +96,12 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
 
           <!-- Configuration YAML -->
           <div v-if="rowData.yaml">
-
-            <h6 v-if="parseFailure"class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Datastore Configuration (YAML)</h6>
-            <h6 v-else class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Datastore Metadata (YAML)</h6>
+            <h6 v-if="parseFailure" class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+              Datastore Configuration (YAML)
+            </h6>
+            <h6 v-else class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+              Datastore Metadata (YAML)
+            </h6>
 
             <div class="border border-gray-200 dark:border-gray-600 rounded-lg">
               <div class="bg-gray-50 dark:bg-gray-700 p-4">
@@ -151,7 +154,6 @@ import { load as loadYaml } from 'js-yaml';
 import type { CatalogRow } from '../stores/catalogStore';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
-import { parse } from 'path';
 
 // Props
 const props = defineProps<{
