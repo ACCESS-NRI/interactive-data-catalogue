@@ -34,7 +34,6 @@
             <span>{{ option.header }}</span>
           </template>
         </MultiSelect>
-
       </div>
     </div>
 
@@ -253,12 +252,11 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   showDataStoreEntryModal.value = true;
 };
 
-const emit = defineEmits(['update:selectedColumns',  'setNumDatasets', 'setDynamicFilterOptions']);
+const emit = defineEmits(['update:selectedColumns', 'setNumDatasets', 'setDynamicFilterOptions']);
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
 };
-
 
 watch(numDatasets, (newVal) => {
   emit('setNumDatasets', newVal);

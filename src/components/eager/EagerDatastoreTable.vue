@@ -34,7 +34,6 @@
             <span>{{ option.header }}</span>
           </template>
         </MultiSelect>
-
       </div>
     </div>
 
@@ -190,7 +189,6 @@ const toggleTable = () => {
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
 };
-
 
 // Modal state for showing full array/field contents
 const showDataStoreEntryModal = ref(false);
