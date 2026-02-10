@@ -49,7 +49,7 @@ describe('MetacatTable', () => {
     catalogStore.loading = true;
     wrapper = createWrapper();
 
-    expect(wrapper.text()).toContain('Loading catalog data...');
+    expect(wrapper.text()).toContain('Loading catalogue data...');
   });
 
   // Test that the error state is displayed when there is an error
@@ -58,7 +58,7 @@ describe('MetacatTable', () => {
     catalogStore.error = 'Failed to load data';
     wrapper = createWrapper();
 
-    expect(wrapper.text()).toContain('Error loading catalog:');
+    expect(wrapper.text()).toContain('Error loading catalogue:');
     expect(wrapper.text()).toContain('Failed to load data');
   });
 
@@ -102,7 +102,7 @@ describe('MetacatTable', () => {
     catalogStore.data = [];
     wrapper = createWrapper();
 
-    expect(wrapper.text()).toContain('No catalog data available');
+    expect(wrapper.text()).toContain('No catalogue data available');
   });
 
   // Test that global search filters data correctly

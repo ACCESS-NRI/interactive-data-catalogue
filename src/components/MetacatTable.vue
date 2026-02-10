@@ -5,7 +5,7 @@
     <!-- Loading State -->
     <div v-if="catalogStore.loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <span class="ml-3 text-lg text-gray-600 dark:text-gray-300">Loading catalog data...</span>
+      <span class="ml-3 text-lg text-gray-600 dark:text-gray-300">Loading catalogue data...</span>
     </div>
 
     <!-- Error State -->
@@ -15,7 +15,7 @@
     >
       <div class="flex items-center">
         <i class="pi pi-exclamation-triangle text-red-500 mr-2"></i>
-        <span class="text-red-700 dark:text-red-300 font-medium">Error loading catalog:</span>
+        <span class="text-red-700 dark:text-red-300 font-medium">Error loading catalogue:</span>
       </div>
       <p class="text-red-600 dark:text-red-400 mt-1">
         {{ catalogStore.error }}
@@ -191,8 +191,8 @@
     <!-- No Data State -->
     <div v-else class="text-center py-12">
       <i class="pi pi-database text-gray-400 text-6xl mb-4 block"></i>
-      <p class="text-xl text-gray-500 dark:text-gray-400 mb-2">No catalog data available</p>
-      <p class="text-gray-400 dark:text-gray-500">The catalog appears to be empty</p>
+      <p class="text-xl text-gray-500 dark:text-gray-400 mb-2">No catalogue data available</p>
+      <p class="text-gray-400 dark:text-gray-500">The catalogue appears to be empty</p>
     </div>
 
     <!-- Array Modal -->

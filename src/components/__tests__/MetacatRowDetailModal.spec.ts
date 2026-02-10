@@ -23,7 +23,7 @@ describe('CatalogRowDetailModal', () => {
   // Sample catalog row data for testing
   const mockCatalogRow: CatalogRow = {
     name: 'test-catalog',
-    description: 'Test catalog description',
+    description: 'Test catalogue description',
     model: ['ACCESS-CM2', 'ACCESS-ESM1-5'],
     realm: ['ocean', 'atmos'],
     frequency: ['mon', 'day'],
@@ -146,7 +146,7 @@ describe('CatalogRowDetailModal', () => {
       rowData: null,
     });
 
-    expect(wrapper.find('.dialog-header').text()).toBe('Catalog Entry Details');
+    expect(wrapper.find('.dialog-header').text()).toBe('Catalogue Entry Details');
   });
 
   // Test that basic information section renders name and description
@@ -158,7 +158,7 @@ describe('CatalogRowDetailModal', () => {
 
     expect(wrapper.text()).toContain('Basic Information');
     expect(wrapper.text()).toContain('test-catalog');
-    expect(wrapper.text()).toContain('Test catalog description');
+    expect(wrapper.text()).toContain('Test catalogue description');
   });
 
   // Test that the intake code snippet is displayed correctly
@@ -168,7 +168,7 @@ describe('CatalogRowDetailModal', () => {
       rowData: mockCatalogRow,
     });
 
-    expect(wrapper.text()).toContain('Open Catalog');
+    expect(wrapper.text()).toContain('Open Catalogue');
     expect(wrapper.text()).toContain('import intake');
     expect(wrapper.text()).toContain('intake.cat.access_nri["test-catalog"]');
   });
