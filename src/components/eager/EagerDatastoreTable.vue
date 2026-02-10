@@ -34,8 +34,6 @@
             <span>{{ option.header }}</span>
           </template>
         </MultiSelect>
-
-        <Button v-if="showTable" label="Refresh" icon="pi pi-refresh" @click="onRefresh" outlined size="small" />
       </div>
     </div>
 
@@ -179,7 +177,7 @@ defineProps<{
   datastoreName: string;
 }>();
 
-const emit = defineEmits(['update:selectedColumns', 'refresh']);
+const emit = defineEmits(['update:selectedColumns']);
 
 // Table visibility state
 const showTable = ref(false);
@@ -190,10 +188,6 @@ const toggleTable = () => {
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
-};
-
-const onRefresh = () => {
-  emit('refresh');
 };
 
 // Modal state for showing full array/field contents

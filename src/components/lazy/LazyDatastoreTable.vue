@@ -34,8 +34,6 @@
             <span>{{ option.header }}</span>
           </template>
         </MultiSelect>
-
-        <Button v-if="showTable" label="Refresh" icon="pi pi-refresh" @click="onRefresh" outlined size="small" />
       </div>
     </div>
 
@@ -215,7 +213,7 @@ const totalRecords = computed(() => data.value?.total);
 const numDatasets = computed(() => data.value?.unique_file_ids?.length || 0);
 const dynamicFilterOptions = computed(() => data.value?.dynamic_filter_options || {});
 
-const showTable = ref(true);
+const showTable = ref(false);
 const toggleTable = () => {
   showTable.value = !showTable.value;
 };
@@ -254,14 +252,10 @@ const openDatastoreEntryModal = (title: string, items: any) => {
   showDataStoreEntryModal.value = true;
 };
 
-const emit = defineEmits(['update:selectedColumns', 'refresh', 'setNumDatasets', 'setDynamicFilterOptions']);
+const emit = defineEmits(['update:selectedColumns', 'setNumDatasets', 'setDynamicFilterOptions']);
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
-};
-
-const onRefresh = () => {
-  emit('refresh');
 };
 
 watch(numDatasets, (newVal) => {

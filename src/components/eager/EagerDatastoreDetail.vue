@@ -101,7 +101,6 @@
           :available-columns="availableColumns"
           :columns="columns"
           :datastore-name="datastoreName"
-          @refresh="loadDatastore"
         />
       </div>
     </div>
