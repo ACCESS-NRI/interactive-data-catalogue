@@ -46,7 +46,12 @@ import Button from 'primevue/button';
 const props = defineProps<{ modelValue: boolean; title?: string; items?: any }>();
 const emit = defineEmits(['update:modelValue']);
 
-const close = () => emit('update:modelValue', false);
+//  When we close the modal, we also want to clear the search query to reset the
+//  state for next time it's opened
+const close = () => {
+  query.value = '';
+  emit('update:modelValue', false);
+};
 
 const formatItem = (item: any) => {
   if (item === null || item === undefined) return '-';

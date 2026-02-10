@@ -95,6 +95,27 @@ describe('DatastoreEntryModal', () => {
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false]);
   });
 
+  // Test that query is cleared when modal is closed
+  it('clears search query when modal is closed', async () => {
+    const wrapper = createWrapper({
+      modelValue: true,
+      items: ['item1'],
+    });
+
+    const input = wrapper.find('input');
+    await input.setValue('test query');
+
+    // Close the modal
+    const closeButton = wrapper.find('button'); // First button is the X
+    await closeButton.trigger('click');
+
+    // Reopen the modal
+    await wrapper.setProps({ modelValue: true });
+
+    // The input should be cleared
+    expect(wrapper.find('input').element.value).toBe('');
+  });
+
   // Test that clicking the backdrop emits update:modelValue with false
   it('emits update:modelValue false when backdrop clicked', async () => {
     const wrapper = createWrapper({
