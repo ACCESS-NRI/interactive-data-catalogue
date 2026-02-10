@@ -56,7 +56,7 @@
                 <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
               </div>
               <p class="text-yellow-700 dark:text-yellow-300 mt-1">
-                The interactive catalog interface is currently in alpha and under active development. Features and
+                The interactive catalogue interface is currently in alpha and under active development. Features and
                 functionality may change in future releases.
               </p>
             </div>

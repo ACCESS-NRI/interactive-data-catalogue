@@ -5,7 +5,7 @@
         <li class="flex items-center">
           <RouterLink to="/" class="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
             <i class="pi pi-table mr-1"></i>
-            Catalog
+            Catalogue
           </RouterLink>
         </li>
         <li class="flex items-center">
@@ -56,7 +56,7 @@
                 <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
               </div>
               <p class="text-yellow-700 dark:text-yellow-300 mt-1">
-                The intake catalog interface is currently in alpha and under active development. Features and
+                The intake catalogue interface is currently in alpha and under active development. Features and
                 functionality may change in future releases.
               </p>
             </div>
