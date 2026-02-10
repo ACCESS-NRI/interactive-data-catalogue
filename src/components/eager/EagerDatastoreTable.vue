@@ -7,7 +7,7 @@
       <div class="flex items-center gap-2">
         <i class="pi pi-database text-blue-600 text-xl"></i>
         <span class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ datastoreName }} Data ({{ filteredData.length?.toLocaleString() }} records)
+          {{ datastoreName }} Data ({{ filteredData.length?.toLocaleString() }} Data Files)
         </span>
       </div>
 

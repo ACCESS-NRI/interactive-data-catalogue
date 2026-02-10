@@ -103,7 +103,7 @@ describe('LazyDatastoreTable', () => {
   it('renders record count with locale formatting', async () => {
     const wrapper = createWrapper();
     await flushPromises();
-    expect(wrapper.text()).toContain('records');
+    expect(wrapper.text()).toContain('Data Files');
   });
 
   // Test that the component shows the loading state when tableLoading is true
