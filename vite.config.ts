@@ -14,7 +14,7 @@ const getGitCommitSha = () => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/catalog-viewer-spa/' : '/',
+  base: process.env.NODE_ENV === 'production' ? '/interactive-catalogue/' : '/',
   plugins: [vue()],
   define: {
     __GIT_COMMIT_SHA__: JSON.stringify(getGitCommitSha()),

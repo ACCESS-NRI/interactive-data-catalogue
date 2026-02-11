@@ -219,7 +219,7 @@ describe('DatastoreDetail', () => {
     await feedbackButton.trigger('click');
 
     expect(openSpy).toHaveBeenCalledWith(
-      'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.yml',
+      'https://github.com/charles-turner-1/interactive-catalogue/issues/new?template=feedback.yml',
       '_blank',
       'noopener,noreferrer',
     );

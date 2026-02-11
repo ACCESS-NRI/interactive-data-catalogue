@@ -218,7 +218,7 @@ const cleanup = () => {
 
 // Open the repository's issue creation page using the feedback issue template
 const openFeedbackIssue = () => {
-  const url = 'https://github.com/charles-turner-1/catalog-viewer-spa/issues/new?template=feedback.yml';
+  const url = 'https://github.com/charles-turner-1/interactive-catalogue/issues/new?template=feedback.yml';
   const newWin = window.open(url, '_blank', 'noopener,noreferrer');
   if (newWin) newWin.opener = null;
 };

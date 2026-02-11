@@ -1,8 +1,8 @@
-# Interactive Catalogue SPA
+# Interactive Catalogue
 
-An interactive web application for browsing and exploring the ACCESS-NRI intake catalog. This Vue 3 + TypeScript application provides a user-friendly interface for discovering Earth System Model (ESM) datasets with advanced filtering, searching, and data preview capabilities.
+An interactive web application for browsing and exploring the ACCESS-NRI data catalogue. This Vue 3 + TypeScript application provides a user-friendly interface for discovering Earth System Model (ESM) datasets with advanced filtering, searching, and data preview capabilities.
 
-https://charles-turner-1.github.io/catalog-viewer-spa/
+https://charles-turner-1.github.io/interactive-catalogue/
 
 ## Features
 
@@ -16,7 +16,6 @@ https://charles-turner-1.github.io/catalog-viewer-spa/
 ## Limitations
 
 - You will still require Gadi access to get your hands on the data.
-- NCI managed datastores (eg. `era5_rt52`, `cmip6_fs38`) currently unsupported.
 
 ## Development
 
