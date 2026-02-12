@@ -91,6 +91,8 @@
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
           @clear="clearFilters"
+          @dropdown-opened="handleDropdownOpened"
+          @dropdown-closed="handleDropdownClosed"
         />
 
         <LazyDatastoreTable
@@ -138,6 +140,10 @@ const columns = computed(() => cachedDatastore.value?.columns || []);
 const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
 const dynamicFilterOptions = ref<Record<string, string[]>>({});
 
+// Track open dropdowns to buffer filter option updates
+const openDropdowns = ref<Set<string>>(new Set());
+const pendingFilterUpdates = ref<Record<string, string[]>>({});
+
 const formatColumnName = (c: string) =>
   c
     .split('_')
@@ -157,8 +163,51 @@ const setupColumns = (dataColumns: string[]) => {
 };
 
 // Handler to receive dynamic filter options from the API via DatastoreTable
+// Buffers updates for open dropdowns to prevent option narrowing during multi-select
 const handleDynamicFilterOptionsUpdate = (options: Record<string, string[]>) => {
-  dynamicFilterOptions.value = options;
+  const updates: Record<string, string[]> = {};
+  const buffered: Record<string, string[]> = {};
+
+  for (const [column, values] of Object.entries(options)) {
+    if (openDropdowns.value.has(column)) {
+      // Buffer updates for open dropdowns
+      buffered[column] = values;
+    } else {
+      // Apply immediately for closed dropdowns
+      updates[column] = values;
+    }
+  }
+
+  // Apply immediate updates
+  if (Object.keys(updates).length > 0) {
+    dynamicFilterOptions.value = {
+      ...dynamicFilterOptions.value,
+      ...updates,
+    };
+  }
+
+  // Store buffered updates
+  pendingFilterUpdates.value = {
+    ...pendingFilterUpdates.value,
+    ...buffered,
+  };
+};
+
+const handleDropdownOpened = (column: string) => {
+  openDropdowns.value.add(column);
+};
+
+const handleDropdownClosed = (column: string) => {
+  openDropdowns.value.delete(column);
+
+  // Apply any buffered updates for this column
+  if (pendingFilterUpdates.value[column]) {
+    dynamicFilterOptions.value = {
+      ...dynamicFilterOptions.value,
+      [column]: pendingFilterUpdates.value[column],
+    };
+    delete pendingFilterUpdates.value[column];
+  }
 };
 
 const loadDatastore = async () => {
@@ -251,6 +300,8 @@ const stopWatcher = watch(
 const stopFilterWatcher = watch(currentFilters, () => updateUrlWithFilters(), { deep: true });
 
 onUnmounted(() => {
+  openDropdowns.value.clear();
+  pendingFilterUpdates.value = {};
   cleanup();
   stopWatcher();
   stopFilterWatcher();
