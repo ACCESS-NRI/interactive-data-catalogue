@@ -2,7 +2,7 @@
 
 An interactive web application for browsing and exploring the ACCESS-NRI data catalogue. This Vue 3 + TypeScript application provides a user-friendly interface for discovering Earth System Model (ESM) datasets with advanced filtering, searching, and data preview capabilities.
 
-https://charles-turner-1.github.io/interactive-catalogue/
+https://access-nri.github.io/interactive-data-catalogue/
 
 ## Features
 

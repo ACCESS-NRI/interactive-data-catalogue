@@ -72,7 +72,7 @@ declare const __BUILD_TIME__: string;
 const commitSha = typeof __GIT_COMMIT_SHA__ !== 'undefined' ? __GIT_COMMIT_SHA__ : null;
 const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null;
 const shortCommitSha = commitSha ? commitSha.substring(0, 7) : '';
-const commitUrl = commitSha ? `https://github.com/charles-turner-1/catalog-viewer-spa/commit/${commitSha}` : '';
+const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-catalogue/commit/${commitSha}` : '';
 
 // Popover management for commit SHA
 const commitPopover = ref();
