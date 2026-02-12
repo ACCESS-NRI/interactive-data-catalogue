@@ -459,4 +459,144 @@ describe('DatastoreDetail', () => {
 
     expect(loadSpy).toHaveBeenCalledWith('test-datastore');
   });
+
+  // Test that dynamic filter options are buffered while dropdown is open
+  it('buffers dynamic filter options while dropdown is open', async () => {
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(
+      createMockDatastoreCache({
+        filterOptions: { frequency: ['daily', 'monthly', 'annual'], realm: ['ocean', 'atmosphere'] },
+      }),
+    );
+
+    wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    // Set initial dynamic filter options
+    wrapper.vm.dynamicFilterOptions = {
+      frequency: ['daily', 'monthly', 'annual'],
+      realm: ['ocean', 'atmosphere'],
+    };
+    await wrapper.vm.$nextTick();
+
+    // Simulate opening the frequency dropdown
+    const filterSelectors = wrapper.findComponent({ name: 'FilterSelectors' });
+    filterSelectors.vm.$emit('dropdown-opened', 'frequency');
+    await wrapper.vm.$nextTick();
+
+    // Verify dropdown is tracked as open
+    expect(wrapper.vm.openDropdowns.has('frequency')).toBe(true);
+
+    // Simulate table emitting updated dynamic filter options (narrowed based on selections)
+    const table = wrapper.findComponent({ name: 'LazyDatastoreTable' });
+    const narrowedOptions = {
+      frequency: ['daily', 'monthly'], // narrowed - "annual" removed
+      realm: ['ocean', 'atmosphere'],
+    };
+    table.vm.$emit('set-dynamic-filter-options', narrowedOptions);
+    await wrapper.vm.$nextTick();
+
+    // Verify frequency options are buffered (not applied yet), but realm options are applied immediately
+    expect(wrapper.vm.dynamicFilterOptions.frequency).toEqual(['daily', 'monthly', 'annual']); // Still original
+    expect(wrapper.vm.dynamicFilterOptions.realm).toEqual(['ocean', 'atmosphere']); // Applied immediately
+    expect(wrapper.vm.pendingFilterUpdates.frequency).toEqual(['daily', 'monthly']); // Buffered
+
+    // Simulate closing the dropdown
+    filterSelectors.vm.$emit('dropdown-closed', 'frequency');
+    await wrapper.vm.$nextTick();
+
+    // Verify dropdown is no longer tracked as open
+    expect(wrapper.vm.openDropdowns.has('frequency')).toBe(false);
+
+    // Verify buffered options are now applied
+    expect(wrapper.vm.dynamicFilterOptions.frequency).toEqual(['daily', 'monthly']); // Now updated
+    expect(wrapper.vm.pendingFilterUpdates.frequency).toBeUndefined(); // Buffer cleared
+  });
+
+  // Test that multiple dropdowns can be open simultaneously with independent buffering
+  it('buffers multiple open dropdowns independently', async () => {
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(
+      createMockDatastoreCache({
+        filterOptions: { frequency: ['daily', 'monthly'], realm: ['ocean', 'atmosphere', 'land'] },
+      }),
+    );
+
+    wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    wrapper.vm.dynamicFilterOptions = {
+      frequency: ['daily', 'monthly'],
+      realm: ['ocean', 'atmosphere', 'land'],
+    };
+    await wrapper.vm.$nextTick();
+
+    const filterSelectors = wrapper.findComponent({ name: 'FilterSelectors' });
+    const table = wrapper.findComponent({ name: 'LazyDatastoreTable' });
+
+    // Open both dropdowns
+    filterSelectors.vm.$emit('dropdown-opened', 'frequency');
+    filterSelectors.vm.$emit('dropdown-opened', 'realm');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.openDropdowns.has('frequency')).toBe(true);
+    expect(wrapper.vm.openDropdowns.has('realm')).toBe(true);
+
+    // Emit narrowed options for both
+    table.vm.$emit('set-dynamic-filter-options', {
+      frequency: ['daily'], // narrowed
+      realm: ['ocean', 'atmosphere'], // narrowed
+    });
+    await wrapper.vm.$nextTick();
+
+    // Both should be buffered
+    expect(wrapper.vm.dynamicFilterOptions.frequency).toEqual(['daily', 'monthly']); // Still original
+    expect(wrapper.vm.dynamicFilterOptions.realm).toEqual(['ocean', 'atmosphere', 'land']); // Still original
+    expect(wrapper.vm.pendingFilterUpdates.frequency).toEqual(['daily']);
+    expect(wrapper.vm.pendingFilterUpdates.realm).toEqual(['ocean', 'atmosphere']);
+
+    // Close only frequency dropdown
+    filterSelectors.vm.$emit('dropdown-closed', 'frequency');
+    await wrapper.vm.$nextTick();
+
+    // Only frequency should be updated, realm still buffered
+    expect(wrapper.vm.dynamicFilterOptions.frequency).toEqual(['daily']); // Updated
+    expect(wrapper.vm.dynamicFilterOptions.realm).toEqual(['ocean', 'atmosphere', 'land']); // Still buffered
+    expect(wrapper.vm.pendingFilterUpdates.frequency).toBeUndefined(); // Cleared
+    expect(wrapper.vm.pendingFilterUpdates.realm).toEqual(['ocean', 'atmosphere']); // Still buffered
+
+    // Close realm dropdown
+    filterSelectors.vm.$emit('dropdown-closed', 'realm');
+    await wrapper.vm.$nextTick();
+
+    // Now realm should be updated too
+    expect(wrapper.vm.dynamicFilterOptions.realm).toEqual(['ocean', 'atmosphere']); // Updated
+    expect(wrapper.vm.pendingFilterUpdates.realm).toBeUndefined(); // Cleared
+  });
+
+  // Test that cleanup clears open dropdown tracking on unmount
+  it('clears open dropdown tracking on unmount', async () => {
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
+
+    wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    // Open a dropdown
+    const filterSelectors = wrapper.findComponent({ name: 'FilterSelectors' });
+    filterSelectors.vm.$emit('dropdown-opened', 'frequency');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.openDropdowns.size).toBe(1);
+    expect(wrapper.vm.openDropdowns.has('frequency')).toBe(true);
+
+    // Unmount component
+    wrapper.unmount();
+
+    // Verify cleanup was performed (we can't check after unmount, but the cleanup code runs)
+    // This test mainly ensures no errors occur during unmount with open dropdowns
+  });
 });

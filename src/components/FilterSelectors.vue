@@ -9,6 +9,8 @@
           @update:model-value="updateFilter(column, $event)"
           :options="getSortedOptions(column, options, filterValues[column])"
           @filter="(event) => handleFilterChange(column, event.value)"
+          @show="emit('dropdown-opened', column)"
+          @hide="emit('dropdown-closed', column)"
           display="chip"
           class="w-full"
           filter
@@ -37,6 +39,8 @@ interface Props {
 interface Emits {
   (e: 'update:modelValue', value: Record<string, string[]>): void;
   (e: 'clear'): void;
+  (e: 'dropdown-opened', column: string): void;
+  (e: 'dropdown-closed', column: string): void;
 }
 
 const props = defineProps<Props>();
