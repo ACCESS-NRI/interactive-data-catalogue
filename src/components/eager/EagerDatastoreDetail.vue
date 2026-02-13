@@ -149,10 +149,8 @@ const formatColumnName = (c: string) =>
 const setupColumns = (dataColumns: string[]) => {
   availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
   selectedColumns.value = [...availableColumns.value];
-  // By default, let's get rid of 'path' and 'file_id'
-  selectedColumns.value = selectedColumns.value.filter(
-    (col) => col.field !== 'path' && col.field !== 'filename' && col.field !== 'file_id',
-  );
+  // By default, let's get rid of 'path' and 'filename'
+  selectedColumns.value = selectedColumns.value.filter((col) => col.field !== 'path' && col.field !== 'filename');
 };
 
 const filteredData = computed(() => {
