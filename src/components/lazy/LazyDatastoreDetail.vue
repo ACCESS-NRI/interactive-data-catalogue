@@ -66,14 +66,7 @@
 
             <!-- Right side - Actions -->
             <div class="flex-shrink-0 flex items-center space-x-3 lg:justify-end">
-              <Button
-                type="button"
-                icon="pi pi-github"
-                label="Give us feedback"
-                class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                title="Open a new issue pre-filled with the feedback template"
-                @click="openFeedbackIssue"
-              />
+              <GithubFeedbackButton/>
             </div>
           </div>
         </div>
@@ -114,11 +107,11 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCatalogStore } from '../../stores/catalogStore';
-import Button from 'primevue/button';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import LazyQuickStartCode from './LazyQuickStartCode.vue';
 import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
+import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -263,13 +256,6 @@ const clearFilters = () => {
 
 const cleanup = () => {
   catalogStore.clearDatastoreCache(datastoreName.value);
-};
-
-// Open the repository's issue creation page using the feedback issue template
-const openFeedbackIssue = () => {
-  const url = 'https://github.com/access-nri/interactive-data-catalogue/issues/new?template=feedback.yml';
-  const newWin = window.open(url, '_blank', 'noopener,noreferrer');
-  if (newWin) newWin.opener = null;
 };
 
 onMounted(() => {
