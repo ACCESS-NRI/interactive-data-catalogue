@@ -66,7 +66,7 @@
 
             <!-- Right side - Actions -->
             <div class="flex-shrink-0 flex items-center space-x-3 lg:justify-end">
-              <GithubFeedbackButton/>
+              <GithubFeedbackButton />
             </div>
           </div>
         </div>

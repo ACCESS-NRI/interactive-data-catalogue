@@ -26,7 +26,7 @@
               <Button label="Copy SHA" icon="pi pi-copy" size="small" @click="copyCommitSha" class="w-full" />
             </div>
           </Popover>
-          <GithubFeedbackButton class="mx-2"/>
+          <GithubFeedbackButton class="mx-2" />
         </div>
       </div>
     </div>
