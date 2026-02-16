@@ -26,6 +26,7 @@
               <Button label="Copy SHA" icon="pi pi-copy" size="small" @click="copyCommitSha" class="w-full" />
             </div>
           </Popover>
+          <GithubFeedbackButton class="mx-2" />
         </div>
       </div>
     </div>
@@ -64,6 +65,7 @@
 import { ref } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
+import GithubFeedbackButton from './GithubFeedbackButton.vue';
 
 // Deployment information injected at build time
 declare const __GIT_COMMIT_SHA__: string;
