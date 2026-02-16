@@ -377,9 +377,16 @@ const onToggle = (value: any[]) => {
 <style scoped>
 .catalog-table-container {
   width: 100%;
-  max-width: calc(100vw - 4rem); /* Full width minus margin */
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0.5rem;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .catalog-table-container {
+    padding: 2rem;
+    max-width: calc(100vw - 4rem);
+  }
 }
 
 :deep(.catalog-datatable) {
