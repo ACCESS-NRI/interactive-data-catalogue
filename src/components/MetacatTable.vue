@@ -375,7 +375,6 @@ const onToggle = (value: any[]) => {
 </script>
 
 <style scoped>
-
 .catalog-table-container {
   width: 100%;
   margin: 0 auto;
