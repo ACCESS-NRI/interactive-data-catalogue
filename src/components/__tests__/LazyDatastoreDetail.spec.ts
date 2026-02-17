@@ -185,7 +185,7 @@ describe('DatastoreDetail', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain('Alpha Software:');
-    expect(wrapper.text()).toContain('The intake catalogue interface is currently in alpha');
+    expect(wrapper.text()).toContain('The interactive catalogue interface is currently in alpha');
   });
 
   // Test that the feedback button opens the GitHub issue page
