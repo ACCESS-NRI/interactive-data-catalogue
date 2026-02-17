@@ -1,6 +1,6 @@
 <template>
   <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-    <div class="flex items-center justify-between mb-3">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
       <h6 class="text-lg font-semibold text-blue-800 dark:text-blue-200 flex items-center">
         <i class="pi pi-code mr-2"></i>
         Quick Start
@@ -26,7 +26,7 @@
       <highlightjs language="python" :code="quickStartCode" class="text-sm" />
     </div>
 
-    <div class="mt-3 relative inline-block">
+    <div class="mt-3 relative flex flex-col sm:flex-row gap-2 justify-center sm:justify-start">
       <Toast position="top-right" />
       <Button
         label="Copy Code"

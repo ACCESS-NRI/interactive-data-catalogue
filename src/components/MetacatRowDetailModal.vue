@@ -11,6 +11,7 @@
         if (!v) $emit('hide');
       }
     "
+    class="overflow-x-auto"
   >
     <div v-if="rowData" class="catalog-detail-content">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -19,14 +20,16 @@
           <!-- Basic Information -->
           <div>
             <h6 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Basic Information</h6>
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
               <div class="space-y-2">
-                <div class="grid grid-cols-4 gap-2">
-                  <span class="font-medium text-gray-700 dark:text-gray-300">Name:</span>
-                  <span class="col-span-3 text-gray-900 dark:text-gray-100 font-mono text-sm">{{ rowData.name }}</span>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                  <span class="font-semibold text-gray-700 dark:text-gray-300">Name:</span>
+                  <span class="col-span-3 text-gray-900 dark:text-gray-100 font-mono text-sm overflow-x-auto">{{
+                    rowData.name
+                  }}</span>
                 </div>
-                <div class="grid grid-cols-4 gap-2">
-                  <span class="font-medium text-gray-700 dark:text-gray-300">Description:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                  <span class="font-semibold text-gray-700 dark:text-gray-300 min-w-0">Description:</span>
                   <span class="col-span-3 text-gray-900 dark:text-gray-100">{{ rowData.description }}</span>
                 </div>
               </div>
