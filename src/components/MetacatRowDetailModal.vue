@@ -23,8 +23,10 @@
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
               <div class="space-y-2">
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                  <span class="font-semibold text-gray-700 dark:text-gray-300 ">Name:</span>
-                  <span class="col-span-3 text-gray-900 dark:text-gray-100 font-mono text-sm overflow-x-auto">{{ rowData.name }}</span>
+                  <span class="font-semibold text-gray-700 dark:text-gray-300">Name:</span>
+                  <span class="col-span-3 text-gray-900 dark:text-gray-100 font-mono text-sm overflow-x-auto">{{
+                    rowData.name
+                  }}</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <span class="font-semibold text-gray-700 dark:text-gray-300 min-w-0">Description:</span>
