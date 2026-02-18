@@ -181,7 +181,7 @@ describe('CatalogRowDetailModal', () => {
     });
 
     const link = wrapper.find('a');
-    expect(link.text()).toContain('View Datastore Online');
+    expect(link.text()).toContain('Explore Datastore Online');
   });
 
   // Test that TagList components are rendered for models, realms, and frequencies

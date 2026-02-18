@@ -50,7 +50,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-fit"
               >
                 <i class="pi pi-table"></i>
-                View Datastore Online
+                Explore Datastore Online
               </RouterLink>
             </div>
           </div>
