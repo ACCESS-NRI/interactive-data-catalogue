@@ -38,7 +38,9 @@
 
           <!-- Access Information -->
           <div>
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div
+              class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg hover:shadow-md dark:hover:shadow-blue-500/50 p-4"
+            >
               <h6 class="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200">Open Catalogue</h6>
               <pre class="bg-gray-800 text-green-400 p-3 rounded text-sm overflow-x-auto mb-3"><code>import intake
 intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
@@ -50,7 +52,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-fit"
               >
                 <i class="pi pi-table"></i>
-                View Datastore Online
+                Explore Datastore Online
               </RouterLink>
             </div>
           </div>

@@ -173,15 +173,15 @@ describe('CatalogRowDetailModal', () => {
     expect(wrapper.text()).toContain('intake.cat.access_nri["test-catalog"]');
   });
 
-  // Test that the "View Datastore Online" RouterLink is rendered with correct props
-  it('renders View Datastore Online link with correct route', () => {
+  // Test that the "Explore Datastore Online" RouterLink is rendered with correct props
+  it('renders Explore Datastore Online link with correct route', () => {
     const wrapper = createWrapper({
       visible: true,
       rowData: mockCatalogRow,
     });
 
     const link = wrapper.find('a');
-    expect(link.text()).toContain('View Datastore Online');
+    expect(link.text()).toContain('Explore Datastore Online');
   });
 
   // Test that TagList components are rendered for models, realms, and frequencies
