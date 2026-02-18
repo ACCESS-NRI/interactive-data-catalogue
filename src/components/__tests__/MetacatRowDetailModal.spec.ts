@@ -173,8 +173,8 @@ describe('CatalogRowDetailModal', () => {
     expect(wrapper.text()).toContain('intake.cat.access_nri["test-catalog"]');
   });
 
-  // Test that the "View Datastore Online" RouterLink is rendered with correct props
-  it('renders View Datastore Online link with correct route', () => {
+  // Test that the "Explore Datastore Online" RouterLink is rendered with correct props
+  it('renders Explore Datastore Online link with correct route', () => {
     const wrapper = createWrapper({
       visible: true,
       rowData: mockCatalogRow,
