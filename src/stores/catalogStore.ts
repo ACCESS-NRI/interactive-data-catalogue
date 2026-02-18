@@ -585,8 +585,8 @@ export const useCatalogStore = defineStore('catalog', () => {
       const columns = Object.keys(sampleData[0] || {});
       const displayColumns = setupColumns(columns);
 
-      if (numRecords > 10_000) {
-        console.log('⚠️ Datastore exceeds 10,000 records - skipping data load for cache');
+      if (numRecords > 5000) {
+        console.log('⚠️ Datastore exceeds 5,000 records - skipping data load for cache');
         // Update cache with metadata only (no data rows stored)
         datastoreCache.value[datastoreName] = {
           data: [], // Don't store data - fetched on demand
