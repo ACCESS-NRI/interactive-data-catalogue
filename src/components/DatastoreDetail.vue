@@ -23,7 +23,7 @@ const componentKey = ref(0);
 
 const datastoreName = computed(() => route.params.name as string);
 const catalogStore = useCatalogStore();
-const shouldUseLazy = computed(() => totalRecords.value > 10000);
+const shouldUseLazy = computed(() => totalRecords.value > 5000);
 
 const initializeComponent = async () => {
   isLoading.value = true;
