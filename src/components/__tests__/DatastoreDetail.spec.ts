@@ -112,9 +112,9 @@ describe('DatastoreDetail', () => {
   });
 
   describe('Component Selection Logic', () => {
-    it('renders EagerDatastoreDetail for small datasets (≤ 10000 records)', async () => {
+    it('renders EagerDatastoreDetail for small datasets (≤ 5000 records)', async () => {
       // Mock store to return small dataset
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 5000 }));
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 4000 }));
 
       const wrapper = await mountComponent();
 
@@ -126,9 +126,9 @@ describe('DatastoreDetail', () => {
       expect(wrapper.find('[data-testid="lazy-component"]').exists()).toBe(false);
     });
 
-    it('renders LazyDatastoreDetail for large datasets (> 10000 records)', async () => {
+    it('renders LazyDatastoreDetail for large datasets (> 5000 records)', async () => {
       // Mock store to return large dataset
-      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 50000 }));
+      vi.spyOn(store, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ totalRecords: 6000 }));
 
       const wrapper = await mountComponent();
 
@@ -269,12 +269,12 @@ describe('DatastoreDetail', () => {
       expect((wrapper.vm as any).shouldUseLazy).toBe(false);
 
       // Test with large dataset
-      (wrapper.vm as any).totalRecords = 15000;
+      (wrapper.vm as any).totalRecords = 5001;
       await wrapper.vm.$nextTick();
       expect((wrapper.vm as any).shouldUseLazy).toBe(true);
 
       // Test boundary condition
-      (wrapper.vm as any).totalRecords = 10000;
+      (wrapper.vm as any).totalRecords = 4999;
       await wrapper.vm.$nextTick();
       expect((wrapper.vm as any).shouldUseLazy).toBe(false);
     });
@@ -336,7 +336,7 @@ describe('DatastoreDetail', () => {
       await wrapper.vm.$nextTick();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Should use eager component for zero records (≤ 10000)
+      // Should use eager component for zero records (≤ 5000)
       // Note: The component logic may default to lazy if cache doesn't exist initially
       expect(
         wrapper.find('[data-testid="eager-component"]').exists() ||
