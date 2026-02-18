@@ -231,9 +231,9 @@ watch(
 const handleFilterClick = (field: string, value: string) => {
   if (!props.rowData?.name) return;
 
-  // Check if the field exists in the datastore columns
+  // Check if the field exists in the datastore filter options
   const datastore = catalogStore.getDatastoreFromCache(props.rowData.name);
-  const hasField = datastore?.columns?.includes(field);
+  const hasField = datastore?.filterOptions && field in datastore.filterOptions;
 
   router.push({
     name: 'DatastoreDetail',
