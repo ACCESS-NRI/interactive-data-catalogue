@@ -23,25 +23,8 @@
           {{ project }}
         </span>
       </div>
-      <div class="mt-2">
-        <div class="flex items-center mb-2">
-          <i class="pi pi-info-circle text-yellow-600 mr-2"></i>
-          <strong class="text-yellow-800 dark:text-yellow-200 text-sm">Required Conda Environment:</strong>
-        </div>
-        <p class="text-yellow-700 dark:text-yellow-300 text-sm mb-2">
-          Please view ARE setup instructions if you are unfamiliar with conda/analysis3.
-        </p>
-        <span
-          v-tooltip.top="'View Setup Instructions'"
-          @click="openCondaAnalysis3Docs()"
-          class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-blue-400 dark:text-yellow-200 rounded text-sm font-mono font-medium cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors underline decoration-dotted"
-        >
-          <i class="pi pi-external-link" style="font-size: 0.8rem"></i>
-          conda/analysis3
-        </span>
-      </div>
     </div>
-      <div class="mt-2">
+    <div class="mt-2">
       <div class="flex items-center mb-2">
         <i class="pi pi-info-circle text-yellow-600 mr-2"></i>
         <strong class="text-yellow-800 dark:text-yellow-200 text-sm">Required Conda Environment:</strong>
@@ -49,16 +32,16 @@
       <p class="text-yellow-700 dark:text-yellow-300 text-sm mb-2">
         Please view ARE setup instructions if you are unfamiliar with conda/analysis3.
       </p>
-        <span
-          v-tooltip.top="'View Setup Instructions'"
-          @click="openCondaAnalysis3Docs()"
-          class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-blue-400 dark:text-yellow-200 rounded text-sm font-mono font-medium cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors underline decoration-dotted"
-        >
-          <i class="pi pi-external-link" style="font-size: 0.8rem"></i>
-          conda/analysis3
-        </span>
+      <span
+        v-tooltip.top="'View Setup Instructions'"
+        @click="openCondaAnalysis3Docs()"
+        class="inline-flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-blue-400 dark:text-yellow-200 rounded text-sm font-mono font-medium cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors underline decoration-dotted"
+      >
+        <i class="pi pi-external-link" style="font-size: 0.8rem"></i>
+        conda/analysis3
+      </span>
     </div>
-    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
