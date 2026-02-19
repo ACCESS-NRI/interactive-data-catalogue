@@ -1,10 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import FilterSelectors from '../FilterSelectors.vue';
 import MultiSelect from 'primevue/multiselect';
 import Button from 'primevue/button';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import Aura from '@primeuix/themes/aura';
+
+// Mock useToast to avoid actual toast service calls in tests
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({
+    add: vi.fn(),
+  }),
+}));
 
 describe('FilterSelectors', () => {
   const defaultProps = {
@@ -35,6 +43,7 @@ describe('FilterSelectors', () => {
               },
             },
           ],
+          ToastService,
         ],
         components: { MultiSelect, Button },
       },

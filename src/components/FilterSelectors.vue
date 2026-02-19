@@ -1,4 +1,5 @@
 <template>
+  <Toast position="top-right" />
   <section class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
     <h6 class="font-semibold mb-4">Filters</h6>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -29,6 +30,8 @@
 import { ref } from 'vue';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 
 interface Props {
   filterOptions: Record<string, string[]>;
@@ -46,6 +49,7 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+const toast = useToast();
 const filterValues = ref<Record<string, string>>({});
 
 const formatColumnName = (c: string) =>
@@ -111,6 +115,12 @@ const getSortedOptions = (column: string, fallbackOptions: string[], searchTerm?
 const updateFilter = (column: string, value: string[]) => {
   const updatedFilters = { ...props.modelValue, [column]: value };
   emit('update:modelValue', updatedFilters);
+  toast.add({
+    severity: 'info',
+    summary: 'Filters Updated',
+    detail: 'Quickstart Code updated with current filters',
+    life: 2500,
+  });
 };
 
 const handleClear = () => {
