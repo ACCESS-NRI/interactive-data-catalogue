@@ -49,9 +49,9 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
                   name: 'DatastoreDetail',
                   params: { name: rowData.name },
                 }"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 w-fit"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors flex items-center gap-2 w-fit"
               >
-                <i class="pi pi-table"></i>
+                <i class="pi pi-search"></i>
                 Explore Datastore Online
               </RouterLink>
             </div>
