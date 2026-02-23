@@ -271,6 +271,7 @@ describe('FilterSelectors', () => {
     const wrapper = createWrapper();
 
     const sorted = wrapper.vm.getSortedOptions(['zebra', 'apple', 'banana'], undefined);
+    const sorted = wrapper.vm.getSortedOptions(['zebra', 'apple', 'banana'], undefined);
     expect(sorted).toEqual(['zebra', 'apple', 'banana']);
   });
 
@@ -278,6 +279,7 @@ describe('FilterSelectors', () => {
   it('prioritizes exact matches first in sorted options', () => {
     const wrapper = createWrapper();
 
+    const sorted = wrapper.vm.getSortedOptions(['project', 'proj1', 'my_project', 'proj'], 'proj');
     const sorted = wrapper.vm.getSortedOptions(['project', 'proj1', 'my_project', 'proj'], 'proj');
     expect(sorted[0]).toBe('proj');
   });
