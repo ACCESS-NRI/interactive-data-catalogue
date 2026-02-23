@@ -8,7 +8,8 @@
         <MultiSelect
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="getSortedOptions(column, options, filterValues[column])"
+          :options="getSortedOptions(options, filterValues[column])"
+          :optionDisabled="(option) => isOptionDisabled(column, option)"
           @filter="(event) => handleFilterChange(column, event.value)"
           @show="emit('dropdown-opened', column)"
           @hide="emit('dropdown-closed', column)"
@@ -75,18 +76,36 @@ const handleFilterChange = (column: string, value: string) => {
 };
 
 /**
+ * Checks if a filter option should be disabled based on current filter selections.
+ * An option is disabled if it doesn't appear in the dynamicFilterOptions for that column,
+ * meaning no data matches that value given the current filter state.
+ *
+ * @param column - The column name being checked
+ * @param option - The specific option value to check
+ * @returns true if the option should be disabled, false otherwise
+ */
+const isOptionDisabled = (column: string, option: string): boolean => {
+  const availableOptions = props.dynamicFilterOptions[column];
+  // If no dynamic options exist yet, don't disable anything
+  if (!availableOptions) return false;
+  // Disable if the option is not in the available list
+  return !availableOptions.includes(option);
+};
+
+/**
  * Sorts filter options to prioritize matches based on the user's search term.
  * This creates a better UX by showing exact matches first, followed by options that
  * start with the search term, and finally options that contain it anywhere.
  * Without a search term, returns options in their original order.
+ * Always uses the full filterOptions list to ensure all options remain visible.
  *
- * @param column - The column name being filtered
  * @param fallbackOptions - Default options to use if no dynamic options are available
  * @param searchTerm - Optional search term entered by the user in the filter input
- * @returns Sorted array of options with exact matches first, then starts-with, then contains
+ * @returns Sorted array of all options with exact matches first, then starts-with, then contains
  */
-const getSortedOptions = (column: string, fallbackOptions: string[], searchTerm?: string) => {
-  const options = props.dynamicFilterOptions[column] || fallbackOptions;
+const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
+  // Always use the full list from filterOptions (fallback), not dynamicFilterOptions
+  const options = fallbackOptions;
 
   if (!searchTerm) {
     return options;

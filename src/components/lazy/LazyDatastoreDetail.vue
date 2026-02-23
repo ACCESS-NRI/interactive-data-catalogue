@@ -134,6 +134,7 @@ const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {})
 const dynamicFilterOptions = ref<Record<string, string[]>>({});
 
 // Track open dropdowns to buffer filter option updates
+// This prevents options from being disabled while user is actively selecting multiple values
 const openDropdowns = ref<Set<string>>(new Set());
 const pendingFilterUpdates = ref<Record<string, string[]>>({});
 
@@ -156,7 +157,7 @@ const setupColumns = (dataColumns: string[]) => {
 };
 
 // Handler to receive dynamic filter options from the API via DatastoreTable
-// Buffers updates for open dropdowns to prevent option narrowing during multi-select
+// Buffers updates for open dropdowns to prevent options from being disabled during multi-select
 const handleDynamicFilterOptionsUpdate = (options: Record<string, string[]>) => {
   const updates: Record<string, string[]> = {};
   const buffered: Record<string, string[]> = {};
