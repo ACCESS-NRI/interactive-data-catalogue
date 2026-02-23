@@ -270,7 +270,7 @@ describe('FilterSelectors', () => {
   it('returns options in original order when no search term provided', () => {
     const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', ['zebra', 'apple', 'banana'], undefined);
+    const sorted = wrapper.vm.getSortedOptions(['zebra', 'apple', 'banana'], undefined);
     expect(sorted).toEqual(['zebra', 'apple', 'banana']);
   });
 
@@ -278,7 +278,7 @@ describe('FilterSelectors', () => {
   it('prioritizes exact matches first in sorted options', () => {
     const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', ['project', 'proj1', 'my_project', 'proj'], 'proj');
+    const sorted = wrapper.vm.getSortedOptions(['project', 'proj1', 'my_project', 'proj'], 'proj');
     expect(sorted[0]).toBe('proj');
   });
 
@@ -286,7 +286,7 @@ describe('FilterSelectors', () => {
   it('prioritizes starts-with matches after exact matches', () => {
     const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', ['my_proj', 'proj1', 'proj2', 'another_proj'], 'proj');
+    const sorted = wrapper.vm.getSortedOptions( ['my_proj', 'proj1', 'proj2', 'another_proj'], 'proj');
     // proj1 and proj2 start with 'proj', they should come before others
     expect(sorted[0]).toBe('proj1');
     expect(sorted[1]).toBe('proj2');
@@ -296,7 +296,7 @@ describe('FilterSelectors', () => {
   it('performs case-insensitive sorting of options', () => {
     const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', ['Project1', 'project', 'PROJ'], 'proj');
+    const sorted = wrapper.vm.getSortedOptions( ['Project1', 'project', 'PROJ'], 'proj');
     // 'PROJ' is exact match (case-insensitive)
     expect(sorted[0]).toBe('PROJ');
   });
@@ -311,7 +311,7 @@ describe('FilterSelectors', () => {
     });
 
     const fallbackOptions = ['fallback1', 'fallback2'];
-    const sorted = wrapper.vm.getSortedOptions('project', fallbackOptions, undefined);
+    const sorted = wrapper.vm.getSortedOptions( fallbackOptions, undefined);
     expect(sorted).toEqual(['fallback1', 'fallback2']);
   });
 
@@ -320,7 +320,6 @@ describe('FilterSelectors', () => {
     const wrapper = createWrapper();
 
     const sorted = wrapper.vm.getSortedOptions(
-      'variable',
       ['var', 'variable', 'var1', 'my_var', 'test_variable'],
       'var',
     );
