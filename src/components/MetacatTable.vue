@@ -74,9 +74,7 @@
                   <template v-if="filteredData.length !== catalogStore.data.length">
                     ({{ filteredData.length }} of {{ catalogStore.data.length }})
                   </template>
-                  <template v-else>
-                    ({{ catalogStore.data.length }})
-                  </template>
+                  <template v-else> ({{ catalogStore.data.length }}) </template>
                 </span>
               </div>
 
@@ -115,9 +113,7 @@
                   <template v-if="filteredData.length !== catalogStore.data.length">
                     ({{ filteredData.length }} of {{ catalogStore.data.length }})
                   </template>
-                  <template v-else>
-                    ({{ catalogStore.data.length }})
-                  </template>
+                  <template v-else> ({{ catalogStore.data.length }}) </template>
                 </span>
               </div>
 
@@ -326,7 +322,9 @@ const filteredData = computed(() => {
         return filterValues.some((fv) => {
           if (Array.isArray(cellValue))
             return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
-          return String(cellValue || '').toLowerCase().includes(fv.toLowerCase());
+          return String(cellValue || '')
+            .toLowerCase()
+            .includes(fv.toLowerCase());
         });
       });
     }
@@ -379,7 +377,9 @@ const dynamicFilterOptions = computed(() => {
           return filterValues.some((fv) => {
             if (Array.isArray(cellValue))
               return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
-            return String(cellValue || '').toLowerCase().includes(fv.toLowerCase());
+            return String(cellValue || '')
+              .toLowerCase()
+              .includes(fv.toLowerCase());
           });
         });
       }
