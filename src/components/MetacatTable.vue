@@ -2,6 +2,15 @@
   <div class="catalog-table-container">
     <MetacatHeader />
 
+    <!-- Filter Selectors -->
+    <FilterSelectors
+      v-if="catalogStore.data.length > 0 && !catalogStore.loading && !catalogStore.error"
+      v-model="currentFilters"
+      :filter-options="filterOptions"
+      :dynamic-filter-options="dynamicFilterOptions"
+      @clear="clearFilters"
+    />
+
     <!-- Loading State -->
     <div v-if="catalogStore.loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -61,7 +70,13 @@
               <div class="flex items-center gap-2">
                 <i class="pi pi-database text-blue-600 text-xl"></i>
                 <span class="text-lg font-semibold text-gray-900 dark:text-white">
-                  Catalog Entries ({{ catalogStore.data.length }})
+                  Catalog Entries
+                  <template v-if="filteredData.length !== catalogStore.data.length">
+                    ({{ filteredData.length }} of {{ catalogStore.data.length }})
+                  </template>
+                  <template v-else>
+                    ({{ catalogStore.data.length }})
+                  </template>
                 </span>
               </div>
 
@@ -96,7 +111,13 @@
               <div class="flex items-center gap-2 flex-shrink-0">
                 <i class="pi pi-database text-blue-600 text-xl"></i>
                 <span class="text-lg font-semibold text-gray-900 dark:text-white">
-                  Catalog Entries ({{ catalogStore.data.length }})
+                  Catalog Entries
+                  <template v-if="filteredData.length !== catalogStore.data.length">
+                    ({{ filteredData.length }} of {{ catalogStore.data.length }})
+                  </template>
+                  <template v-else>
+                    ({{ catalogStore.data.length }})
+                  </template>
                 </span>
               </div>
 
@@ -238,6 +259,7 @@ import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
 import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
+import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
 
 /**
@@ -259,6 +281,18 @@ catalogStore.fetchCatalogData();
 const globalSearchValue = ref('');
 
 /**
+ * Per-column filter selections driven by the FilterSelectors component.
+ * Keys are column field names (model, realm, frequency, variable);
+ * values are arrays of selected option strings.
+ */
+const currentFilters = ref<Record<string, string[]>>({});
+
+/** Reset all column filters. */
+const clearFilters = () => {
+  currentFilters.value = {};
+};
+
+/**
  * Filtered data derived from the store's data and `globalSearchValue`.
  *
  * Behavior:
@@ -267,22 +301,104 @@ const globalSearchValue = ref('');
  *   searchable fields (name, description, and precomputed searchable fields).
  */
 const filteredData = computed(() => {
-  if (!globalSearchValue.value.trim()) {
-    return catalogStore.data;
+  let data = catalogStore.data;
+
+  // Apply global search
+  if (globalSearchValue.value.trim()) {
+    const searchTerm = globalSearchValue.value.toLowerCase();
+    data = data.filter((row) => {
+      return (
+        row.name?.toLowerCase().includes(searchTerm) ||
+        row.description?.toLowerCase().includes(searchTerm) ||
+        row.searchableModel?.toLowerCase().includes(searchTerm) ||
+        row.searchableRealm?.toLowerCase().includes(searchTerm) ||
+        row.searchableFrequency?.toLowerCase().includes(searchTerm) ||
+        row.searchableVariable?.toLowerCase().includes(searchTerm)
+      );
+    });
   }
 
-  const searchTerm = globalSearchValue.value.toLowerCase();
+  // Apply column filters
+  for (const [column, filterValues] of Object.entries(currentFilters.value)) {
+    if (filterValues && filterValues.length > 0) {
+      data = data.filter((row: Record<string, any>) => {
+        const cellValue = row[column];
+        return filterValues.some((fv) => {
+          if (Array.isArray(cellValue))
+            return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+          return String(cellValue || '').toLowerCase().includes(fv.toLowerCase());
+        });
+      });
+    }
+  }
 
-  return catalogStore.data.filter((row) => {
-    return (
-      row.name?.toLowerCase().includes(searchTerm) ||
-      row.description?.toLowerCase().includes(searchTerm) ||
-      row.searchableModel?.toLowerCase().includes(searchTerm) ||
-      row.searchableRealm?.toLowerCase().includes(searchTerm) ||
-      row.searchableFrequency?.toLowerCase().includes(searchTerm) ||
-      row.searchableVariable?.toLowerCase().includes(searchTerm)
-    );
-  });
+  return data;
+});
+
+/** The filterable column fields. */
+const filterableFields = ['model', 'realm', 'frequency', 'variable'];
+
+/**
+ * All unique option values per filterable column, derived from the full
+ * catalogue data. Used as the static options list for FilterSelectors.
+ */
+const filterOptions = computed(() => {
+  const result: Record<string, string[]> = {};
+  for (const field of filterableFields) {
+    const seen = new Set<string>();
+    for (const row of catalogStore.data) {
+      const cellValue = (row as Record<string, any>)[field];
+      if (Array.isArray(cellValue)) {
+        cellValue.forEach((v: any) => seen.add(String(v)));
+      } else if (cellValue != null) {
+        seen.add(String(cellValue));
+      }
+    }
+    result[field] = [...seen].sort();
+  }
+  return result;
+});
+
+/**
+ * Options still valid under current cross-column filters, used by
+ * FilterSelectors to disable options that would yield no results.
+ * For each column, all other active filters are applied and only
+ * the values present in the remaining rows are returned.
+ */
+const dynamicFilterOptions = computed(() => {
+  const result: Record<string, string[]> = {};
+  for (const field of filterableFields) {
+    const allOptions = filterOptions.value[field] || [];
+
+    // Apply all active filters except the current column
+    let availableData = catalogStore.data as Record<string, any>[];
+    for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
+      if (filterColumn !== field && filterValues && filterValues.length > 0) {
+        availableData = availableData.filter((row) => {
+          const cellValue = row[filterColumn];
+          return filterValues.some((fv) => {
+            if (Array.isArray(cellValue))
+              return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+            return String(cellValue || '').toLowerCase().includes(fv.toLowerCase());
+          });
+        });
+      }
+    }
+
+    // Collect which values remain
+    const validOptions = new Set<string>();
+    for (const row of availableData) {
+      const cellValue = row[field];
+      if (Array.isArray(cellValue)) {
+        cellValue.forEach((v: any) => validOptions.add(String(v)));
+      } else if (cellValue != null) {
+        validOptions.add(String(cellValue));
+      }
+    }
+
+    result[field] = allOptions.filter((opt) => validOptions.has(opt));
+  }
+  return result;
 });
 
 /**
