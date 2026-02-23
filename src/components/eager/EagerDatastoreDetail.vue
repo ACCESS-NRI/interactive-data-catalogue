@@ -85,6 +85,7 @@
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
           @clear="clearFilters"
+          :toast="true"
         />
 
         <DatastoreTable

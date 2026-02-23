@@ -86,6 +86,7 @@
           @clear="clearFilters"
           @dropdown-opened="handleDropdownOpened"
           @dropdown-closed="handleDropdownClosed"
+          :toast="true"
         />
 
         <LazyDatastoreTable

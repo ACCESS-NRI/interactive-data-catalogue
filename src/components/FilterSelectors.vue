@@ -39,6 +39,7 @@ interface Props {
   filterOptions: Record<string, string[]>;
   modelValue: Record<string, string[]>;
   dynamicFilterOptions: Record<string, string[]>;
+  toast: boolean;
 }
 
 interface Emits {
@@ -135,12 +136,14 @@ const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
 const updateFilter = (column: string, value: string[]) => {
   const updatedFilters = { ...props.modelValue, [column]: value };
   emit('update:modelValue', updatedFilters);
-  toast.add({
-    severity: 'info',
-    summary: 'Filters Updated',
-    detail: 'Quickstart Code updated with current filters',
-    life: 2500,
-  });
+  if (props.toast) {
+    toast.add({
+      severity: 'info',
+      summary: 'Filters Updated',
+      detail: 'Quickstart Code updated with current filters',
+      life: 2500,
+    });
+  }
 };
 
 const handleClear = () => {
