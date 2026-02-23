@@ -268,37 +268,25 @@ describe('FilterSelectors', () => {
 
   // Test that getSortedOptions returns original order when no search term
   it('returns options in original order when no search term provided', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        project: ['zebra', 'apple', 'banana'],
-      },
-    });
+    const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', [], undefined);
+    const sorted = wrapper.vm.getSortedOptions('project', ['zebra', 'apple', 'banana'], undefined);
     expect(sorted).toEqual(['zebra', 'apple', 'banana']);
   });
 
   // Test that exact matches appear first
   it('prioritizes exact matches first in sorted options', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        project: ['project', 'proj1', 'my_project', 'proj'],
-      },
-    });
+    const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', [], 'proj');
+    const sorted = wrapper.vm.getSortedOptions('project', ['project', 'proj1', 'my_project', 'proj'], 'proj');
     expect(sorted[0]).toBe('proj');
   });
 
   // Test that starts-with matches appear after exact matches
   it('prioritizes starts-with matches after exact matches', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        project: ['my_proj', 'proj1', 'proj2', 'another_proj'],
-      },
-    });
+    const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', [], 'proj');
+    const sorted = wrapper.vm.getSortedOptions('project', ['my_proj', 'proj1', 'proj2', 'another_proj'], 'proj');
     // proj1 and proj2 start with 'proj', they should come before others
     expect(sorted[0]).toBe('proj1');
     expect(sorted[1]).toBe('proj2');
@@ -306,13 +294,9 @@ describe('FilterSelectors', () => {
 
   // Test case-insensitive sorting
   it('performs case-insensitive sorting of options', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        project: ['Project1', 'project', 'PROJ'],
-      },
-    });
+    const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('project', [], 'proj');
+    const sorted = wrapper.vm.getSortedOptions('project', ['Project1', 'project', 'PROJ'], 'proj');
     // 'PROJ' is exact match (case-insensitive)
     expect(sorted[0]).toBe('PROJ');
   });
@@ -333,17 +317,62 @@ describe('FilterSelectors', () => {
 
   // Test sorting with mixed match types
   it('sorts with exact, starts-with, and contains matches in correct order', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        variable: ['var', 'variable', 'var1', 'my_var', 'test_variable'],
-      },
-    });
+    const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('variable', [], 'var');
+    const sorted = wrapper.vm.getSortedOptions('variable', ['var', 'variable', 'var1', 'my_var', 'test_variable'], 'var');
     // Exact match first
     expect(sorted[0]).toBe('var');
     // Starts-with matches next
     expect(['var1', 'variable']).toContain(sorted[1]);
     expect(['var1', 'variable']).toContain(sorted[2]);
+  });
+
+  // Test that isOptionDisabled returns false when dynamicFilterOptions includes the option
+  it('marks option as enabled when present in dynamicFilterOptions', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['proj1', 'proj2'],
+      },
+    });
+
+    expect(wrapper.vm.isOptionDisabled('project', 'proj1')).toBe(false);
+    expect(wrapper.vm.isOptionDisabled('project', 'proj2')).toBe(false);
+  });
+
+  // Test that isOptionDisabled returns true when dynamicFilterOptions doesn't include the option
+  it('marks option as disabled when not present in dynamicFilterOptions', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['proj1'],
+      },
+    });
+
+    expect(wrapper.vm.isOptionDisabled('project', 'proj2')).toBe(true);
+    expect(wrapper.vm.isOptionDisabled('project', 'proj3')).toBe(true);
+  });
+
+  // Test that isOptionDisabled returns false when no dynamicFilterOptions for column
+  it('marks all options as enabled when no dynamicFilterOptions exist for column', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: ['proj1'],
+      },
+    });
+
+    // Experiment has no dynamicFilterOptions
+    expect(wrapper.vm.isOptionDisabled('experiment', 'exp1')).toBe(false);
+    expect(wrapper.vm.isOptionDisabled('experiment', 'exp2')).toBe(false);
+  });
+
+  // Test that isOptionDisabled handles empty dynamicFilterOptions array
+  it('marks all options as disabled when dynamicFilterOptions array is empty', () => {
+    const wrapper = createWrapper({
+      dynamicFilterOptions: {
+        project: [],
+      },
+    });
+
+    expect(wrapper.vm.isOptionDisabled('project', 'proj1')).toBe(true);
+    expect(wrapper.vm.isOptionDisabled('project', 'proj2')).toBe(true);
   });
 });
