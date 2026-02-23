@@ -4,6 +4,14 @@ import { createPinia, setActivePinia } from 'pinia';
 import MetacatTable from '../MetacatTable.vue';
 import { useCatalogStore } from '../../stores/catalogStore';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
+
+// Mock useToast to avoid actual toast service calls in tests
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({
+    add: vi.fn(),
+  }),
+}));
 
 describe('MetacatTable', () => {
   let wrapper: VueWrapper<any>;
@@ -23,7 +31,7 @@ describe('MetacatTable', () => {
   const createWrapper = () => {
     return mount(MetacatTable, {
       global: {
-        plugins: [pinia, PrimeVue],
+        plugins: [pinia, PrimeVue, ToastService],
         stubs: {
           DataTable: true,
           Column: true,
@@ -31,6 +39,7 @@ describe('MetacatTable', () => {
           Button: true,
           MultiSelect: true,
           Dialog: true,
+          Toast: true,
           MetacatHeader: true,
           MetacatRowDetailModal: true,
         },
@@ -408,5 +417,331 @@ describe('MetacatTable', () => {
 
     // Should still find the entry by name
     expect(wrapper.vm.filteredData.length).toBe(1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // FilterSelectors integration
+  // ---------------------------------------------------------------------------
+
+  // Test that currentFilters initialises to an empty object
+  it('initialises currentFilters as empty object', () => {
+    wrapper = createWrapper();
+
+    expect(wrapper.vm.currentFilters).toEqual({});
+  });
+
+  // Test that clearFilters resets currentFilters to an empty object
+  it('clearFilters resets currentFilters to empty object', async () => {
+    wrapper = createWrapper();
+
+    wrapper.vm.currentFilters = { realm: ['atmos'], frequency: ['1mon'] };
+    await wrapper.vm.$nextTick();
+
+    wrapper.vm.clearFilters();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.currentFilters).toEqual({});
+  });
+
+  // Test that filterOptions derives unique sorted values from catalogStore.data
+  it('computes filterOptions with unique sorted values per filterable field', () => {
+    catalogStore.loading = false;
+    catalogStore.error = null;
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelB', 'modelA'],
+        description: 'Test 1',
+        realm: ['ocean'],
+        frequency: ['1day'],
+        variable: ['sst'],
+      },
+      {
+        name: 'catalog-2',
+        model: ['modelA', 'modelC'],
+        description: 'Test 2',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    const opts = wrapper.vm.filterOptions;
+
+    // All unique model values, sorted
+    expect(opts.model).toEqual(['modelA', 'modelB', 'modelC']);
+    // All unique realm values, sorted
+    expect(opts.realm).toEqual(['atmos', 'ocean']);
+    // All unique frequency values, sorted
+    expect(opts.frequency).toEqual(['1day', '1mon']);
+    // All unique variable values, sorted
+    expect(opts.variable).toEqual(['sst', 'tas']);
+  });
+
+  // Test that filterOptions handles entries with empty arrays gracefully
+  it('filterOptions handles empty arrays in data rows', () => {
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: [],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: [],
+        variable: ['tas'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    const opts = wrapper.vm.filterOptions;
+    expect(opts.model).toEqual([]);
+    expect(opts.frequency).toEqual([]);
+    expect(opts.realm).toEqual(['atmos']);
+  });
+
+  // Test that dynamicFilterOptions returns all options when no filters are active
+  it('dynamicFilterOptions returns all options when no filters are active', () => {
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelA'],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+      {
+        name: 'catalog-2',
+        model: ['modelB'],
+        description: 'Test 2',
+        realm: ['ocean'],
+        frequency: ['1day'],
+        variable: ['sst'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    const dynamic = wrapper.vm.dynamicFilterOptions;
+
+    expect(dynamic.model).toEqual(['modelA', 'modelB']);
+    expect(dynamic.realm).toEqual(['atmos', 'ocean']);
+  });
+
+  // Test that dynamicFilterOptions restricts options based on active cross-column filters
+  it('dynamicFilterOptions restricts options based on currently active filters', async () => {
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelA'],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+      {
+        name: 'catalog-2',
+        model: ['modelB'],
+        description: 'Test 2',
+        realm: ['ocean'],
+        frequency: ['1day'],
+        variable: ['sst'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    // Activate a realm filter — only 'atmos' rows remain for other columns
+    wrapper.vm.currentFilters = { realm: ['atmos'] };
+    await wrapper.vm.$nextTick();
+
+    const dynamic = wrapper.vm.dynamicFilterOptions;
+
+    // realm itself still shows both values (cross-column: doesn't filter by itself)
+    expect(dynamic.realm).toEqual(['atmos', 'ocean']);
+    // model should only show options present in atmos rows
+    expect(dynamic.model).toEqual(['modelA']);
+    expect(dynamic.model).not.toContain('modelB');
+    // frequency and variable should also be restricted
+    expect(dynamic.frequency).toEqual(['1mon']);
+    expect(dynamic.variable).toEqual(['tas']);
+  });
+
+  // Test that filteredData applies column filters correctly
+  it('filters data based on currentFilters', async () => {
+    catalogStore.loading = false;
+    catalogStore.error = null;
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelA'],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+      {
+        name: 'catalog-2',
+        model: ['modelB'],
+        description: 'Test 2',
+        realm: ['ocean'],
+        frequency: ['1day'],
+        variable: ['sst'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    expect(wrapper.vm.filteredData.length).toBe(2);
+
+    wrapper.vm.currentFilters = { realm: ['ocean'] };
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.filteredData.length).toBe(1);
+    expect(wrapper.vm.filteredData[0].name).toBe('catalog-2');
+  });
+
+  // Test that filteredData applies multiple column filters (AND logic)
+  it('applies multiple column filters with AND logic', async () => {
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelA'],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+      {
+        name: 'catalog-2',
+        model: ['modelA'],
+        description: 'Test 2',
+        realm: ['ocean'],
+        frequency: ['1day'],
+        variable: ['sst'],
+      },
+      {
+        name: 'catalog-3',
+        model: ['modelB'],
+        description: 'Test 3',
+        realm: ['atmos'],
+        frequency: ['1day'],
+        variable: ['pr'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    // Filter on modelA AND 1day — only catalog-2 matches both
+    wrapper.vm.currentFilters = { model: ['modelA'], frequency: ['1day'] };
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.filteredData.length).toBe(1);
+    expect(wrapper.vm.filteredData[0].name).toBe('catalog-2');
+  });
+
+  // Test that filteredData combines global search and column filters
+  it('combines global search and column filters', async () => {
+    catalogStore.data = [
+      {
+        name: 'alpha-catalog',
+        model: ['modelA'],
+        description: 'Alpha entry',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+      {
+        name: 'beta-catalog',
+        model: ['modelA'],
+        description: 'Beta entry',
+        realm: ['ocean'],
+        frequency: ['1mon'],
+        variable: ['sst'],
+      },
+      {
+        name: 'gamma-catalog',
+        model: ['modelB'],
+        description: 'Gamma entry',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['pr'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    // Global search narrows to 'alpha' and 'gamma' (both contain 'a' but let's use 'alpha')
+    wrapper.vm.globalSearchValue = 'alpha';
+    wrapper.vm.currentFilters = { realm: ['atmos'] };
+    await wrapper.vm.$nextTick();
+
+    // Only 'alpha-catalog' matches both filters
+    expect(wrapper.vm.filteredData.length).toBe(1);
+    expect(wrapper.vm.filteredData[0].name).toBe('alpha-catalog');
+  });
+
+  // Test that filteredData returns all data when both search and filters are cleared
+  it('returns all data when currentFilters is cleared', async () => {
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelA'],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+      {
+        name: 'catalog-2',
+        model: ['modelB'],
+        description: 'Test 2',
+        realm: ['ocean'],
+        frequency: ['1day'],
+        variable: ['sst'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    wrapper.vm.currentFilters = { realm: ['atmos'] };
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.filteredData.length).toBe(1);
+
+    wrapper.vm.clearFilters();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.filteredData.length).toBe(2);
+  });
+
+  // Test that FilterSelectors is rendered when data is available
+  it('renders FilterSelectors when data is available', () => {
+    catalogStore.loading = false;
+    catalogStore.error = null;
+    catalogStore.data = [
+      {
+        name: 'catalog-1',
+        model: ['modelA'],
+        description: 'Test',
+        realm: ['atmos'],
+        frequency: ['1mon'],
+        variable: ['tas'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    expect(wrapper.findComponent({ name: 'FilterSelectors' }).exists()).toBe(true);
+  });
+
+  // Test that FilterSelectors is NOT rendered when data is empty
+  it('does not render FilterSelectors when data is empty', () => {
+    catalogStore.loading = false;
+    catalogStore.error = null;
+    catalogStore.data = [];
+    wrapper = createWrapper();
+
+    expect(wrapper.findComponent({ name: 'FilterSelectors' }).exists()).toBe(false);
+  });
+
+  // Test that FilterSelectors is NOT rendered during loading
+  it('does not render FilterSelectors while loading', () => {
+    catalogStore.loading = true;
+    catalogStore.data = [];
+    wrapper = createWrapper();
+
+    expect(wrapper.findComponent({ name: 'FilterSelectors' }).exists()).toBe(false);
   });
 });
