@@ -16,6 +16,7 @@
           class="w-full"
           filter
           showClear
+          autoFilterFocus
           placeholder="No filters applied"
         />
       </div>
