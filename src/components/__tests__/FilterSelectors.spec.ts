@@ -319,7 +319,11 @@ describe('FilterSelectors', () => {
   it('sorts with exact, starts-with, and contains matches in correct order', () => {
     const wrapper = createWrapper();
 
-    const sorted = wrapper.vm.getSortedOptions('variable', ['var', 'variable', 'var1', 'my_var', 'test_variable'], 'var');
+    const sorted = wrapper.vm.getSortedOptions(
+      'variable',
+      ['var', 'variable', 'var1', 'my_var', 'test_variable'],
+      'var',
+    );
     // Exact match first
     expect(sorted[0]).toBe('var');
     // Starts-with matches next

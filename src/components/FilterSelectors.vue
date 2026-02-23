@@ -8,7 +8,7 @@
         <MultiSelect
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="getSortedOptions(column, options, filterValues[column])"
+          :options="getSortedOptions(options, filterValues[column])"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
           @filter="(event) => handleFilterChange(column, event.value)"
           @show="emit('dropdown-opened', column)"
@@ -99,12 +99,11 @@ const isOptionDisabled = (column: string, option: string): boolean => {
  * Without a search term, returns options in their original order.
  * Always uses the full filterOptions list to ensure all options remain visible.
  *
- * @param column - The column name being filtered
  * @param fallbackOptions - Default options to use if no dynamic options are available
  * @param searchTerm - Optional search term entered by the user in the filter input
  * @returns Sorted array of all options with exact matches first, then starts-with, then contains
  */
-const getSortedOptions = (column: string, fallbackOptions: string[], searchTerm?: string) => {
+const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
   // Always use the full list from filterOptions (fallback), not dynamicFilterOptions
   const options = fallbackOptions;
 
