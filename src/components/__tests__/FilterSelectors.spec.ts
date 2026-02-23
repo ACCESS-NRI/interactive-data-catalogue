@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import FilterSelectors from '../FilterSelectors.vue';
 import MultiSelect from 'primevue/multiselect';
@@ -7,10 +7,15 @@ import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import Aura from '@primeuix/themes/aura';
 
+// Hoist the mock add function so it can be referenced in tests
+const { mockToastAdd } = vi.hoisted(() => ({
+  mockToastAdd: vi.fn(),
+}));
+
 // Mock useToast to avoid actual toast service calls in tests
 vi.mock('primevue/usetoast', () => ({
   useToast: () => ({
-    add: vi.fn(),
+    add: mockToastAdd,
   }),
 }));
 
@@ -374,5 +379,37 @@ describe('FilterSelectors', () => {
 
     expect(wrapper.vm.isOptionDisabled('project', 'proj1')).toBe(true);
     expect(wrapper.vm.isOptionDisabled('project', 'proj2')).toBe(true);
+  });
+
+  describe('toast behaviour', () => {
+    beforeEach(() => {
+      mockToastAdd.mockClear();
+    });
+
+    // Test that toast.add is called when toast prop is true and a filter is updated
+    it('calls toast.add when toast=true and a filter is updated', () => {
+      const wrapper = createWrapper({ toast: true });
+
+      const multiSelect = wrapper.findComponent(MultiSelect);
+      multiSelect.vm.$emit('update:model-value', ['proj1']);
+
+      expect(mockToastAdd).toHaveBeenCalledOnce();
+      expect(mockToastAdd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          severity: 'info',
+          summary: 'Filters Updated',
+        }),
+      );
+    });
+
+    // Test that toast.add is NOT called when toast prop is false and a filter is updated
+    it('does not call toast.add when toast=false and a filter is updated', () => {
+      const wrapper = createWrapper({ toast: false });
+
+      const multiSelect = wrapper.findComponent(MultiSelect);
+      multiSelect.vm.$emit('update:model-value', ['proj1']);
+
+      expect(mockToastAdd).not.toHaveBeenCalled();
+    });
   });
 });
