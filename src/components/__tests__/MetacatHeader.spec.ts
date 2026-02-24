@@ -7,6 +7,16 @@ import Popover from 'primevue/popover';
 // Mock the build-time constants
 vi.mock('vite', () => ({}));
 
+// vi.hoisted ensures the fn exists before the hoisted vi.mock factory runs
+const { openMock } = vi.hoisted(() => ({ openMock: vi.fn() }));
+
+vi.mock('../WelcomeModal.vue', () => ({
+  default: {
+    name: 'WelcomeModal',
+    template: '<div />',
+  },
+}));
+
 describe('MetacatHeader', () => {
   beforeEach(() => {
     vi.clearAllTimers();
@@ -226,5 +236,39 @@ describe('MetacatHeader', () => {
     const wrapper = createWrapper();
     const externalIcons = wrapper.findAll('.pi-external-link');
     expect(externalIcons.length).toBe(2);
+  });
+
+  // ── Info / welcome button ────────────────────────────────────────────────────
+
+  it('renders the info button next to the heading', () => {
+    const wrapper = createWrapper();
+    const btn = wrapper.find('button[aria-label="About this catalogue"]');
+    expect(btn.exists()).toBe(true);
+  });
+
+  it('info button has pi-info-circle icon', () => {
+    const wrapper = createWrapper();
+    const icon = wrapper.find('button[aria-label="About this catalogue"] .pi-info-circle');
+    expect(icon.exists()).toBe(true);
+  });
+
+  it('info button sits inside the same flex row as the h1', () => {
+    const wrapper = createWrapper();
+    const h1 = wrapper.find('h1');
+    const btn = wrapper.find('button[aria-label="About this catalogue"]');
+    // Both should share a common parent div
+    expect(h1.element.parentElement).toBe(btn.element.parentElement);
+  });
+
+  it('clicking the info button calls open() on the WelcomeModal ref', async () => {
+    const wrapper = createWrapper();
+    // Access the welcomeModalRef and spy on its open method
+    const vm = wrapper.vm as any;
+    vm.welcomeModalRef = { open: openMock };
+
+    const btn = wrapper.find('button[aria-label="About this catalogue"]');
+    await btn.trigger('click');
+
+    expect(openMock).toHaveBeenCalledTimes(1);
   });
 });

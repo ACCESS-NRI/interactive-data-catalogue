@@ -2,31 +2,47 @@
   <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <!-- Left side - Title and description -->
     <div class="flex-1">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ACCESS-NRI Interactive Data Catalogue</h1>
+      <div class="flex items-center gap-1 mb-2">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">ACCESS-NRI Interactive Data Catalogue</h1>
+        <Button
+          icon="pi pi-info-circle"
+          text
+          rounded
+          size="medium"
+          aria-label="About this catalogue"
+          title="About this catalogue"
+          class="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex-shrink-0"
+          @click="welcomeModalRef?.open()"
+        />
+      </div>
       <div class="flex items-center gap-5">
         <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
-        <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
-          <a
-            :href="commitUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex items-center gap-2 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors text-xs font-mono border border-green-300 dark:border-green-700"
-            @mouseenter="showCommitPopover"
-            @mouseleave="scheduleHidePopover"
-          >
-            <i class="pi pi-github text-sm text-green-700 dark:text-green-400"></i>
-            <span class="text-green-700 dark:text-green-300">{{ shortCommitSha }}</span>
-          </a>
-          <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
-            <div class="p-3 max-w-md">
-              <div class="text-sm text-gray-900 dark:text-gray-100 mb-2"><strong>Commit:</strong> {{ commitSha }}</div>
-              <div v-if="buildTime" class="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                <strong>Built:</strong> {{ new Date(buildTime).toLocaleString() }}
+        <div class="inline-flex items-center">
+          <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
+            <a
+              :href="commitUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center gap-2 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors text-xs font-mono border border-green-300 dark:border-green-700"
+              @mouseenter="showCommitPopover"
+              @mouseleave="scheduleHidePopover"
+            >
+              <i class="pi pi-github text-sm text-green-700 dark:text-green-400"></i>
+              <span class="text-green-700 dark:text-green-300">{{ shortCommitSha }}</span>
+            </a>
+            <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
+              <div class="p-3 max-w-md">
+                <div class="text-sm text-gray-900 dark:text-gray-100 mb-2">
+                  <strong>Commit:</strong> {{ commitSha }}
+                </div>
+                <div v-if="buildTime" class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  <strong>Built:</strong> {{ new Date(buildTime).toLocaleString() }}
+                </div>
+                <Button label="Copy SHA" icon="pi pi-copy" size="small" @click="copyCommitSha" class="w-full" />
               </div>
-              <Button label="Copy SHA" icon="pi pi-copy" size="small" @click="copyCommitSha" class="w-full" />
-            </div>
-          </Popover>
-          <GithubFeedbackButton class="mx-2" />
+            </Popover>
+            <GithubFeedbackButton class="mx-2" />
+          </div>
         </div>
       </div>
     </div>
@@ -58,6 +74,9 @@
         </a>
       </div>
     </div>
+
+    <!-- Welcome modal (teleports to body) -->
+    <WelcomeModal ref="welcomeModalRef" />
   </div>
 </template>
 
@@ -66,6 +85,7 @@ import { ref } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import GithubFeedbackButton from './GithubFeedbackButton.vue';
+import WelcomeModal from './WelcomeModal.vue';
 
 // Deployment information injected at build time
 declare const __GIT_COMMIT_SHA__: string;
@@ -78,6 +98,7 @@ const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-ca
 
 // Popover management for commit SHA
 const commitPopover = ref();
+const welcomeModalRef = ref<InstanceType<typeof WelcomeModal> | null>(null);
 let hideTimeout: number | null = null;
 
 const showCommitPopover = (event: Event) => {
