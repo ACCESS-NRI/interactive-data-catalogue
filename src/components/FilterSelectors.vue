@@ -18,6 +18,7 @@
           filter
           showClear
           autoFilterFocus
+          appendTo="self"
           placeholder="No filters applied"
         />
       </div>
@@ -150,3 +151,11 @@ const handleClear = () => {
   emit('clear');
 };
 </script>
+
+<style>
+.p-multiselect-overlay {
+  top: 100% !important;
+  left: 0 !important;
+  transform: none !important;
+}
+</style>
