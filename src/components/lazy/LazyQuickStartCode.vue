@@ -69,294 +69,52 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useCatalogStore } from '../../stores/catalogStore';
-import { useRouter } from 'vue-router';
+import { toRef } from 'vue';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Toast from 'primevue/toast';
-import { useToast } from 'primevue/usetoast';
 import RequiredProjectsWarning from '../RequiredProjectsWarning.vue';
 import MultipleCellMethodsWarning from '../MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
+import { useQuickStartCode } from '../../composables/useQuickStartCode';
 import 'highlight.js/lib/common';
 
-// Props
 /**
- * Component props for QuickStartCode.
- *
- * The component expects the datastore name, the current set of active
- * filters (per-column), and the raw results from the search/catalog query.
+ * Component props for LazyQuickStartCode.
  */
 interface Props {
-  /**
-   * The name of the intake datastore to target (used when generating
-   * the quick-start Python snippet).
-   */
+  /** The name of the intake datastore to target. */
   datastoreName: string;
-
-  /**
-   * Object mapping column names to an array of selected filter values.
-   * Example: { project: ['xp65'], variable: ['tas'] }
-   */
+  /** Object mapping column names to an array of selected filter values. */
   currentFilters: Record<string, string[]>;
-
-  /**
-   * Dynamic filter options for each column (filtered based on other active filters).
-   * Used to determine if there are multiple variable_cell_methods options available.
-   */
+  /** Dynamic filter options per column (filtered based on other active filters). */
   dynamicFilterOptions: Record<string, string[]>;
-
+  /** Number of unique datasets currently matched (computed externally). */
   numDatasets: number;
 }
 
-/** The typed props object (available in <script setup> via defineProps). */
 const props = defineProps<Props>();
 
-// Vue Router
-const router = useRouter();
-
-// Reactive state
-/**
- * When true, generate xarray/dask conversion calls in the quick-start code.
- * Default: false (generate datastore access/search only).
- */
-const isXArrayMode = ref(true);
-
-// Dialog / long-URL state
-const MAX_URL_LENGTH = 2083; // conservative legacy-safe limit (IE)
-const showLongUrlDialog = ref(false);
-const pendingLongUrl = ref('');
-const pendingUrlLength = ref(0);
-
-const confirmCopyLongUrl = async (url: string) => {
-  try {
-    await navigator.clipboard.writeText(url);
-    showLongUrlDialog.value = false;
-    console.log('Query link copied to clipboard (long):', url);
-    // show ephemeral confirmation
-    triggerCopiedBadge();
-  } catch (err) {
-    console.error('Failed to copy long link:', err);
-  }
-};
-
-const cancelCopyLongUrl = () => {
-  showLongUrlDialog.value = false;
-  pendingLongUrl.value = '';
-  pendingUrlLength.value = 0;
-  console.log('User cancelled copying long URL');
-};
-
-// Computed properties
-/**
- * Whether any column filters are currently active.
- *
- * Returns true if at least one entry in `props.currentFilters` contains
- * a non-empty array.
- */
-const hasActiveFilters = computed(() => {
-  return Object.values(props.currentFilters).some((value) => value && value.length > 0);
-});
-
-/**
- * Compute the set of projects that the generated quick-start code will
- * require access to.
- *
- * Behavior:
- * - Always includes the 'xp65' project by default.
- * - Scans each row in `props.rawData` for a `path` field and attempts
- *   to extract a NCI project name using the pattern `/g/data/{PROJECT}/...`.
- * - Returns a sorted array of unique project names.
- */
-const requiredProjects = computed(() => {
-  const XP65 = 'xp65';
-  const projects = new Set<string>();
-  projects.add(XP65);
-
-  // Read the cached project (populated when the datastore is loaded).
-
-  const cachedProject = useCatalogStore().getDatastoreFromCache(props.datastoreName)?.project ?? null;
-
-  if (cachedProject) {
-    projects.add(cachedProject);
-  }
-
-  return Array.from(projects).sort();
-});
-
-/**
- * Determine whether to show the MultipleCellMethodsWarning.
- *
- * The warning should be displayed when:
- * 1. xarray mode is enabled (isXArrayMode is true)
- * 2. User has filtered down to a single dataset (numDatasets === 1)
- * 3. There are multiple temporal_label options available in dynamicFilterOptions
- *
- * This indicates the user may need to further filter by variable_cell_methods
- * before calling to_dask().
- */
-const shouldShowCellMethodsWarning = computed((): boolean => {
-  if (!isXArrayMode.value) return false;
-  if (props.numDatasets !== 1) return false;
-
-  // Don't show warning if user has already filtered by variable_cell_methods
-  const hasFilteredTemporalLabels = (props.currentFilters['temporal_label']?.length ?? 0) > 0;
-  if (hasFilteredTemporalLabels) return false;
-
-  const temporalLabelOptions = props.dynamicFilterOptions['temporal_label'];
-  return !!(temporalLabelOptions && temporalLabelOptions.length > 1);
-});
-
-/**
- * Generates the quick-start Python code snippet shown to users.
- *
- * The generated snippet will:
- * - Import `intake` and open the configured datastore name.
- * - Append search filters derived from `props.currentFilters`.
- * - Optionally append xarray/dask conversion calls when `isXArrayMode` is
- *   enabled; it will choose between `to_dataset_dict()` and `to_dask()`
- *   depending on how many unique datasets are present.
- *
- * This is a computed string; update the UI automatically when inputs
- * change.
- */
-const quickStartCode = computed(() => {
-  let code = `"""
-You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
-
-First we import intake and connect to a Dask cluster - we can then access the datastore.
-"""
-
-import intake
-from dask.distributed import Client
-
-client = Client(threads_per_worker=1)
-
-datastore = intake.cat.access_nri["${props.datastoreName}"]`;
-
-  if (hasActiveFilters.value) {
-    for (const [column, values] of Object.entries(props.currentFilters)) {
-      if (values && values.length > 0) {
-        // If multiple values, use an array filter, otherwise use single value
-        if (values.length === 1) {
-          code += `\ndatastore = datastore.search(${column}='${values[0]}')`;
-        } else {
-          code += `\ndatastore = datastore.search(${column}=${JSON.stringify(values)})`;
-        }
-      }
-    }
-  }
-
-  // Add XArray conversion if in XArray mode
-  if (isXArrayMode.value) {
-    if (props.numDatasets > 1) {
-      code += `\n\n# Search contains ${props.numDatasets} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
-      code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`;
-      code += `\ndataset_dict = datastore.to_dataset_dict()\ndataset_dict`;
-    } else {
-      code += `\ndataset = datastore.to_dask()\ndataset`;
-    }
-  }
-
-  return code;
-});
-
-/**
- * Copy a the code currently in the quickStartCode to the clipboard.
- */
-const copyCodeToClipboard = async (): Promise<void> => {
-  try {
-    await navigator.clipboard.writeText(quickStartCode.value);
-    console.log('Quick-start code copied to clipboard');
-    // show ephemeral confirmation
-    triggerCopiedBadge();
-  } catch (err) {
-    console.error('Failed to copy quick-start code:');
-    console.error(err);
-  }
-};
-
-/**
- * Copy a link to the current page including active filters to the clipboard.
- *
- * The URL query parameters will use the convention `<column>_filter` with
- * comma-separated values. The function attempts to write to the
- * clipboard and logs success or failure. A UI toast can be added where
- * the TODO comment is placed.
- *
- * @returns Promise<void> that resolves when the clipboard write completes.
- */
-const copySearchLink = async (): Promise<void> => {
-  const query: Record<string, string> = {};
-
-  // Add filter parameters to URL
-  for (const [column, values] of Object.entries(props.currentFilters)) {
-    if (values && values.length > 0) {
-      query[`${column}_filter`] = values.join(',');
-    }
-  }
-
-  // Use Vue Router's resolve to get the full URL
-  const route = router.resolve({
-    name: 'DatastoreDetail',
-    params: { name: props.datastoreName },
-    query,
-  });
-
-  // Get the full URL by combining the origin with the resolved route
-  const fullUrl = new URL(route.href, window.location.href).toString();
-
-  // If URL is long, show dialog to confirm before copying
-  if (fullUrl.length > MAX_URL_LENGTH) {
-    pendingLongUrl.value = fullUrl;
-    pendingUrlLength.value = fullUrl.length;
-    showLongUrlDialog.value = true;
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(fullUrl);
-    // TODO: Show toast notification
-    console.log('Query link copied to clipboard:', fullUrl);
-    // show ephemeral confirmation
-    triggerCopiedBadge();
-  } catch (err) {
-    console.error('Failed to copy link:');
-    console.error(err);
-  }
-};
-
-/**
- * Copies the quick-start code to clipboard and opens the ARE dashboard in a new tab.
- */
-const copyCodeAndOpenARESession = async (): Promise<void> => {
-  const url = 'https://are.nci.org.au/pun/sys/dashboard';
-  try {
-    await navigator.clipboard.writeText(quickStartCode.value);
-    console.log('Quick-start code copied to clipboard');
-    // show ephemeral confirmation
-    triggerCopiedBadge();
-    // Wait 700ms so user sees the toast before the new tab opens
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    window.open(url, '_blank');
-  } catch (err) {
-    console.error('Failed to copy quick-start code:');
-    console.error(err);
-  }
-};
-
-/**
- * Ephemeral "Copied!" badge state and helper.
- * Shows a small unobtrusive badge for a short time after a successful
- * clipboard write. Accessible via `aria-live` so screen readers are
- * informed of the change.
- */
-const toast = useToast();
-
-function triggerCopiedBadge(timeout = 1400) {
-  toast.add({ severity: 'success', summary: 'Copied', detail: 'Copied to clipboard', life: timeout });
-}
+const {
+  isXArrayMode,
+  showLongUrlDialog,
+  pendingLongUrl,
+  pendingUrlLength,
+  confirmCopyLongUrl,
+  cancelCopyLongUrl,
+  hasActiveFilters,
+  requiredProjects,
+  shouldShowCellMethodsWarning,
+  quickStartCode,
+  copyCodeToClipboard,
+  copySearchLink,
+  copyCodeAndOpenARESession,
+} = useQuickStartCode(
+  toRef(props, 'datastoreName'),
+  toRef(props, 'currentFilters'),
+  toRef(props, 'dynamicFilterOptions'),
+  toRef(props, 'numDatasets'),
+);
 </script>
 
 <style scoped>
