@@ -4,15 +4,6 @@
     <div class="flex-1">
       <div class="flex items-center gap-1 mb-2">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">ACCESS-NRI Interactive Data Catalogue</h1>
-        <button
-          aria-label="Reopen welcome guide"
-          title="Reopen welcome guide"
-          class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-xs font-medium text-blue-700 dark:text-blue-300"
-          @click="welcomeModalRef?.open()"
-        >
-          <i class="pi pi-info-circle"></i>
-          About
-        </button>
       </div>
       <div class="flex items-center gap-5">
         <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
