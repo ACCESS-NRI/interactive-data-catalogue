@@ -4,21 +4,19 @@
     <div class="flex-1">
       <div class="flex items-center gap-1 mb-2">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">ACCESS-NRI Interactive Data Catalogue</h1>
-        <Button
-          icon="pi pi-info-circle"
-          text
-          rounded
-          size="medium"
-          aria-label="About this catalogue"
-          title="About this catalogue"
-          class="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex-shrink-0"
-          @click="welcomeModalRef?.open()"
-        />
       </div>
       <div class="flex items-center gap-5">
         <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
         <div class="inline-flex items-center">
           <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
+            <Button
+              icon="pi pi-info-circle"
+              label="About"
+              aria-label="Reopen welcome guide"
+              title="Reopen welcome guide"
+              class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
+              @click="welcomeModalRef?.open()"
+            />
             <a
               :href="commitUrl"
               target="_blank"
