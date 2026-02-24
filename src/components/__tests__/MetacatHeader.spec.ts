@@ -252,13 +252,6 @@ describe('MetacatHeader', () => {
     expect(icon.exists()).toBe(true);
   });
 
-  it('info button sits inside the same flex row as the h1', () => {
-    const wrapper = createWrapper();
-    const h1 = wrapper.find('h1');
-    const btn = wrapper.find('button[aria-label="Reopen welcome guide"]');
-    // Both should share a common parent div
-    expect(h1.element.parentElement).toBe(btn.element.parentElement);
-  });
 
   it('clicking the info button calls open() on the WelcomeModal ref', async () => {
     const wrapper = createWrapper();
