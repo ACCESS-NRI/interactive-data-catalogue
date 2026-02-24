@@ -19,6 +19,7 @@
           showClear
           autoFilterFocus
           placeholder="No filters applied"
+          :virtualScrollerOptions="options.length > 100 ? { itemSize: 50 } : undefined"
         />
       </div>
     </div>
