@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, beforeEach, afterEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
@@ -22,7 +22,7 @@ Object.defineProperty(navigator, 'clipboard', {
 });
 
 describe('LazyQuickStartCode', () => {
-  let wrapper: VueWrapper<any>;
+  let wrapper: VueWrapper<any> | undefined;
   let pinia: ReturnType<typeof createPinia>;
   let router: ReturnType<typeof createRouter>;
 
@@ -59,4 +59,3 @@ describe('LazyQuickStartCode', () => {
   // Shared tests — cover all composable logic via the Lazy component.
   runQuickStartCodeSharedTests(createWrapper, writeTextMock);
 });
-

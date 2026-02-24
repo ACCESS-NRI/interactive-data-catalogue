@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { it, expect, vi } from 'vitest';
 import type { VueWrapper } from '@vue/test-utils';
 import { useCatalogStore } from '../../../stores/catalogStore';
 
