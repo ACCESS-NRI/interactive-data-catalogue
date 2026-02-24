@@ -11,8 +11,8 @@
     <!-- Intro paragraph -->
     <div class="mb-5 leading-relaxed space-y-3">
       <p class="text-gray-700 dark:text-gray-300">
-        The <strong class="text-gray-900 dark:text-white">ACCESS-NRI Interactive Data Catalogue</strong>
-        lets you find and explore <em>metadata</em> about climate and earth-system datasets available on
+        The <strong class="text-gray-900 dark:text-white">ACCESS-NRI Interactive Data Catalogue</strong> lets you find
+        and explore <em>metadata</em> about climate and earth-system datasets available on
         <a
           href="https://nci.org.au/"
           target="_blank"
@@ -170,8 +170,8 @@
               <i class="pi pi-github text-blue-500 mt-0.5 flex-shrink-0"></i>
               <span>
                 Found a bug or have a suggestion? Click on the green
-                <strong class="text-gray-900 dark:text-white">"Give us feedback"</strong> button in the page header
-                to open a GitHub issue.
+                <strong class="text-gray-900 dark:text-white">"Give us feedback"</strong> button in the page header to
+                open a GitHub issue.
               </span>
             </li>
           </ul>

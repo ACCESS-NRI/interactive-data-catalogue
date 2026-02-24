@@ -242,20 +242,20 @@ describe('MetacatHeader', () => {
 
   it('renders the info button next to the heading', () => {
     const wrapper = createWrapper();
-    const btn = wrapper.find('button[aria-label="About this catalogue"]');
+    const btn = wrapper.find('button[aria-label="Reopen welcome guide"]');
     expect(btn.exists()).toBe(true);
   });
 
   it('info button has pi-info-circle icon', () => {
     const wrapper = createWrapper();
-    const icon = wrapper.find('button[aria-label="About this catalogue"] .pi-info-circle');
+    const icon = wrapper.find('button[aria-label="Reopen welcome guide"] .pi-info-circle');
     expect(icon.exists()).toBe(true);
   });
 
   it('info button sits inside the same flex row as the h1', () => {
     const wrapper = createWrapper();
     const h1 = wrapper.find('h1');
-    const btn = wrapper.find('button[aria-label="About this catalogue"]');
+    const btn = wrapper.find('button[aria-label="Reopen welcome guide"]');
     // Both should share a common parent div
     expect(h1.element.parentElement).toBe(btn.element.parentElement);
   });
@@ -266,7 +266,7 @@ describe('MetacatHeader', () => {
     const vm = wrapper.vm as any;
     vm.welcomeModalRef = { open: openMock };
 
-    const btn = wrapper.find('button[aria-label="About this catalogue"]');
+    const btn = wrapper.find('button[aria-label="Reopen welcome guide"]');
     await btn.trigger('click');
 
     expect(openMock).toHaveBeenCalledTimes(1);
