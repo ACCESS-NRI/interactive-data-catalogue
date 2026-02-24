@@ -31,27 +31,15 @@ type CreateWrapperFn = (props: SharedWrapperProps) => VueWrapper<any>;
 export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, writeTextMock: ReturnType<typeof vi.fn>) {
   let wrapper: VueWrapper<any>;
 
-  // -------------------------------------------------------------------------
-  // Rendering
-  // -------------------------------------------------------------------------
-
   it('renders with minimal props', () => {
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 0 });
     expect(wrapper.text()).toContain('Quick Start');
   });
 
-  // -------------------------------------------------------------------------
-  // Code generation — datastore name
-  // -------------------------------------------------------------------------
-
   it('generates code with datastore name', () => {
     wrapper = createWrapper({ datastoreName: 'my-datastore', currentFilters: {}, numDatasets: 0 });
     expect(wrapper.text()).toContain('intake.cat.access_nri["my-datastore"]');
   });
-
-  // -------------------------------------------------------------------------
-  // Code generation — filters
-  // -------------------------------------------------------------------------
 
   it('generates code with single filter value', () => {
     wrapper = createWrapper({
@@ -98,10 +86,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     expect(variableIdx).toBeGreaterThan(frequencyIdx);
   });
 
-  // -------------------------------------------------------------------------
-  // Filter message
-  // -------------------------------------------------------------------------
-
   it('shows filter message when filters are active', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
@@ -115,10 +99,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 0 });
     expect(wrapper.text()).not.toContain('with current filters');
   });
-
-  // -------------------------------------------------------------------------
-  // xarray / ESM mode
-  // -------------------------------------------------------------------------
 
   it('generates to_dask() code for single dataset in xarray mode', () => {
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 1 });
@@ -151,10 +131,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     expect(wrapper.text()).toContain('to_dask()');
   });
 
-  // -------------------------------------------------------------------------
-  // Clipboard: copy code
-  // -------------------------------------------------------------------------
-
   it('copies code to clipboard when copy button clicked', async () => {
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 0 });
     const buttons = wrapper.findAllComponents({ name: 'Button' });
@@ -182,10 +158,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     openSpy.mockRestore();
   });
 
-  // -------------------------------------------------------------------------
-  // Clipboard: copy search link
-  // -------------------------------------------------------------------------
-
   it('generates and copies search link with filters', async () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
@@ -206,10 +178,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     await buttons[1]!.vm.$emit('click');
     expect(writeTextMock).toHaveBeenCalledWith(expect.stringMatching(/\/datastore\/test-datastore$/));
   });
-
-  // -------------------------------------------------------------------------
-  // Required projects
-  // -------------------------------------------------------------------------
 
   it('displays xp65 as required project by default', () => {
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 0 });
@@ -237,10 +205,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     expect(projects).toContain('xp65');
     expect(projects).toContain('tm70');
   });
-
-  // -------------------------------------------------------------------------
-  // Long-URL dialog
-  // -------------------------------------------------------------------------
 
   const makeLongFilters = (): Record<string, string[]> => {
     const filters: Record<string, string[]> = {};
@@ -278,10 +242,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     await dialog.vm.$emit('cancel');
     expect(writeTextMock).not.toHaveBeenCalled();
   });
-
-  // -------------------------------------------------------------------------
-  // MultipleCellMethodsWarning
-  // -------------------------------------------------------------------------
 
   it('shows cell methods warning when single dataset with multiple temporal labels', () => {
     wrapper = createWrapper({
@@ -337,10 +297,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     });
     expect(wrapper.text()).not.toContain('Multiple Cell Methods Detected');
   });
-
-  // -------------------------------------------------------------------------
-  // Graceful degradation
-  // -------------------------------------------------------------------------
 
   it('handles zero datasets gracefully', () => {
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 0 });

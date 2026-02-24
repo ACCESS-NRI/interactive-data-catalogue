@@ -62,10 +62,6 @@ describe('EagerQuickStartCode', () => {
   // Shared tests — cover all composable logic via the Eager component.
   runQuickStartCodeSharedTests(createWrapper, writeTextMock);
 
-  // ---------------------------------------------------------------------------
-  // Eager-specific: rawData rows without file_id must not count as datasets
-  // ---------------------------------------------------------------------------
-
   it('handles rawData without file_id (rows are not counted as datasets)', () => {
     wrapper = mount(EagerQuickStartCode, {
       props: {

@@ -8,8 +8,7 @@ import { useToast } from 'primevue/usetoast';
  *
  * Accepts reactive refs for all inputs so that both the Eager variant
  * (which computes `numDatasets` internally from `rawData`) and the Lazy
- * variant (which receives `numDatasets` as a prop) can share identical
- * business logic.
+ * variant (which receives `numDatasets` as a prop) can share identical logic.
  *
  * Must be called during a component's `setup` context so that
  * `useRouter()`, `useCatalogStore()`, and `useToast()` are resolved
