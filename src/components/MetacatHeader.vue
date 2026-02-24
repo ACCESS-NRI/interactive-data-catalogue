@@ -9,9 +9,9 @@
           text
           rounded
           size="medium"
-          aria-label="About this catalogue"
-          title="About this catalogue"
-          class="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex-shrink-0"
+          aria-label="Reopen welcome guide"
+          title="Reopen welcome guide"
+          class="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 flex-shrink-0"
           @click="welcomeModalRef?.open()"
         />
       </div>
