@@ -79,27 +79,12 @@ import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
 import { useQuickStartCode } from '../../composables/useQuickStartCode';
 import 'highlight.js/lib/common';
 
-/**
- * Component props for EagerQuickStartCode.
- *
- * The component expects the datastore name, the current set of active
- * filters (per-column), and the raw results from the search/catalog query.
- */
-interface Props {
-  /** The name of the intake datastore to target. */
+const props = defineProps<{
   datastoreName: string;
-  /** Object mapping column names to an array of selected filter values. */
   currentFilters: Record<string, string[]>;
-  /**
-   * The raw data rows returned by the catalog/search. Each row may contain
-   * a `file_id` field used to count unique datasets.
-   */
   rawData: any[];
-  /** Dynamic filter options per column (filtered based on other active filters). */
   dynamicFilterOptions: Record<string, string[]>;
-}
-
-const props = defineProps<Props>();
+}>();
 
 /**
  * Number of unique datasets in `rawData`, counted by unique `file_id` values.

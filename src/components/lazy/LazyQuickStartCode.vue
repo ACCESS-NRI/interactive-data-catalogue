@@ -79,21 +79,12 @@ import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
 import { useQuickStartCode } from '../../composables/useQuickStartCode';
 import 'highlight.js/lib/common';
 
-/**
- * Component props for LazyQuickStartCode.
- */
-interface Props {
-  /** The name of the intake datastore to target. */
+const props = defineProps<{
   datastoreName: string;
-  /** Object mapping column names to an array of selected filter values. */
   currentFilters: Record<string, string[]>;
-  /** Dynamic filter options per column (filtered based on other active filters). */
   dynamicFilterOptions: Record<string, string[]>;
-  /** Number of unique datasets currently matched (computed externally). */
   numDatasets: number;
-}
-
-const props = defineProps<Props>();
+}>();
 
 const {
   isXArrayMode,
