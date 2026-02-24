@@ -207,7 +207,6 @@ const open = () => {
 
 defineExpose({ open });
 
-
 const pythonSnippet = `import intake
 from dask.distributed import Client
 

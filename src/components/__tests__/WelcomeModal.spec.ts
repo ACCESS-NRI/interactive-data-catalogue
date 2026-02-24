@@ -114,7 +114,6 @@ describe('WelcomeModal', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
-
   it('hasXarrayRepr computed strips HTML comments correctly', () => {
     const commentOnly = '<!-- just a comment -->';
     const result = commentOnly.replace(/<!--[\s\S]*?-->/g, '').trim().length > 0;
