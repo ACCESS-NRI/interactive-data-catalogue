@@ -82,9 +82,14 @@
               </div>
 
               <!-- Search -->
-                  <IconField>
-                    <InputText v-model="globalSearchValue" @input="onSearchInput" placeholder="Search all fields..." class="w-full" />
-                  </IconField>
+              <IconField>
+                <InputText
+                  v-model="globalSearchValue"
+                  @input="onSearchInput"
+                  placeholder="Search all fields..."
+                  class="w-full"
+                />
+              </IconField>
 
               <!-- MultiSelect -->
               <div>
