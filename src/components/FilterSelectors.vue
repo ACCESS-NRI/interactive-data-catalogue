@@ -11,7 +11,7 @@
           :options="getSortedOptions(options, filterValues[column])"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
           @filter="(event) => handleFilterChange(column, event.value)"
-          @show="emit('dropdown-opened', column)"
+          @show="handleDropdownShow(column)"
           @hide="emit('dropdown-closed', column)"
           display="chip"
           class="w-full"
@@ -36,12 +36,14 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
+import { useAnalytics } from '../composables/useAnalytics';
 
 interface Props {
   filterOptions: Record<string, string[]>;
   modelValue: Record<string, string[]>;
   dynamicFilterOptions: Record<string, string[]>;
   toast: boolean;
+  analyticsContext?: 'catalogue' | 'datastore';
 }
 
 interface Emits {
@@ -55,6 +57,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const toast = useToast();
+const { track } = useAnalytics();
 const filterValues = ref<Record<string, string>>({});
 
 const formatColumnName = (c: string) =>
@@ -76,6 +79,13 @@ const formatColumnName = (c: string) =>
  */
 const handleFilterChange = (column: string, value: string) => {
   filterValues.value[column] = value;
+};
+
+const handleDropdownShow = (column: string) => {
+  emit('dropdown-opened', column);
+  if (props.analyticsContext) {
+    track('filter_dropdown_opened', { context: props.analyticsContext, column });
+  }
 };
 
 /**
@@ -138,6 +148,9 @@ const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
 const updateFilter = (column: string, value: string[]) => {
   const updatedFilters = { ...props.modelValue, [column]: value };
   emit('update:modelValue', updatedFilters);
+  if (props.analyticsContext) {
+    track('filter_applied', { context: props.analyticsContext, column, values: value });
+  }
   if (props.toast) {
     toast.add({
       severity: 'info',

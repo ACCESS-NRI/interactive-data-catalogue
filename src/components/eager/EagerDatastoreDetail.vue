@@ -86,6 +86,7 @@
           :dynamic-filter-options="dynamicFilterOptions"
           @clear="clearFilters"
           :toast="true"
+          analytics-context="datastore"
         />
 
         <DatastoreTable
@@ -110,6 +111,7 @@ import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
+import { track } from '../../composables/useAnalytics';
 
 const route = useRoute();
 const router = useRouter();
@@ -211,6 +213,11 @@ const loadDatastore = async () => {
     setupColumns(existingCache.columns);
     loading.value = false;
     tableLoading.value = false;
+    track('datastore_detail_viewed', {
+      datastore_name: datastoreName.value,
+      loading_strategy: 'eager',
+      record_count: existingCache.totalRecords,
+    });
     return;
   }
   loading.value = true;
@@ -219,6 +226,11 @@ const loadDatastore = async () => {
   try {
     const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
     if (datastoreCache.data.length > 0) setupColumns(datastoreCache.columns);
+    track('datastore_detail_viewed', {
+      datastore_name: datastoreName.value,
+      loading_strategy: 'eager',
+      record_count: datastoreCache.totalRecords,
+    });
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load datastore';
   } finally {
@@ -248,6 +260,7 @@ const updateUrlWithFilters = () => {
 
 const clearFilters = () => {
   currentFilters.value = {};
+  track('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
 
 const cleanup = () => {

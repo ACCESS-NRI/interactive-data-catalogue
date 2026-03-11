@@ -54,6 +54,8 @@
 </template>
 
 <script setup lang="ts">
+import { useAnalytics } from '../composables/useAnalytics';
+
 /**
  * Component props for RequiredProjectsWarning.
  *
@@ -66,15 +68,18 @@ interface Props {
    * Example: ['xp65', 'dk92']
    */
   projects: string[];
+  datastoreName?: string;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+const { track } = useAnalytics();
 
 /**
  * Opens the NCI project join page for the specified project.
  * @param project - The project code (e.g., 'xp65')
  */
 const openProjectJoinPage = (project: string): void => {
+  track('required_project_link_clicked', { project_code: project, datastore_name: props.datastoreName });
   const url = `https://my.nci.org.au/mancini/project/${project}/join`;
   window.open(url, '_blank');
 };

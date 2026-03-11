@@ -204,27 +204,32 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import xarrayReprHtml from '../assets/xarray-repr.html?raw';
+import { useAnalytics } from '../composables/useAnalytics';
 
 const STORAGE_KEY = 'catalogue-welcome-seen';
 
 const visible = ref(false);
 const dontShowAgain = ref(false);
+const { track } = useAnalytics();
 
 onMounted(() => {
   if (!localStorage.getItem(STORAGE_KEY)) {
     visible.value = true;
+    track('welcome_modal_shown', { trigger: 'auto' });
   }
 });
 
 const onHide = () => {
   if (dontShowAgain.value) {
     localStorage.setItem(STORAGE_KEY, 'true');
+    track('welcome_modal_dont_show_again');
   }
 };
 
 const close = () => {
   if (dontShowAgain.value) {
     localStorage.setItem(STORAGE_KEY, 'true');
+    track('welcome_modal_dont_show_again');
   }
   visible.value = false;
 };
@@ -232,6 +237,7 @@ const close = () => {
 /** Imperatively open the modal regardless of localStorage state. */
 const open = () => {
   visible.value = true;
+  track('welcome_modal_shown', { trigger: 'button' });
 };
 
 defineExpose({ open });

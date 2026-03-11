@@ -87,6 +87,7 @@
           @dropdown-opened="handleDropdownOpened"
           @dropdown-closed="handleDropdownClosed"
           :toast="true"
+          analytics-context="datastore"
         />
 
         <LazyDatastoreTable
@@ -113,6 +114,7 @@ import LazyQuickStartCode from './LazyQuickStartCode.vue';
 import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
+import { track } from '../../composables/useAnalytics';
 
 const route = useRoute();
 const router = useRouter();
@@ -213,6 +215,11 @@ const loadDatastore = async () => {
     dynamicFilterOptions.value = existingCache.filterOptions;
     loading.value = false;
     tableLoading.value = false;
+    track('datastore_detail_viewed', {
+      datastore_name: datastoreName.value,
+      loading_strategy: 'lazy',
+      record_count: existingCache.totalRecords,
+    });
     return;
   }
   loading.value = true;
@@ -225,6 +232,11 @@ const loadDatastore = async () => {
       // Initialize dynamic filter options with static options until API updates them
       dynamicFilterOptions.value = datastoreCache.filterOptions;
     }
+    track('datastore_detail_viewed', {
+      datastore_name: datastoreName.value,
+      loading_strategy: 'lazy',
+      record_count: datastoreCache.totalRecords,
+    });
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load datastore';
   } finally {
@@ -254,6 +266,7 @@ const updateUrlWithFilters = () => {
 
 const clearFilters = () => {
   currentFilters.value = {};
+  track('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
 
 const cleanup = () => {

@@ -50,6 +50,7 @@ intake.cat.access_nri["{{ rowData.name }}"]</code></pre>
                   params: { name: rowData.name },
                 }"
                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors flex items-center gap-2 w-fit"
+                @click="trackDetailLinkClick(rowData.name)"
               >
                 <i class="pi pi-search"></i>
                 Explore Datastore Online
@@ -159,6 +160,7 @@ import { load as loadYaml } from 'js-yaml';
 import type { CatalogRow } from '../stores/catalogStore';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
+import { useAnalytics } from '../composables/useAnalytics';
 
 // Props
 const props = defineProps<{
@@ -174,6 +176,7 @@ const emit = defineEmits<{
 // Get catalog store for prefetching
 const catalogStore = useCatalogStore();
 const router = useRouter();
+const { track } = useAnalytics();
 
 // Parsed YAML state
 const parsedYaml = ref<any>(null);
@@ -231,6 +234,8 @@ watch(
 const handleFilterClick = (field: string, value: string) => {
   if (!props.rowData?.name) return;
 
+  track('tag_chip_clicked', { datastore_name: props.rowData.name, column: field, value });
+
   // Check if the field exists in the datastore filter options
   const datastore = catalogStore.getDatastoreFromCache(props.rowData.name);
   const hasField = datastore?.filterOptions && field in datastore.filterOptions;
@@ -243,6 +248,10 @@ const handleFilterClick = (field: string, value: string) => {
   });
 
   emit('hide');
+};
+
+const trackDetailLinkClick = (datastoreName: string) => {
+  track('datastore_detail_link_clicked', { datastore_name: datastoreName });
 };
 </script>
 

@@ -1,7 +1,8 @@
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
+import { track } from './useAnalytics';
 
 /**
  * Shared composable for the QuickStartCode components (Eager and Lazy).
@@ -34,6 +35,14 @@ export function useQuickStartCode(
    */
   const isXArrayMode = ref(true);
 
+  // Track mode toggles (initial value excluded — watch fires only on change)
+  watch(isXArrayMode, (newVal) => {
+    track('quick_start_mode_toggled', {
+      datastore_name: datastoreName.value,
+      mode: newVal ? 'xarray' : 'esm',
+    });
+  });
+
   /** Conservative legacy-safe URL length limit (IE). */
   const MAX_URL_LENGTH = 2083;
 
@@ -46,6 +55,12 @@ export function useQuickStartCode(
       await navigator.clipboard.writeText(url);
       showLongUrlDialog.value = false;
       console.log('Query link copied to clipboard (long):', url);
+      track('search_link_copied', {
+        datastore_name: datastoreName.value,
+        active_filters: currentFilters.value,
+        url_length: url.length,
+        url_exceeded_limit: true,
+      });
       triggerCopiedBadge();
     } catch (err) {
       console.error('Failed to copy long link:', err);
@@ -166,6 +181,12 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
     try {
       await navigator.clipboard.writeText(quickStartCode.value);
       console.log('Quick-start code copied to clipboard');
+      track('quick_start_code_copied', {
+        datastore_name: datastoreName.value,
+        mode: isXArrayMode.value ? 'xarray' : 'esm',
+        active_filters: currentFilters.value,
+        num_datasets: numDatasets.value,
+      });
       triggerCopiedBadge();
     } catch (err) {
       console.error('Failed to copy quick-start code:');
@@ -206,6 +227,12 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
     try {
       await navigator.clipboard.writeText(fullUrl);
       console.log('Query link copied to clipboard:', fullUrl);
+      track('search_link_copied', {
+        datastore_name: datastoreName.value,
+        active_filters: currentFilters.value,
+        url_length: fullUrl.length,
+        url_exceeded_limit: false,
+      });
       triggerCopiedBadge();
     } catch (err) {
       console.error('Failed to copy link:');
@@ -219,6 +246,11 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
     try {
       await navigator.clipboard.writeText(quickStartCode.value);
       console.log('Quick-start code copied to clipboard');
+      track('open_are_clicked', {
+        datastore_name: datastoreName.value,
+        mode: isXArrayMode.value ? 'xarray' : 'esm',
+        active_filters: currentFilters.value,
+      });
       triggerCopiedBadge();
       await new Promise((resolve) => setTimeout(resolve, 700));
       window.open(url, '_blank');
