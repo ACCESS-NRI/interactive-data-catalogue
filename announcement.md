@@ -10,7 +10,7 @@ Benefits of the Interactive Data Catalogue over the Python API include:
 
 - You _do not need to have an NCI account_ to explore the data products available on Gadi.
 - You can explore whether data in a particular NCI project is relevant to your research, _before asking for permission to join the group_.
-- There is no longer _any need_ to learn how to use intake. The interactive data catalogue will provide a quickstart code snippet, which will give you an xarray dataset with the data product you are interested in, ready to use in your analysis. Potentially confusing computational details are handled for you, so you can get straight to work.
+- There is no longer _any need_ to learn how to use intake. The interactive data catalogue will provide a quickstart Python code snippet that can be run on Gadi, which will give you an xarray dataset with the data product you are interested in, ready to use in your analysis.
 - You can easily share links to a specific dataset via the interactive catalog. Specific searches generate a URL which you can share with collaborators, saving passing code snippets around.
 - The interactive data catalogue will tell you which groups you must be part of to access a particular dataset, and link you to the NCI project pages where you can request access. It will also help you get started with the `conda/analysis3` python environment, if you are not already familiar with it.
 
