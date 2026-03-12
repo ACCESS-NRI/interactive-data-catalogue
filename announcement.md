@@ -4,7 +4,7 @@
 
 It is designed to remove as many barries to exploring and discovering data as possible, as well as getting a new user set up with the correct NCI projects & python code to load and work with the data.
 
-The ACCESS-NRI Interactive Data Catalogue wraps _the same data catalogue_ available on Gadi as the `ACCESS-NRI Intake Catalog`, but replaces the Python API with a web based interface.
+The ACCESS-NRI Interactive Data Catalogue wraps _the same data catalogue_ available on Gadi as the `ACCESS-NRI Intake Catalog`, but replaces the [Python API](https://access-nri-intake-catalog.readthedocs.io/) with a web based interface.
 
 Benefits of the Interactive Data Catalogue over the Python API include:
 
