@@ -20,7 +20,7 @@ Benefits of the Interactive Data Catalogue over the Python API include:
 
 ---
 
-Although we believe it is now production ready, the interactive data catalogue is still in its early stages, and we are keen to get feedback from users on how to improve it. If you have any suggestions, questions, or comments, please [open an issue on the GitHub repository](https://github.com/ACCESS-NRI/interactive-data-catalogue) or reply to this thread.
+Although we believe it is now production ready, the interactive data catalogue is still in its early stages, and we are keen to get feedback from users on how to improve it. If you have any suggestions, questions, or comments, please use the `Give us feedback` button on the interactive catalogue, or [open an issue on the GitHub repository](https://github.com/ACCESS-NRI/interactive-data-catalogue).
 
 ---
 
