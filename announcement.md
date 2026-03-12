@@ -24,7 +24,7 @@ Although we believe it is now production ready, the interactive data catalogue i
 
 ---
 
-Although the Interactive Data Catalogue may look like a totally new tool, it is a thin layer on top of the existing `ACCESS-NRI Intake Catalog`, which is still available for users who prefer to work with a Python API. The two tools are designed to be complementary, and we will continue to maintain both moving forward.
+Although the Interactive Data Catalogue may look like a totally new tool, it is a layer on top of the existing `ACCESS-NRI Intake Catalog`, which is still available for users who prefer to work with a Python API. The two tools are designed to be complementary, and we will continue to maintain both moving forward.
 
 Credit goes to the developers of those tools (intake, intake-esm, and access-nri-intake) for producing a data structure that allowed for the creation of the interactive data catalogue.
 
