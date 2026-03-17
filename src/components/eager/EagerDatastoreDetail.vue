@@ -45,7 +45,7 @@
       <div v-if="!loading && !error">
         <DatastoreHeader :datastore-name="datastoreName" :total-records="totalRecords" />
 
-        <!-- Alpha Warning -->
+        <!-- Beta Warning -->
         <div
           class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6"
         >
@@ -53,10 +53,10 @@
             <div>
               <div class="flex items-center">
                 <i class="pi pi-exclamation-triangle text-yellow-600 mr-2"></i>
-                <strong class="text-yellow-700 dark:text-yellow-300">Alpha Software:</strong>
+                <strong class="text-yellow-700 dark:text-yellow-300">Beta Software:</strong>
               </div>
               <p class="text-yellow-700 dark:text-yellow-300 mt-1">
-                The interactive catalogue interface is currently in alpha and under active development. Features and
+                The interactive catalogue interface is currently in beta and under active development. Features and
                 functionality may change in future releases.
               </p>
             </div>

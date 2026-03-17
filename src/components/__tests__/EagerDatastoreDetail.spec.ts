@@ -189,8 +189,8 @@ describe('DatastoreDetail', () => {
     expect(loadSpy).not.toHaveBeenCalled();
   });
 
-  // Test that the component displays the alpha warning banner
-  it('displays alpha software warning', async () => {
+  // Test that the component displays the beta warning banner
+  it('displays beta software warning', async () => {
     await router.isReady();
 
     vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
@@ -198,8 +198,8 @@ describe('DatastoreDetail', () => {
     wrapper = createWrapper();
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.text()).toContain('Alpha Software:');
-    expect(wrapper.text()).toContain('The interactive catalogue interface is currently in alpha');
+    expect(wrapper.text()).toContain('Beta Software:');
+    expect(wrapper.text()).toContain('The interactive catalogue interface is currently in beta');
   });
 
   // Test that the feedback button opens the GitHub issue page
