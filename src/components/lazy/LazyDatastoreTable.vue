@@ -169,7 +169,7 @@ import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
 import { trackingServicesBaseUrl } from '../../stores/catalogStore';
-import { track } from '../../composables/useAnalytics';
+import { capture } from '../../composables/usePosthog';
 
 type PageEvent = {
   page: number;
@@ -219,7 +219,7 @@ const dynamicFilterOptions = computed(() => data.value?.dynamic_filter_options |
 const showTable = ref(false);
 const toggleTable = () => {
   showTable.value = !showTable.value;
-  track('datastore_table_toggled', { datastore_name: props.datastoreName, visible: showTable.value });
+  capture('datastore_table_toggled', { datastore_name: props.datastoreName, visible: showTable.value });
 };
 
 const rowOptions: number[] = [5, 10, 25, 50];
@@ -234,7 +234,7 @@ const { isFetching, error, data } = useFetch(url, { refetch: true }).json();
 async function onPageChange(event: PageEvent) {
   page.value = event.page;
   limit.value = event.rows;
-  track('table_page_changed', {
+  capture('table_page_changed', {
     context: 'datastore',
     datastore_name: props.datastoreName,
     page: event.page + 1,
@@ -266,7 +266,7 @@ const emit = defineEmits(['update:selectedColumns', 'setNumDatasets', 'setDynami
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
-  track('table_columns_changed', {
+  capture('table_columns_changed', {
     context: 'datastore',
     datastore_name: props.datastoreName,
     visible_columns: value.map((c: { field: string }) => c.field),

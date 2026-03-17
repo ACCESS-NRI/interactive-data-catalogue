@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAnalytics } from '../composables/useAnalytics';
+import { usePostHog } from '../composables/usePosthog';
 
 /**
  * Component props for RequiredProjectsWarning.
@@ -72,7 +72,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const { track } = useAnalytics();
+const { track } = usePostHog();
 
 /**
  * Opens the NCI project join page for the specified project.

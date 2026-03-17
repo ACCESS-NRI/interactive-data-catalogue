@@ -84,7 +84,7 @@ import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import GithubFeedbackButton from './GithubFeedbackButton.vue';
 import WelcomeModal from './WelcomeModal.vue';
-import { useAnalytics } from '../composables/useAnalytics';
+import { usePostHog } from '../composables/usePosthog';
 
 // Deployment information injected at build time
 declare const __GIT_COMMIT_SHA__: string;
@@ -98,7 +98,7 @@ const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-ca
 // Popover management for commit SHA
 const commitPopover = ref();
 const welcomeModalRef = ref<InstanceType<typeof WelcomeModal> | null>(null);
-const { track } = useAnalytics();
+const { track } = usePostHog();
 let hideTimeout: number | null = null;
 
 const showCommitPopover = (event: Event) => {

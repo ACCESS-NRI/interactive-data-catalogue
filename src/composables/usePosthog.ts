@@ -26,16 +26,16 @@ export function initAnalytics(): void {
  * Fire a PostHog event. Safe to call unconditionally — silently no-ops when
  * PostHog has not been initialised (e.g. no VITE_POSTHOG_KEY in env).
  */
-export function track(event: string, properties?: Record<string, unknown>): void {
+export function capture(event: string, properties?: Record<string, unknown>): void {
   if (!initialized) return;
   posthog.capture(event, properties);
 }
 
 /**
- * Vue composable that returns {@link track} for use inside component setup().
+ * Vue composable that returns {@link capture} for use inside component setup().
  * Also usable directly outside components (router, composables) via the named
  * export above.
  */
-export function useAnalytics() {
-  return { track };
+export function usePostHog() {
+  return { track: capture };
 }

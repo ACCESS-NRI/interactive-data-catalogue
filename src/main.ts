@@ -11,7 +11,7 @@ import 'primeicons/primeicons.css';
 import ToastService from 'primevue/toastservice';
 import Tooltip from 'primevue/tooltip';
 
-import { initAnalytics } from './composables/useAnalytics';
+import { initAnalytics } from './composables/usePosthog';
 
 // Syntax highlighting
 import 'highlight.js/styles/github-dark.css';

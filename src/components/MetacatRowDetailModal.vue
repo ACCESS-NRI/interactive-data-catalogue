@@ -160,7 +160,7 @@ import { load as loadYaml } from 'js-yaml';
 import type { CatalogRow } from '../stores/catalogStore';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
-import { useAnalytics } from '../composables/useAnalytics';
+import { usePostHog } from '../composables/usePosthog';
 
 // Props
 const props = defineProps<{
@@ -176,7 +176,7 @@ const emit = defineEmits<{
 // Get catalog store for prefetching
 const catalogStore = useCatalogStore();
 const router = useRouter();
-const { track } = useAnalytics();
+const { track } = usePostHog();
 
 // Parsed YAML state
 const parsedYaml = ref<any>(null);

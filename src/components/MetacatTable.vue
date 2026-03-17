@@ -264,7 +264,7 @@ import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
 import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
-import { useAnalytics } from '../composables/useAnalytics';
+import { usePostHog } from '../composables/usePosthog';
 
 /**
  * Catalog table uses the catalog store to fetch and display catalog entries.
@@ -275,7 +275,7 @@ import { useAnalytics } from '../composables/useAnalytics';
  *   array-preview modals for richer display of array-valued fields.
  */
 const catalogStore = useCatalogStore();
-const { track } = useAnalytics();
+const { track } = usePostHog();
 
 // Trigger data fetch on component mount
 catalogStore.fetchCatalogData();

@@ -111,7 +111,7 @@ import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
-import { track } from '../../composables/useAnalytics';
+import { capture } from '../../composables/usePosthog';
 
 const route = useRoute();
 const router = useRouter();
@@ -213,7 +213,7 @@ const loadDatastore = async () => {
     setupColumns(existingCache.columns);
     loading.value = false;
     tableLoading.value = false;
-    track('datastore_detail_viewed', {
+    capture('datastore_detail_viewed', {
       datastore_name: datastoreName.value,
       loading_strategy: 'eager',
       record_count: existingCache.totalRecords,
@@ -226,7 +226,7 @@ const loadDatastore = async () => {
   try {
     const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
     if (datastoreCache.data.length > 0) setupColumns(datastoreCache.columns);
-    track('datastore_detail_viewed', {
+    capture('datastore_detail_viewed', {
       datastore_name: datastoreName.value,
       loading_strategy: 'eager',
       record_count: datastoreCache.totalRecords,
@@ -260,7 +260,7 @@ const updateUrlWithFilters = () => {
 
 const clearFilters = () => {
   currentFilters.value = {};
-  track('datastore_filters_cleared', { datastore_name: datastoreName.value });
+  capture('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
 
 const cleanup = () => {

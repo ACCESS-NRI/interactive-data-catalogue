@@ -204,13 +204,13 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import xarrayReprHtml from '../assets/xarray-repr.html?raw';
-import { useAnalytics } from '../composables/useAnalytics';
+import { usePostHog } from '../composables/usePosthog';
 
 const STORAGE_KEY = 'catalogue-welcome-seen';
 
 const visible = ref(false);
 const dontShowAgain = ref(false);
-const { track } = useAnalytics();
+const { track } = usePostHog();
 
 onMounted(() => {
   if (!localStorage.getItem(STORAGE_KEY)) {

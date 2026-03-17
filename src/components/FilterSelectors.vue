@@ -36,7 +36,7 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import { useAnalytics } from '../composables/useAnalytics';
+import { useAnalytics } from '../composables/usePosthog';
 
 interface Props {
   filterOptions: Record<string, string[]>;

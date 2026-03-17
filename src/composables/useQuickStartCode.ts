@@ -2,7 +2,7 @@ import { computed, ref, watch, type Ref } from 'vue';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import { track } from './useAnalytics';
+import { capture } from './usePosthog';
 
 /**
  * Shared composable for the QuickStartCode components (Eager and Lazy).
@@ -37,7 +37,7 @@ export function useQuickStartCode(
 
   // Track mode toggles (initial value excluded — watch fires only on change)
   watch(isXArrayMode, (newVal) => {
-    track('quick_start_mode_toggled', {
+    capture('quick_start_mode_toggled', {
       datastore_name: datastoreName.value,
       mode: newVal ? 'xarray' : 'esm',
     });
@@ -55,7 +55,7 @@ export function useQuickStartCode(
       await navigator.clipboard.writeText(url);
       showLongUrlDialog.value = false;
       console.log('Query link copied to clipboard (long):', url);
-      track('search_link_copied', {
+      capture('search_link_copied', {
         datastore_name: datastoreName.value,
         active_filters: currentFilters.value,
         url_length: url.length,
@@ -181,7 +181,7 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
     try {
       await navigator.clipboard.writeText(quickStartCode.value);
       console.log('Quick-start code copied to clipboard');
-      track('quick_start_code_copied', {
+      capture('quick_start_code_copied', {
         datastore_name: datastoreName.value,
         mode: isXArrayMode.value ? 'xarray' : 'esm',
         active_filters: currentFilters.value,
@@ -227,7 +227,7 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
     try {
       await navigator.clipboard.writeText(fullUrl);
       console.log('Query link copied to clipboard:', fullUrl);
-      track('search_link_copied', {
+      capture('search_link_copied', {
         datastore_name: datastoreName.value,
         active_filters: currentFilters.value,
         url_length: fullUrl.length,
@@ -246,7 +246,7 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
     try {
       await navigator.clipboard.writeText(quickStartCode.value);
       console.log('Quick-start code copied to clipboard');
-      track('open_are_clicked', {
+      capture('open_are_clicked', {
         datastore_name: datastoreName.value,
         mode: isXArrayMode.value ? 'xarray' : 'esm',
         active_filters: currentFilters.value,

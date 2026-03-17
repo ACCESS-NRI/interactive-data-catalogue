@@ -170,7 +170,7 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
-import { track } from '../../composables/useAnalytics';
+import { capture } from '../../composables/usePosthog';
 
 const props = defineProps<{
   filteredData: any[];
@@ -188,12 +188,12 @@ const showTable = ref(false);
 
 const toggleTable = () => {
   showTable.value = !showTable.value;
-  track('datastore_table_toggled', { datastore_name: props.datastoreName, visible: showTable.value });
+  capture('datastore_table_toggled', { datastore_name: props.datastoreName, visible: showTable.value });
 };
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
-  track('table_columns_changed', {
+  capture('table_columns_changed', {
     context: 'datastore',
     datastore_name: props.datastoreName,
     visible_columns: value.map((c: { field: string }) => c.field),
@@ -201,7 +201,7 @@ const onColumnToggle = (value: any[]) => {
 };
 
 const onTablePage = (event: { page: number; rows: number }) => {
-  track('table_page_changed', {
+  capture('table_page_changed', {
     context: 'datastore',
     datastore_name: props.datastoreName,
     page: event.page + 1,

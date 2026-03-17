@@ -11,9 +11,9 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button';
-import { useAnalytics } from '../composables/useAnalytics';
+import { usePostHogg } from '../composables/usePosthog';
 
-const { track } = useAnalytics();
+const { track } = usePostHogg();
 
 const openFeedbackIssue = () => {
   track('feedback_button_clicked');
