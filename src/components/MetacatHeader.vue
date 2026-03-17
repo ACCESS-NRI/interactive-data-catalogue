@@ -84,6 +84,7 @@ import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import GithubFeedbackButton from './GithubFeedbackButton.vue';
 import WelcomeModal from './WelcomeModal.vue';
+import { usePostHog } from '../composables/usePosthog';
 
 // Deployment information injected at build time
 declare const __GIT_COMMIT_SHA__: string;
@@ -97,6 +98,7 @@ const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-ca
 // Popover management for commit SHA
 const commitPopover = ref();
 const welcomeModalRef = ref<InstanceType<typeof WelcomeModal> | null>(null);
+const { capture } = usePostHog();
 let hideTimeout: number | null = null;
 
 const showCommitPopover = (event: Event) => {
@@ -129,6 +131,7 @@ const copyCommitSha = async () => {
 
   try {
     await navigator.clipboard.writeText(commitSha);
+    capture('commit_sha_copied');
     commitPopover.value?.hide();
   } catch (err) {
     console.error('Failed to copy commit SHA:', err);

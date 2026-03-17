@@ -54,6 +54,7 @@
       column-resize-mode="expand"
       :global-filter-fields="columns"
       class="datastore-table"
+      @page="onTablePage"
     >
       <Column
         v-for="column in selectedColumns"
@@ -169,8 +170,9 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
+import { capture } from '../../composables/usePosthog';
 
-defineProps<{
+const props = defineProps<{
   filteredData: any[];
   tableLoading: boolean;
   selectedColumns: Array<{ field: string; header: string }>;
@@ -186,10 +188,25 @@ const showTable = ref(false);
 
 const toggleTable = () => {
   showTable.value = !showTable.value;
+  capture('datastore_table_toggled', { datastore_name: props.datastoreName, visible: showTable.value });
 };
 
 const onColumnToggle = (value: any[]) => {
   emit('update:selectedColumns', value);
+  capture('table_columns_changed', {
+    context: 'datastore',
+    datastore_name: props.datastoreName,
+    visible_columns: value.map((c: { field: string }) => c.field),
+  });
+};
+
+const onTablePage = (event: { page: number; rows: number }) => {
+  capture('table_page_changed', {
+    context: 'datastore',
+    datastore_name: props.datastoreName,
+    page: event.page + 1,
+    page_size: event.rows,
+  });
 };
 
 // Modal state for showing full array/field contents
