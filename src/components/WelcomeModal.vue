@@ -143,7 +143,52 @@
         </AccordionContent>
       </AccordionPanel>
 
-      <!-- Panel 3: About the catalogue -->
+      <!-- Panel 3: Analytics -->
+      <AccordionPanel value="analytics">
+        <AccordionHeader>
+          <span class="flex items-center gap-2">
+            <i class="pi pi-chart-bar text-blue-600"></i>
+            Analytics &amp; privacy
+          </span>
+        </AccordionHeader>
+        <AccordionContent>
+          <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-300 pl-1">
+            <li class="flex items-start gap-2">
+              <i class="pi pi-eye text-blue-500 mt-0.5 flex-shrink-0"></i>
+              <span>
+                This site uses <strong class="text-gray-900 dark:text-white">PostHog</strong> to collect anonymous usage
+                analytics — things like which datastores are viewed most, which filters are used, and whether the
+                quickstart code gets copied. This helps us understand how the catalogue is used and prioritise
+                improvements.
+              </span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="pi pi-shield text-blue-500 mt-0.5 flex-shrink-0"></i>
+              <span>
+                <strong class="text-gray-900 dark:text-white">No personally identifiable information</strong> is
+                collected. Analytics run entirely in-memory and no cookies are written to your browser.
+              </span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="pi pi-server text-blue-500 mt-0.5 flex-shrink-0"></i>
+              <span>
+                Event data is stored on <strong class="text-gray-900 dark:text-white">PostHog Cloud EU</strong> (EU
+                region). No data is shared with third parties.
+              </span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="pi pi-ban text-blue-500 mt-0.5 flex-shrink-0"></i>
+              <span>
+                We haven't done anything clever to work around ad blockers — if you have one enabled, analytics will be
+                blocked. We'd appreciate you considering leaving it off for this site, since the data genuinely helps us
+                improve the catalogue.
+              </span>
+            </li>
+          </ul>
+        </AccordionContent>
+      </AccordionPanel>
+
+      <!-- Panel 4: About the catalogue -->
       <AccordionPanel value="about">
         <AccordionHeader>
           <span class="flex items-center gap-2">
