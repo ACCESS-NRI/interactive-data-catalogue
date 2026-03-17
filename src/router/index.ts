@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { ref } from 'vue';
 import MetacatTable from '../components/MetacatTable.vue';
-import { capture } from '../composables/usePosthog';
+import { posthog } from '../composables/usePosthog';
 
 const routes = [
   {
@@ -45,7 +45,7 @@ router.afterEach((to) => {
   setTimeout(() => {
     isNavigating.value = false;
   }, 100);
-  capture('$pageview', { $current_url: window.location.origin + to.fullPath });
+  posthog.capture('$pageview', { $current_url: window.location.origin + to.fullPath });
 });
 
 export default router;

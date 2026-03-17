@@ -4,27 +4,27 @@
 
 **Phase 1 complete** (11 March 2026, branch `add-telemetry`). All events from the plan are instrumented and all 414 tests pass.
 
+**Simplified** (17 March 2026). Switched to PostHog Cloud EU; composable refactored to remove `initAnalytics`/`initialized` complexity; `persistence: 'memory'` to avoid cookie banner requirement.
+
 ### What was built
 
 | File                              | Purpose                                                                                                                          |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `src/composables/usePostHog.ts` | Central PostHog wrapper. `initAnalytics()` gates init behind `VITE_POSTHOG_KEY`. `capture()` is a safe no-op when not initialised. |
-| `src/main.ts`                     | Calls `initAnalytics()` at app startup                                                                                           |
-| `src/router/index.ts`             | Fires `$pageview` in `router.afterEach` for correct SPA navigation tracking                                                      |
+| `src/composables/usePosthog.ts` | Central PostHog wrapper. Top-level `posthog.init()` with EU cloud host hardcoded. Exports `posthog`, `capture()`, and `usePostHog()`. |
+| `src/router/index.ts`             | Imports `posthog` directly and fires `$pageview` in `router.afterEach` for correct SPA navigation tracking                       |
 | `src/test/setup.ts`               | Globally mocks `posthog-js` so tests never need a real key                                                                       |
 
 Events are wired directly into the components and composables — no bus, no global store. All tracking calls go through `usePostHog()` / `capture()` so PostHog is never imported directly in component code.
 
 ### To activate
 
-Create `.env.local` (gitignored) with:
+Add to `.env` (or `.env.local` if you don't want to commit the key):
 
 ```
-VITE_POSTHOG_KEY=phc_xxxx
-VITE_POSTHOG_HOST=https://your-nectar-instance
+VITE_PUBLIC_POSTHOG_KEY=phc_xxxx
 ```
 
-No key → no tracking. Safe to deploy without analytics configured.
+The EU cloud host (`https://eu.i.posthog.com`) is hardcoded in the composable — no host env var needed. PostHog init runs unconditionally; if the key is undefined PostHog silently no-ops.
 
 ---
 
@@ -50,9 +50,8 @@ No key → no tracking. Safe to deploy without analytics configured.
 
 ### Immediate (before merging)
 
-- [ ] **Set up PostHog Cloud or self-hosted instance** — get a real `phc_` key to do a smoke-test in the browser before merging. Check that events appear in the PostHog Live Events view.
-- [ ] **Add `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` to the CI/CD secrets** so production builds are instrumented. Dev builds remain silent.
-- [ ] **Brief the infra colleague** on the self-hosting guide in this document (see below).
+- [ ] **Smoke-test in the browser** — check that events appear in the PostHog Cloud EU Live Events view.
+- [ ] **Add `VITE_PUBLIC_POSTHOG_KEY` to CI/CD secrets** so production builds are instrumented.
 
 ### Soon
 
@@ -78,8 +77,8 @@ No key → no tracking. Safe to deploy without analytics configured.
 - **Session recordings** will help understand how scientists navigate the filter UI
 - **Funnel analysis** on the core journey: `catalogue → datastore detail → code copied`
 - URL-based filter state (`?model_filter=...`) means filter context is automatically capturable
-- Potential for **self-hosting** to satisfy research institution data sovereignty requirements (NCI/ARDC)
-- Cookieless mode available — avoids consent banners
+- **PostHog Cloud EU** — data stored in EU region; no self-hosting overhead
+- `persistence: 'memory'` — no cookies, no consent banner required
 
 ---
 
@@ -148,12 +147,10 @@ Catalogue table loaded
 
 ## Decisions
 
-1. **Self-hosted on ARDC Nectar** ✅ — [see full setup guide below](#self-hosting-on-ardc-nectar)
-   - Deploy via PostHog's Docker Compose bundle on a Nectar VM (~`m3.large`, 4 vCPU / 8 GB RAM)
-   - Stack: PostHog app + ClickHouse + PostgreSQL + Redis + Kafka + ZooKeeper
-   - ~half a day to set up, ~30 min/month to maintain (upgrades are `docker compose pull && up`)
-   - No licensing cost; data stays on AU infrastructure
-   - Set `VITE_POSTHOG_HOST` to the Nectar instance URL
+1. **PostHog Cloud EU** ✅
+   - Using `https://eu.i.posthog.com` — hardcoded in composable, no env var needed
+   - `persistence: 'memory'` — no cookies written, no consent banner required
+   - Self-hosting on ARDC Nectar was considered but dropped in favour of simplicity
 
 2. **Log full filter objects** ✅
    - No PII risk — all values are scientific metadata (model names, realms, frequencies, variables)
@@ -177,8 +174,9 @@ Catalogue table loaded
    - Necessary because Vue Router navigation doesn't trigger browser load events (app uses hash routing)
    - Replaces the removed `catalogue_viewed` event — PostHog's `$pageview` with the URL is equivalent
 
-7. **Initialise in `main.ts`, gate behind `VITE_POSTHOG_KEY`** ✅
-   - No key = no tracking (safe in dev/test environments)
+7. **Top-level init in `usePosthog.ts`** ✅
+   - `posthog.init()` runs at module import time — no `initAnalytics()` call needed in `main.ts`
+   - PostHog silently no-ops if the key is `undefined` (e.g. in dev without `.env`)
 
 8. **Mock PostHog in Vitest** ✅
    - Add mock to existing `test/setup.ts`
@@ -193,22 +191,23 @@ Catalogue table loaded
 npm install posthog-js
 ```
 
-### 2. Initialise in `main.ts`
+### 2. Initialise in `usePosthog.ts`
 
-Gate behind `VITE_POSTHOG_KEY` env var — no key, no tracking.
+Top-level init — runs at module import, no explicit call needed in `main.ts`.
 
 ```ts
-if (import.meta.env.VITE_POSTHOG_KEY) {
-  posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-    api_host: import.meta.env.VITE_POSTHOG_HOST ?? 'https://app.posthog.com',
-    capture_pageview: false, // we'll fire manual view events
-  });
-}
+posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
+  api_host: 'https://eu.i.posthog.com',
+  defaults: '2026-01-30',
+  persistence: 'memory',
+  capture_pageview: false,
+  capture_pageleave: true,
+});
 ```
 
 ### 3. `usePostHog()` composable
 
-Wraps PostHog calls. Returns a `track()` function that's a no-op when PostHog isn't initialised. Keeps all component code clean and makes mocking in tests trivial.
+Exports `posthog` directly, a standalone `capture()` function, and a `usePostHog()` composable returning `{ capture }`. Keeps all component code clean and makes mocking in tests trivial.
 
 ### 4. Wire up events
 
@@ -221,98 +220,9 @@ In `test/setup.ts`, mock `posthog-js` so test suites don't need a real key and e
 ### 6. `.env` setup
 
 ```
-# .env.local (gitignored)
-VITE_POSTHOG_KEY=phc_xxxx
-VITE_POSTHOG_HOST=https://your-nectar-instance.example.com  # self-hosted URL
+VITE_PUBLIC_POSTHOG_KEY=phc_xxxx
 ```
 
----
+No host var needed — EU cloud endpoint is hardcoded.
 
-## Self-Hosting on ARDC Nectar
 
-> This section is for the colleague setting up the infrastructure. The app team only needs the `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` values that come out of this process.
-
-### What you're deploying
-
-PostHog's self-hosted stack is a standard Docker Compose application. It runs entirely on one VM. The services are:
-
-| Service               | Purpose                                                         |
-| --------------------- | --------------------------------------------------------------- |
-| `posthog`             | Main web app + API                                              |
-| `posthog-worker`      | Background job processor                                        |
-| `clickhouse`          | Analytics data store (fast columnar DB — where all events live) |
-| `postgresql`          | App metadata (users, projects, feature flags)                   |
-| `redis`               | Queue / cache                                                   |
-| `kafka` + `zookeeper` | Event ingestion pipeline                                        |
-| `caddy` (or nginx)    | Reverse proxy + TLS termination                                 |
-
-### VM requirements
-
-| Resource | Minimum          | Recommended                          |
-| -------- | ---------------- | ------------------------------------ |
-| CPU      | 4 vCPU           | 8 vCPU                               |
-| RAM      | 8 GB             | 16 GB                                |
-| Disk     | 50 GB            | 100 GB+ (ClickHouse grows over time) |
-| OS       | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS                     |
-
-On Nectar this is roughly an `m3.large` (minimum) or `m3.xlarge` (recommended). Use a separate Nectar volume for ClickHouse data so you can resize it independently of the root disk.
-
-### Prerequisites on the VM
-
-- Docker Engine (≥ 24) and Docker Compose plugin
-- A domain name or stable IP pointing at the VM (needed for TLS)
-- Port 80 and 443 open in the Nectar security group
-
-### Setup steps
-
-```bash
-# 1. Clone PostHog's deployment repo
-git clone https://github.com/PostHog/posthog.git
-cd posthog
-
-# 2. Run the guided setup script
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/posthog/posthog/HEAD/bin/deploy-hobby)"
-```
-
-The script will ask for:
-
-- Your domain name (e.g. `posthog.your-nectar-domain.cloud.edu.au`)
-- An email address for TLS cert registration
-
-It generates a `.env` file with secrets and starts all services. The first startup takes ~5 minutes while ClickHouse initialises.
-
-### After setup
-
-1. Navigate to `https://your-domain` and create the initial admin account
-2. Create a new **Project** called something like `interactive-data-catalogue`
-3. Go to **Project Settings → Project API Key** — copy the key starting with `phc_`
-4. Hand that key and the host URL to the app team to put in their `.env.local`:
-   ```
-   VITE_POSTHOG_KEY=phc_xxxxxxxxxxxx
-   VITE_POSTHOG_HOST=https://your-domain
-   ```
-
-### Ongoing maintenance
-
-**Upgrades** (do whenever PostHog releases a new version — roughly monthly):
-
-```bash
-cd posthog
-docker compose pull
-docker compose up -d
-```
-
-**Disk management**: ClickHouse is the main consumer. Monitor with:
-
-```bash
-docker exec posthog-clickhouse-1 clickhouse-client --query \
-  "SELECT database, formatReadableSize(sum(bytes)) FROM system.parts GROUP BY database"
-```
-
-**Backups**: Snapshot the Nectar volume that holds ClickHouse data (`/var/lib/docker/volumes/posthog_clickhouse-data`) on a regular schedule. PostgreSQL data is smaller but also worth snapshotting.
-
-### Useful links
-
-- [PostHog self-host docs](https://posthog.com/docs/self-host)
-- [PostHog hobby deploy script](https://github.com/PostHog/posthog/blob/master/bin/deploy-hobby)
-- [ClickHouse disk usage docs](https://clickhouse.com/docs/en/operations/system-tables/parts)

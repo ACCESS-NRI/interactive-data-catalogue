@@ -26,3 +26,6 @@ coverage
 
 # Playing around 
 duckdb_testing/
+
+# Env
+.env
