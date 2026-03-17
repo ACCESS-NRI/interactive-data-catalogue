@@ -8,11 +8,11 @@
 
 ### What was built
 
-| File                              | Purpose                                                                                                                          |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| File                            | Purpose                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/composables/usePosthog.ts` | Central PostHog wrapper. Top-level `posthog.init()` with EU cloud host hardcoded. Exports `posthog`, `capture()`, and `usePostHog()`. |
-| `src/router/index.ts`             | Imports `posthog` directly and fires `$pageview` in `router.afterEach` for correct SPA navigation tracking                       |
-| `src/test/setup.ts`               | Globally mocks `posthog-js` so tests never need a real key                                                                       |
+| `src/router/index.ts`           | Imports `posthog` directly and fires `$pageview` in `router.afterEach` for correct SPA navigation tracking                            |
+| `src/test/setup.ts`             | Globally mocks `posthog-js` so tests never need a real key                                                                            |
 
 Events are wired directly into the components and composables — no bus, no global store. All tracking calls go through `usePostHog()` / `capture()` so PostHog is never imported directly in component code.
 
@@ -224,5 +224,3 @@ VITE_PUBLIC_POSTHOG_KEY=phc_xxxx
 ```
 
 No host var needed — EU cloud endpoint is hardcoded.
-
-
