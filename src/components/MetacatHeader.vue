@@ -98,7 +98,7 @@ const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-ca
 // Popover management for commit SHA
 const commitPopover = ref();
 const welcomeModalRef = ref<InstanceType<typeof WelcomeModal> | null>(null);
-const { track } = usePostHog();
+const { capture } = usePostHog();
 let hideTimeout: number | null = null;
 
 const showCommitPopover = (event: Event) => {
@@ -131,7 +131,7 @@ const copyCommitSha = async () => {
 
   try {
     await navigator.clipboard.writeText(commitSha);
-    track('commit_sha_copied');
+    capture('commit_sha_copied');
     commitPopover.value?.hide();
   } catch (err) {
     console.error('Failed to copy commit SHA:', err);

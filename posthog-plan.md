@@ -8,12 +8,12 @@
 
 | File                              | Purpose                                                                                                                          |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `src/composables/useAnalytics.ts` | Central PostHog wrapper. `initAnalytics()` gates init behind `VITE_POSTHOG_KEY`. `track()` is a safe no-op when not initialised. |
+| `src/composables/usePostHog.ts` | Central PostHog wrapper. `initAnalytics()` gates init behind `VITE_POSTHOG_KEY`. `capture()` is a safe no-op when not initialised. |
 | `src/main.ts`                     | Calls `initAnalytics()` at app startup                                                                                           |
 | `src/router/index.ts`             | Fires `$pageview` in `router.afterEach` for correct SPA navigation tracking                                                      |
 | `src/test/setup.ts`               | Globally mocks `posthog-js` so tests never need a real key                                                                       |
 
-Events are wired directly into the components and composables — no bus, no global store. All tracking calls go through `useAnalytics()` / `track()` so PostHog is never imported directly in component code.
+Events are wired directly into the components and composables — no bus, no global store. All tracking calls go through `usePostHog()` / `capture()` so PostHog is never imported directly in component code.
 
 ### To activate
 
@@ -36,7 +36,7 @@ No key → no tracking. Safe to deploy without analytics configured.
 
 - **`RequiredProjectsWarning` didn't know its datastore context**: Added an optional `datastoreName` prop so `required_project_link_clicked` events can carry that context. Existing usages without the prop still work fine.
 
-- **`EagerDatastoreTable` originally used `defineProps` without capturing the return value**: The `props` variable was needed to reference `props.datastoreName` in `track()` calls. Changed to `const props = defineProps<...>()`.
+- **`EagerDatastoreTable` originally used `defineProps` without capturing the return value**: The `props` variable was needed to reference `props.datastoreName` in `capture()` calls. Changed to `const props = defineProps<...>()`.
 
 - **Duplicate `const props =` typo**: One multi-edit pass produced `const props = const props = defineProps<...>()` in `EagerDatastoreTable.vue`. Caught immediately by the test run (syntax error), fixed in one follow-up edit.
 
@@ -66,7 +66,7 @@ No key → no tracking. Safe to deploy without analytics configured.
 - [ ] **`EagerDatastoreTable` pagination** (`table_page_changed`) is wired but `@page` couldn't be confirmed in the template during this pass — verify it fires correctly in the browser.
 - [ ] **Add `datastore_name` to the `$pageview` event** for datastore routes so PostHog path analysis doesn't collapse all `/datastore/:name` views into one URL.
 - [ ] **Session recordings** — enable in PostHog project settings (off by default). Particularly valuable for watching filter interaction flows on large lazy datastores.
-- [ ] **Funnels for ARE usage** — `open_are_clicked` is tracked. Once enough data exists, analyse what filter state precedes ARE opens to understand which data workflows are most common.
+- [ ] **Funnels for ARE usage** — `open_are_clicked` is captured. Once enough data exists, analyse what filter state precedes ARE opens to understand which data workflows are most common.
 - [ ] **`commit_sha_copied`** — very low traffic, consider dropping from the plan if it adds noise.
 
 ---
@@ -206,7 +206,7 @@ if (import.meta.env.VITE_POSTHOG_KEY) {
 }
 ```
 
-### 3. `useAnalytics()` composable
+### 3. `usePostHog()` composable
 
 Wraps PostHog calls. Returns a `track()` function that's a no-op when PostHog isn't initialised. Keeps all component code clean and makes mocking in tests trivial.
 

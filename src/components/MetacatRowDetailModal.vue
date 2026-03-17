@@ -176,7 +176,7 @@ const emit = defineEmits<{
 // Get catalog store for prefetching
 const catalogStore = useCatalogStore();
 const router = useRouter();
-const { track } = usePostHog();
+const { capture } = usePostHog();
 
 // Parsed YAML state
 const parsedYaml = ref<any>(null);
@@ -234,7 +234,7 @@ watch(
 const handleFilterClick = (field: string, value: string) => {
   if (!props.rowData?.name) return;
 
-  track('tag_chip_clicked', { datastore_name: props.rowData.name, column: field, value });
+  capture('tag_chip_clicked', { datastore_name: props.rowData.name, column: field, value });
 
   // Check if the field exists in the datastore filter options
   const datastore = catalogStore.getDatastoreFromCache(props.rowData.name);
@@ -251,7 +251,7 @@ const handleFilterClick = (field: string, value: string) => {
 };
 
 const trackDetailLinkClick = (datastoreName: string) => {
-  track('datastore_detail_link_clicked', { datastore_name: datastoreName });
+  capture('datastore_detail_link_clicked', { datastore_name: datastoreName });
 };
 </script>
 

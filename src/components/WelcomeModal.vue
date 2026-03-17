@@ -210,26 +210,26 @@ const STORAGE_KEY = 'catalogue-welcome-seen';
 
 const visible = ref(false);
 const dontShowAgain = ref(false);
-const { track } = usePostHog();
+const { capture } = usePostHog();
 
 onMounted(() => {
   if (!localStorage.getItem(STORAGE_KEY)) {
     visible.value = true;
-    track('welcome_modal_shown', { trigger: 'auto' });
+    capture('welcome_modal_shown', { trigger: 'auto' });
   }
 });
 
 const onHide = () => {
   if (dontShowAgain.value) {
     localStorage.setItem(STORAGE_KEY, 'true');
-    track('welcome_modal_dont_show_again');
+    capture('welcome_modal_dont_show_again');
   }
 };
 
 const close = () => {
   if (dontShowAgain.value) {
     localStorage.setItem(STORAGE_KEY, 'true');
-    track('welcome_modal_dont_show_again');
+    capture('welcome_modal_dont_show_again');
   }
   visible.value = false;
 };
@@ -237,7 +237,7 @@ const close = () => {
 /** Imperatively open the modal regardless of localStorage state. */
 const open = () => {
   visible.value = true;
-  track('welcome_modal_shown', { trigger: 'button' });
+  capture('welcome_modal_shown', { trigger: 'button' });
 };
 
 defineExpose({ open });

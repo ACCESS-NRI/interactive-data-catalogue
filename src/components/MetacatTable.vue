@@ -10,7 +10,6 @@
       :dynamic-filter-options="dynamicFilterOptions"
       @clear="clearFilters"
       :toast="false"
-      analytics-context="catalogue"
     />
 
     <!-- Loading State -->
@@ -63,7 +62,6 @@
         selection-mode="single"
         :meta-key-selection="false"
         @row-click="showRowDetail($event.data)"
-        @page="onTablePage"
       >
         <template #header>
           <div class="p-4 bg-gray-50 dark:bg-gray-700">
@@ -82,14 +80,11 @@
               </div>
 
               <!-- Search -->
-              <IconField>
-                <InputText
-                  v-model="globalSearchValue"
-                  @input="onSearchInput"
-                  placeholder="Search all fields..."
-                  class="w-full"
-                />
-              </IconField>
+              <div>
+                <IconField>
+                  <InputText v-model="globalSearchValue" placeholder="Search all fields..." class="w-full" />
+                </IconField>
+              </div>
 
               <!-- MultiSelect -->
               <div>
@@ -129,7 +124,6 @@
                   <IconField>
                     <InputText
                       v-model="globalSearchValue"
-                      @input="onSearchInput"
                       placeholder="Search all fields..."
                       class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
                     />
@@ -264,7 +258,6 @@ import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
 import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
-import { usePostHog } from '../composables/usePosthog';
 
 /**
  * Catalog table uses the catalog store to fetch and display catalog entries.
@@ -275,25 +268,14 @@ import { usePostHog } from '../composables/usePosthog';
  *   array-preview modals for richer display of array-valued fields.
  */
 const catalogStore = useCatalogStore();
-const { track } = usePostHog();
 
 // Trigger data fetch on component mount
 catalogStore.fetchCatalogData();
 
 /**
  * Global search string used to filter catalog rows client-side.
- * Changes are watched with a debounce to fire catalogue_searched events.
  */
 const globalSearchValue = ref('');
-
-let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-const onSearchInput = () => {
-  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(() => {
-    const q = globalSearchValue.value.trim();
-    if (q) track('catalogue_searched', { query: q });
-  }, 500);
-};
 
 /**
  * Per-column filter selections driven by the FilterSelectors component.
@@ -491,7 +473,6 @@ const openArrayModal = (items: string[], title: string) => {
 const showRowDetail = (rowData: any) => {
   selectedRowData.value = rowData;
   detailModalVisible.value = true;
-  track('catalogue_row_detail_opened', { datastore_name: rowData?.name });
 };
 
 /** Hide the row detail modal and clear selection. */
@@ -507,14 +488,6 @@ const hideRowDetail = () => {
  */
 const onToggle = (value: any[]) => {
   selectedColumns.value = columns.value.filter((col) => value.includes(col));
-  track('table_columns_changed', {
-    context: 'catalogue',
-    visible_columns: selectedColumns.value.map((c) => c.field),
-  });
-};
-
-const onTablePage = (event: { page: number; rows: number }) => {
-  track('table_page_changed', { context: 'catalogue', page: event.page + 1, page_size: event.rows });
 };
 </script>
 

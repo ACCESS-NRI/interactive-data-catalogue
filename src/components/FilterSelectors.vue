@@ -36,7 +36,7 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import { useAnalytics } from '../composables/usePosthog';
+import { usePostHog } from '../composables/usePosthog';
 
 interface Props {
   filterOptions: Record<string, string[]>;
@@ -57,7 +57,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const toast = useToast();
-const { track } = useAnalytics();
+const { capture } = usePostHog();
 const filterValues = ref<Record<string, string>>({});
 
 const formatColumnName = (c: string) =>
@@ -84,7 +84,7 @@ const handleFilterChange = (column: string, value: string) => {
 const handleDropdownShow = (column: string) => {
   emit('dropdown-opened', column);
   if (props.analyticsContext) {
-    track('filter_dropdown_opened', { context: props.analyticsContext, column });
+    capture('filter_dropdown_opened', { context: props.analyticsContext, column });
   }
 };
 
@@ -149,7 +149,7 @@ const updateFilter = (column: string, value: string[]) => {
   const updatedFilters = { ...props.modelValue, [column]: value };
   emit('update:modelValue', updatedFilters);
   if (props.analyticsContext) {
-    track('filter_applied', { context: props.analyticsContext, column, values: value });
+    capture('filter_applied', { context: props.analyticsContext, column, values: value });
   }
   if (props.toast) {
     toast.add({

@@ -11,12 +11,12 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button';
-import { usePostHogg } from '../composables/usePosthog';
+import { usePostHog } from '../composables/usePosthog';
 
-const { track } = usePostHogg();
+const { capture } = usePostHog();
 
 const openFeedbackIssue = () => {
-  track('feedback_button_clicked');
+  capture('feedback_button_clicked');
   const url = 'https://github.com/access-nri/interactive-data-catalogue/issues/new?template=feedback.yml';
   const newWin = window.open(url, '_blank', 'noopener,noreferrer');
   if (newWin) newWin.opener = null;

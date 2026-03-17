@@ -37,5 +37,5 @@ export function capture(event: string, properties?: Record<string, unknown>): vo
  * export above.
  */
 export function usePostHog() {
-  return { track: capture };
+  return { capture };
 }
