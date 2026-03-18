@@ -11,7 +11,7 @@
           <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
             <Button
               icon="pi pi-info-circle"
-              label="About"
+              label="About & Privacy"
               aria-label="Reopen welcome guide"
               title="Reopen welcome guide"
               class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
