@@ -38,6 +38,7 @@
       />
 
       <Button
+        v-if="source !== 'personal'"
         label="Copy Link to Search"
         icon="pi pi-share"
         @click="copySearchLink"
@@ -84,6 +85,7 @@ const props = defineProps<{
   currentFilters: Record<string, string[]>;
   rawData: any[];
   dynamicFilterOptions: Record<string, string[]>;
+  source?: 'builtin' | 'personal';
 }>();
 
 /**
@@ -116,7 +118,10 @@ const {
   toRef(props, 'currentFilters'),
   toRef(props, 'dynamicFilterOptions'),
   numDatasets,
+  computed(() => props.source ?? 'builtin'),
 );
+
+const source = computed(() => props.source ?? 'builtin');
 </script>
 
 <style scoped>

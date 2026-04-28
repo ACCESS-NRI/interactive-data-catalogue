@@ -8,6 +8,14 @@
       <div class="flex items-center gap-5">
         <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
         <div class="inline-flex items-center">
+          <RouterLink :to="{ name: 'PersonalDatastore' }" class="inline-flex">
+            <Button
+              icon="pi pi-upload"
+              label="Explore my personal datastore"
+              aria-label="Explore my personal datastore"
+              class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
+            />
+          </RouterLink>
           <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
             <Button
               icon="pi pi-info-circle"

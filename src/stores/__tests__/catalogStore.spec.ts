@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { useCatalogStore } from '../catalogStore';
+import { PERSONAL_DATASTORE_CACHE_KEY, useCatalogStore } from '../catalogStore';
 import type { CatalogRow, DatastoreCache } from '../catalogStore';
 
 // Mock DuckDB module
@@ -371,6 +371,92 @@ describe('catalogStore', () => {
         }
 
         expect(store.datastoreCache['new-datastore']).toBeDefined();
+      });
+    });
+
+    describe('personal datastore', () => {
+      it('registers CSV rows into the fixed personal datastore cache', () => {
+        const cache = store.registerPersonalDatastoreRows(
+          [
+            { variable: 'tas', frequency: '1mon', file_id: 'dataset-a', path: '/g/data/file-a.nc' },
+            { variable: 'pr', frequency: '1day', file_id: 'dataset-b', path: '/g/data/file-b.nc' },
+          ],
+          ['variable', 'frequency', 'file_id', 'path'],
+          'my-datastore.csv',
+        );
+
+        expect(store.personalDatastore?.name).toBe('my-datastore');
+        expect(store.personalDatastore?.csvFileName).toBe('my-datastore.csv');
+        expect(store.datastoreCache[PERSONAL_DATASTORE_CACHE_KEY]).toEqual(cache);
+        expect(cache.totalRecords).toBe(2);
+        expect(cache.columns).toEqual(['variable', 'frequency', 'file_id', 'path']);
+        expect(cache.filterOptions.variable).toEqual(['pr', 'tas']);
+        expect(cache.filterOptions.path).toBeUndefined();
+      });
+
+      it('normalizes iterable-looking values in personal datastore rows', () => {
+        const cache = store.registerPersonalDatastoreRows(
+          [{ variable: '["tas","pr"]', frequency: '1mon', file_id: 'dataset-a' }],
+          ['variable', 'frequency', 'file_id'],
+          'iterable.csv',
+        );
+
+        expect(cache.data[0].variable).toEqual(['tas', 'pr']);
+        expect(cache.filterOptions.variable).toEqual(['pr', 'tas']);
+      });
+
+      it('normalizes default iterable columns as arrays for personal datastore rows', () => {
+        const cache = store.registerPersonalDatastoreRows(
+          [
+            {
+              variable: "['tas', 'pr']",
+              variable_long_name: "['Air temperature', 'Rainfall']",
+              variable_standard_name: 'air_temperature',
+              variable_cell_methods: "['time: mean']",
+              variable_units: '["K", "kg m-2 s-1"]',
+              realm: 'atmos',
+            },
+          ],
+          [
+            'variable',
+            'variable_long_name',
+            'variable_standard_name',
+            'variable_cell_methods',
+            'variable_units',
+            'realm',
+          ],
+          'typed.csv',
+        );
+
+        expect(cache.data[0].variable).toEqual(['tas', 'pr']);
+        expect(cache.data[0].variable_long_name).toEqual(['Air temperature', 'Rainfall']);
+        expect(cache.data[0].variable_standard_name).toEqual(['air_temperature']);
+        expect(cache.data[0].variable_cell_methods).toEqual(['time: mean']);
+        expect(cache.data[0].variable_units).toEqual(['K', 'kg m-2 s-1']);
+        expect(cache.data[0].realm).toBe('atmos');
+      });
+
+      it('replaces the previous personal datastore', () => {
+        store.registerPersonalDatastoreRows([{ variable: 'tas' }], ['variable'], 'first.csv');
+        store.registerPersonalDatastoreRows([{ variable: 'pr' }], ['variable'], 'second.csv');
+
+        expect(store.personalDatastore?.csvFileName).toBe('second.csv');
+        expect(store.datastoreCache[PERSONAL_DATASTORE_CACHE_KEY]!.data).toEqual([{ variable: ['pr'] }]);
+      });
+
+      it('clears the personal datastore', () => {
+        store.registerPersonalDatastoreRows([{ variable: 'tas' }], ['variable'], 'first.csv');
+
+        store.clearPersonalDatastore();
+
+        expect(store.personalDatastore).toBeNull();
+        expect(store.datastoreCache[PERSONAL_DATASTORE_CACHE_KEY]).toBeUndefined();
+      });
+
+      it('rejects empty personal datastore rows', () => {
+        expect(() => store.registerPersonalDatastoreRows([], ['variable'], 'empty.csv')).toThrow(
+          'CSV file did not contain any rows',
+        );
       });
     });
   });

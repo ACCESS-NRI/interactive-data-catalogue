@@ -1,5 +1,5 @@
 import { computed, ref, watch, type Ref } from 'vue';
-import { useCatalogStore } from '../stores/catalogStore';
+import { PERSONAL_DATASTORE_ITERABLE_COLUMNS, useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { capture } from './usePosthog';
@@ -25,6 +25,7 @@ export function useQuickStartCode(
   currentFilters: Ref<Record<string, string[]>>,
   dynamicFilterOptions: Ref<Record<string, string[]>>,
   numDatasets: Ref<number>,
+  source: Ref<'builtin' | 'personal'> = ref('builtin'),
 ) {
   const router = useRouter();
   const toast = useToast();
@@ -131,6 +132,12 @@ export function useQuickStartCode(
    * optionally appends xarray/dask conversion calls.
    */
   const quickStartCode = computed(() => {
+    const columnsWithIterables = `[${PERSONAL_DATASTORE_ITERABLE_COLUMNS.map((column) => `'${column}'`).join(', ')}]`;
+    const opening =
+      source.value === 'personal'
+        ? `# Open your local ESM datastore, for example:\ndatastore = intake.open_esm_datastore("path/to/your/datastore.json", columns_with_iterables=${columnsWithIterables})`
+        : `datastore = intake.cat.access_nri["${datastoreName.value}"]`;
+
     let code = `"""
 You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
 
@@ -142,7 +149,7 @@ from dask.distributed import Client
 
 client = Client(threads_per_worker=1)
 
-datastore = intake.cat.access_nri["${datastoreName.value}"]`;
+${opening}`;
 
     if (hasActiveFilters.value) {
       // intake-esm requires the `variable` filter to be applied last for correct
@@ -209,11 +216,17 @@ datastore = intake.cat.access_nri["${datastoreName.value}"]`;
       }
     }
 
-    const route = router.resolve({
-      name: 'DatastoreDetail',
-      params: { name: datastoreName.value },
-      query,
-    });
+    const route =
+      source.value === 'personal'
+        ? router.resolve({
+            name: 'PersonalDatastore',
+            query,
+          })
+        : router.resolve({
+            name: 'DatastoreDetail',
+            params: { name: datastoreName.value },
+            query,
+          });
 
     const fullUrl = new URL(route.href, window.location.href).toString();
 

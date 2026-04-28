@@ -64,6 +64,11 @@ describe('DatastoreDetail', () => {
           name: 'DatastoreDetail',
           component: EagerDatastoreDetail,
         },
+        {
+          path: '/personal-datastore',
+          name: 'PersonalDatastore',
+          component: EagerDatastoreDetail,
+        },
       ],
     });
 
@@ -81,8 +86,9 @@ describe('DatastoreDetail', () => {
   });
 
   // Helper to create wrapper with global config and stubs
-  const createWrapper = () => {
+  const createWrapper = (props: Record<string, any> = {}) => {
     return mount(EagerDatastoreDetail, {
+      props,
       global: {
         plugins: [pinia, router, PrimeVue, ToastService],
         stubs: {
@@ -476,5 +482,48 @@ describe('DatastoreDetail', () => {
     await wrapper.vm.loadDatastore();
 
     expect(loadSpy).toHaveBeenCalledWith('test-datastore');
+  });
+
+  it('uses provided cache key in personal mode without calling built-in loader', async () => {
+    await router.push('/personal-datastore');
+    await router.isReady();
+
+    catalogStore.datastoreCache = {
+      __personal_datastore__: createMockDatastoreCache(),
+    };
+    const loadSpy = vi.spyOn(catalogStore, 'loadDatastore');
+
+    wrapper = createWrapper({
+      datastoreName: 'uploaded-datastore',
+      cacheKey: '__personal_datastore__',
+      autoLoad: false,
+      source: 'personal',
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(loadSpy).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('Personal datastore');
+    expect(wrapper.text()).toContain('uploaded-datastore');
+  });
+
+  it('does not clear personal datastore cache on unmount', async () => {
+    await router.push('/personal-datastore');
+    await router.isReady();
+
+    catalogStore.datastoreCache = {
+      __personal_datastore__: createMockDatastoreCache(),
+    };
+    const clearSpy = vi.spyOn(catalogStore, 'clearDatastoreCache');
+
+    wrapper = createWrapper({
+      datastoreName: 'uploaded-datastore',
+      cacheKey: '__personal_datastore__',
+      autoLoad: false,
+      source: 'personal',
+    });
+    await wrapper.vm.$nextTick();
+    wrapper.unmount();
+
+    expect(clearSpy).not.toHaveBeenCalled();
   });
 });

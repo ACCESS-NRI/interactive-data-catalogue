@@ -31,7 +31,10 @@ describe('EagerQuickStartCode', () => {
     setActivePinia(pinia);
     router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: '/datastore/:name', name: 'DatastoreDetail', component: { template: '<div>Mock</div>' } }],
+      routes: [
+        { path: '/datastore/:name', name: 'DatastoreDetail', component: { template: '<div>Mock</div>' } },
+        { path: '/personal-datastore', name: 'PersonalDatastore', component: { template: '<div>Mock</div>' } },
+      ],
     });
     vi.clearAllMocks();
   });
@@ -75,5 +78,33 @@ describe('EagerQuickStartCode', () => {
     // Rows without file_id should not contribute to numDatasets
     expect(wrapper.text()).toContain('Quick Start');
     expect(wrapper.text()).not.toContain('to_dataset_dict()');
+  });
+
+  it('generates personal datastore opening code', () => {
+    wrapper = createWrapper({
+      datastoreName: 'uploaded-datastore',
+      currentFilters: { variable: ['temp'] },
+      rawData: [{ file_id: 'dataset1' }],
+      dynamicFilterOptions: {},
+      source: 'personal',
+    });
+
+    expect(wrapper.text()).toContain(
+      `intake.open_esm_datastore("path/to/your/datastore.json", columns_with_iterables=['variable', 'variable_long_name', 'variable_standard_name', 'variable_cell_methods', 'variable_units'])`,
+    );
+    expect(wrapper.text()).toContain("datastore.search(variable='temp')");
+    expect(wrapper.text()).not.toContain('intake.cat.access_nri["uploaded-datastore"]');
+  });
+
+  it('hides copy link action for personal datastores', () => {
+    wrapper = createWrapper({
+      datastoreName: 'uploaded-datastore',
+      currentFilters: {},
+      rawData: [{ file_id: 'dataset1' }],
+      dynamicFilterOptions: {},
+      source: 'personal',
+    });
+
+    expect(wrapper.findAllComponents({ name: 'Button' })).toHaveLength(2);
   });
 });

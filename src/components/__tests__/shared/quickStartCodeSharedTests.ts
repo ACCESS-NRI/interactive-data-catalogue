@@ -14,6 +14,7 @@ export interface SharedWrapperProps {
   currentFilters?: Record<string, string[]>;
   numDatasets?: number;
   dynamicFilterOptions?: Record<string, string[]>;
+  source?: 'builtin' | 'personal';
 }
 
 type CreateWrapperFn = (props: SharedWrapperProps) => VueWrapper<any>;

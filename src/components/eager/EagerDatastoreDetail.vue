@@ -10,6 +10,10 @@
         </li>
         <li class="flex items-center">
           <i class="pi pi-angle-right mx-2 text-gray-400"></i>
+          <span v-if="source === 'personal'" class="font-medium text-gray-700 dark:text-gray-300">
+            Personal datastore
+          </span>
+          <i v-if="source === 'personal'" class="pi pi-angle-right mx-2 text-gray-400"></i>
           <i class="pi pi-database mr-1"></i>
           <span class="font-medium text-gray-900 dark:text-gray-100">{{ datastoreName }}</span>
         </li>
@@ -76,6 +80,7 @@
           :current-filters="currentFilters"
           :raw-data="filteredData"
           :dynamic-filter-options="dynamicFilterOptions"
+          :source="source"
           :num-datasets="numDatasets"
           class="mb-6"
         />
@@ -113,11 +118,26 @@ import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
 
+const props = withDefaults(
+  defineProps<{
+    datastoreName?: string;
+    cacheKey?: string;
+    autoLoad?: boolean;
+    source?: 'builtin' | 'personal';
+  }>(),
+  {
+    autoLoad: true,
+    source: 'builtin',
+  },
+);
+
 const route = useRoute();
 const router = useRouter();
 const catalogStore = useCatalogStore();
 
-const datastoreName = computed(() => route.params.name as string);
+const source = computed(() => props.source);
+const datastoreName = computed(() => props.datastoreName ?? (route.params.name as string));
+const cacheKey = computed(() => props.cacheKey ?? datastoreName.value);
 const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
@@ -127,7 +147,7 @@ const numDatasets = ref(0);
 const availableColumns = ref<{ field: string; header: string }[]>([]);
 const selectedColumns = ref<{ field: string; header: string }[]>([]);
 
-const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
+const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(cacheKey.value));
 const rawData = computed(() => cachedDatastore.value?.data || []);
 const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
 const columns = computed(() => cachedDatastore.value?.columns || []);
@@ -208,7 +228,7 @@ const dynamicFilterOptions = computed(() => {
 });
 
 const loadDatastore = async () => {
-  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
+  const existingCache = catalogStore.getDatastoreFromCache(cacheKey.value);
   if (existingCache && existingCache.data.length > 0) {
     setupColumns(existingCache.columns);
     loading.value = false;
@@ -220,11 +240,20 @@ const loadDatastore = async () => {
     });
     return;
   }
+
+  if (!props.autoLoad) {
+    error.value =
+      'Personal datastore is no longer available in this browser session. Upload the CSV again to continue.';
+    loading.value = false;
+    tableLoading.value = false;
+    return;
+  }
+
   loading.value = true;
   tableLoading.value = true;
   error.value = null;
   try {
-    const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
+    const datastoreCache = await catalogStore.loadDatastore(cacheKey.value);
     if (datastoreCache.data.length > 0) setupColumns(datastoreCache.columns);
     capture('datastore_detail_viewed', {
       datastore_name: datastoreName.value,
@@ -255,7 +284,11 @@ const updateUrlWithFilters = () => {
   for (const [column, values] of Object.entries(currentFilters.value)) {
     if (values && values.length > 0) query[`${column}_filter`] = values.join(',');
   }
-  router.replace({ name: route.name || 'DatastoreDetail', params: route.params, query });
+  const target =
+    source.value === 'personal'
+      ? { name: 'PersonalDatastore', query }
+      : { name: route.name || 'DatastoreDetail', params: route.params, query };
+  router.replace(target);
 };
 
 const clearFilters = () => {
@@ -264,12 +297,14 @@ const clearFilters = () => {
 };
 
 const cleanup = () => {
-  catalogStore.clearDatastoreCache(datastoreName.value);
+  if (source.value === 'builtin') {
+    catalogStore.clearDatastoreCache(cacheKey.value);
+  }
 };
 
 onMounted(() => {
   initializeFiltersFromUrl();
-  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
+  const existingCache = catalogStore.getDatastoreFromCache(cacheKey.value);
   if (existingCache && existingCache.data.length > 0) {
     setupColumns(existingCache.columns);
     loading.value = false;
@@ -280,9 +315,9 @@ onMounted(() => {
 });
 
 const stopWatcher = watch(
-  () => route.params.name,
+  () => datastoreName.value,
   (newName, oldName) => {
-    if (oldName && newName !== oldName) catalogStore.clearDatastoreCache(oldName as string);
+    if (source.value === 'builtin' && oldName && newName !== oldName) catalogStore.clearDatastoreCache(oldName);
     if (newName) {
       initializeFiltersFromUrl();
       loadDatastore();

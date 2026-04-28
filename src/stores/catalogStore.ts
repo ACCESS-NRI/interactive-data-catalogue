@@ -5,6 +5,21 @@ import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
 
 type OptionalProject = string | null;
+
+export const PERSONAL_DATASTORE_CACHE_KEY = '__personal_datastore__';
+export const PERSONAL_DATASTORE_ITERABLE_COLUMNS = [
+  'variable',
+  'variable_long_name',
+  'variable_standard_name',
+  'variable_cell_methods',
+  'variable_units',
+];
+
+export interface PersonalDatastoreState {
+  name: string;
+  csvFileName: string;
+  loadedAt: Date;
+}
 /**
  * A single normalized catalog row returned by querying the metacatalog
  * parquet file. All list-like fields are represented as arrays of strings
@@ -88,12 +103,14 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Datastore cache state
   const datastoreCache = ref<Record<string, DatastoreCache>>({});
+  const personalDatastore = ref<PersonalDatastoreState | null>(null);
 
   // Getters
   const catalogCount = computed(() => data.value.length);
   const hasData = computed(() => data.value.length > 0);
   const isLoading = computed(() => loading.value);
   const hasError = computed(() => error.value !== null);
+  const hasPersonalDatastore = computed(() => personalDatastore.value !== null);
 
   /**
    * Download the parquet file from the configured endpoint and return it as a
@@ -290,48 +307,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);
     const rawData = queryResult.toArray();
 
-    // Transform the data using the same normalization used by
-    // `queryMetaCatalogPq`: always produce an array of strings for
-    // each column (empty array for null/undefined).
-    const transformedData = rawData.map((row: any) => {
-      const processGenericField = (value: any): string[] => {
-        if (value === null || value === undefined) return [];
-
-        // DuckDB Vector-like objects (expose toArray)
-        if (value && typeof value.toArray === 'function') {
-          return value
-            .toArray()
-            .filter((v: any) => v !== null && v !== undefined)
-            .map(String);
-        }
-
-        // Regular arrays
-        if (Array.isArray(value)) {
-          return value.filter((v) => v !== null && v !== undefined).map(String);
-        }
-
-        // Strings may be JSON arrays or scalars
-        if (typeof value === 'string') {
-          try {
-            const parsed = JSON.parse(value);
-            return Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
-          } catch {
-            return [value];
-          }
-        }
-
-        // Fallback: stringify single value
-        return [String(value)];
-      };
-
-      const transformedRow: any = {};
-      columns.forEach((column) => {
-        const arr = processGenericField(row[column]);
-        transformedRow[column] = arr.length === 0 ? null : arr.length === 1 ? arr[0] : arr;
-      });
-
-      return transformedRow;
-    });
+    const transformedData = normalizeDatastoreRows(rawData, columns);
 
     console.log('✅ ESM Datastore transformed data sample:', transformedData.slice(0, 2));
     console.log('📊 Total records:', transformedData.length);
@@ -499,6 +475,159 @@ export const useCatalogStore = defineStore('catalog', () => {
   function setupColumns(dataColumns: string[]): string[] {
     // Filter out the index column from display but keep it for data-key
     return dataColumns.filter((col) => col !== '__index_level_0__');
+  }
+
+  function parseStringList(value: string): string[] | null {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return null;
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed.map(String);
+    } catch {
+      const quotedMatches = Array.from(trimmed.matchAll(/'([^']*)'|"([^"]*)"/g)).map((match) => match[1] ?? match[2]);
+      if (quotedMatches.length > 0) return quotedMatches.filter((item): item is string => item !== undefined);
+
+      return trimmed
+        .slice(1, -1)
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    return null;
+  }
+
+  function normalizeDatastoreField(value: any, forceList = false): string | string[] | null {
+    if (value === null || value === undefined) return null;
+
+    let values: any[];
+    if (value && typeof value.toArray === 'function') {
+      values = value.toArray();
+    } else if (Array.isArray(value)) {
+      values = value;
+    } else if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      values = parseStringList(trimmed) ?? [value];
+    } else {
+      values = [value];
+    }
+
+    const normalized = values.filter((v) => v !== null && v !== undefined && String(v).trim()).map(String);
+    if (normalized.length === 0) return null;
+    if (forceList) return normalized;
+    return normalized.length === 1 ? normalized[0]! : normalized;
+  }
+
+  function normalizeDatastoreRows(rows: any[], columns: string[], iterableColumns: string[] = []): any[] {
+    const iterableColumnSet = new Set(iterableColumns);
+    return rows.map((row: any) => {
+      const transformedRow: Record<string, string | string[] | null> = {};
+      columns.forEach((column) => {
+        transformedRow[column] = normalizeDatastoreField(row[column], iterableColumnSet.has(column));
+      });
+      return transformedRow;
+    });
+  }
+
+  function deriveFilterOptionsFromRows(rows: any[], columns: string[]): FilterOptions {
+    const filterOptions: FilterOptions = {};
+
+    for (const column of columns) {
+      if (column === 'path' || column === 'filename') continue;
+
+      const seen = new Set<string>();
+      for (const row of rows) {
+        const value = row[column];
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (item !== null && item !== undefined && String(item).trim()) seen.add(String(item));
+          });
+        } else if (value !== null && value !== undefined && String(value).trim()) {
+          seen.add(String(value));
+        }
+      }
+      filterOptions[column] = Array.from(seen).sort();
+    }
+
+    return filterOptions;
+  }
+
+  function registerPersonalDatastoreRows(rows: any[], columns: string[], csvFileName: string): DatastoreCache {
+    const displayColumns = setupColumns(columns);
+    const normalizedRows = normalizeDatastoreRows(rows, displayColumns, PERSONAL_DATASTORE_ITERABLE_COLUMNS);
+
+    if (normalizedRows.length === 0) {
+      throw new Error('CSV file did not contain any rows');
+    }
+
+    const cache: DatastoreCache = {
+      data: normalizedRows,
+      totalRecords: normalizedRows.length,
+      columns: displayColumns,
+      filterOptions: deriveFilterOptionsFromRows(normalizedRows, displayColumns),
+      loading: false,
+      error: null,
+      project: null,
+      lastFetched: new Date(),
+    };
+
+    datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY] = cache;
+    personalDatastore.value = {
+      name: csvFileName.replace(/\.[^/.]+$/, '') || 'Personal datastore',
+      csvFileName,
+      loadedAt: new Date(),
+    };
+
+    return cache;
+  }
+
+  async function loadPersonalDatastoreCsv(file: File): Promise<DatastoreCache> {
+    if (!file) throw new Error('Please choose a CSV file');
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      throw new Error('Personal datastore uploads must be CSV files');
+    }
+
+    let db: duckdb.AsyncDuckDB | null = null;
+    let conn: duckdb.AsyncDuckDBConnection | null = null;
+
+    try {
+      const [arrayBuffer, dbConnection] = await Promise.all([file.arrayBuffer(), initializeDuckDB()]);
+      db = dbConnection.db;
+      conn = dbConnection.conn;
+
+      const fileName = 'personal-datastore.csv';
+      await db.registerFileBuffer(fileName, new Uint8Array(arrayBuffer));
+
+      const schemaResult = await conn.query(`DESCRIBE SELECT * FROM read_csv_auto('${fileName}') LIMIT 1`);
+      const columns = schemaResult
+        .toArray()
+        .map((row: any) => row.column_name)
+        .filter((column: string) => column !== 'filename');
+
+      const queryResult = await conn.query(`SELECT * FROM read_csv_auto('${fileName}')`);
+      const rows = queryResult.toArray();
+
+      return registerPersonalDatastoreRows(rows, columns, file.name);
+    } catch (err) {
+      clearPersonalDatastore();
+      const message = err instanceof Error ? err.message : 'Failed to load personal datastore CSV';
+      throw new Error(message);
+    } finally {
+      if (conn) await conn.close();
+      if (db) await db.terminate();
+    }
+  }
+
+  async function replacePersonalDatastore(file: File): Promise<DatastoreCache> {
+    clearPersonalDatastore();
+    return loadPersonalDatastoreCsv(file);
+  }
+
+  function clearPersonalDatastore() {
+    delete datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY];
+    personalDatastore.value = null;
   }
 
   // Datastore management functions
@@ -696,12 +825,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     error,
     rawDataSample,
     datastoreCache,
+    personalDatastore,
+    personalDatastoreCacheKey: PERSONAL_DATASTORE_CACHE_KEY,
+    personalDatastoreIterableColumns: PERSONAL_DATASTORE_ITERABLE_COLUMNS,
 
     // Getters
     catalogCount,
     hasData,
     isLoading,
     hasError,
+    hasPersonalDatastore,
 
     // Actions
     fetchCatalogData,
@@ -712,6 +845,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     getDatastoreFromCache,
     isDatastoreLoading,
     clearDatastoreCache,
+    loadPersonalDatastoreCsv,
+    replacePersonalDatastore,
+    clearPersonalDatastore,
 
     // Utility functions for other components
     fetchMetaCatFile,
@@ -721,5 +857,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     getFilterOptions,
     setupColumns,
     getEsmDatastoreSize,
+    normalizeDatastoreField,
+    normalizeDatastoreRows,
+    deriveFilterOptionsFromRows,
+    registerPersonalDatastoreRows,
   };
 });
