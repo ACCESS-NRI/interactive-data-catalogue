@@ -1,117 +1,119 @@
 # Code Improvements Plan
 
-This plan proposes a staged cleanup of the Vue catalogue app so future feature work has clearer ownership boundaries, better type safety, and less duplication between the catalogue, eager datastore, and lazy datastore flows.
+This is a staged cleanup plan for the Vue catalogue app.
+
+The main point is to make future work less annoying: clearer ownership boundaries, saner types, and less copy-paste between the catalogue, eager datastore, and lazy datastore paths.
 
 ## Current Shape
 
-The project is a Vue 3 + TypeScript app using Pinia, Vue Router, PrimeVue, VueUse, DuckDB WASM, Tailwind, and Vitest. It already has a useful test suite around the store and components, but a few areas are carrying too much responsibility:
+The app is Vue 3 + TypeScript with Pinia, Vue Router, PrimeVue, VueUse, DuckDB WASM, Tailwind, and Vitest. There is already a decent test base around the store and components, but a few bits are doing too much at once:
 
-- `src/stores/catalogStore.ts` owns remote URLs, fetch calls, DuckDB lifecycle, parquet normalization, datastore cache coordination, catalog row types, datastore row types, and debug logging.
-- Eager and lazy datastore components duplicate route/filter/query synchronization, column setup, analytics capture, loading states, and table rendering behavior.
-- Shared data structures are typed locally or as `any`, especially datastore rows, table columns, filter maps, API responses, and modal payloads.
+- `src/stores/catalogStore.ts` is carrying a pretty heroic amount of responsibility: remote URLs, fetches, DuckDB lifecycle, parquet normalisation, datastore cache coordination, row types, and debug logging.
+- The eager and lazy datastore views duplicate a lot of the same plumbing: route/query sync, filters, column setup, analytics, loading states, and table behaviour.
+- Shared structures are often typed locally or just left as `any`, especially datastore rows, columns, filter maps, API responses, and modal payloads.
 - Filtering logic is repeated across `MetacatTable.vue`, `EagerDatastoreDetail.vue`, `LazyDatastoreDetail.vue`, and `FilterSelectors.vue`.
-- The eager/lazy split is behaviorally important, but it is expressed by two mostly parallel component trees rather than shared composables with small strategy-specific adapters.
-- Tests cover many visible components, but the most reusable logic is still embedded inside components, making isolated unit coverage harder than it needs to be.
+- The eager/lazy split is real and important, but right now it mostly shows up as two parallel component trees instead of shared composables with small strategy-specific differences.
+- Tests cover visible component behaviour reasonably well, but some of the actually reusable logic is still trapped inside components, which makes it harder to test cleanly.
 
 ## Goals
 
-- Make domain types discoverable from one place.
-- Move data fetching and normalization out of UI-facing store code.
-- Extract reusable composables for filtering, column selection, URL query synchronization, and datastore loading strategy.
-- Reduce eager/lazy duplication while preserving the current user experience.
-- Replace broad `any` usage with explicit flexible types where the backend is naturally dynamic.
-- Make future datastore features easier to add without editing multiple parallel components.
+- Put the domain types somewhere obvious.
+- Move fetching and normalisation out of UI-facing store code.
+- Extract shared composables for filtering, column selection, URL query sync, and datastore loading strategy.
+- Reduce eager/lazy duplication without changing the current UX.
+- Replace broad `any` usage with explicit but still flexible types where the backend is genuinely dynamic.
+- Make it easier to add datastore features without touching two or three near-duplicate code paths.
 
 ## Non-Goals
 
-- No UI redesign in this cleanup.
-- No endpoint or backend contract changes.
-- No change to the eager versus lazy threshold behavior unless tests reveal an existing bug that should be fixed separately.
-- No broad dependency churn.
+- No UI redesign.
+- No backend or endpoint contract changes.
+- No change to the eager/lazy threshold behaviour unless tests flush out an existing bug that should be fixed separately.
+- No big dependency churn.
 
 ## Proposed PR Sequence
 
-### 1. Establish Shared Types
+### 1. Establish shared types
 
 Create a small domain type layer under `src/types/`, for example:
 
-- `catalog.ts` for `CatalogRow`, catalog filter fields, and catalogue table columns.
+- `catalog.ts` for `CatalogRow`, catalogue filter fields, and catalogue table columns.
 - `datastore.ts` for `DatastoreRow`, `DatastoreCellValue`, `DatastoreCache`, `DatastoreMetadata`, paged datastore responses, and filter option maps.
-- `table.ts` for common `{ field, header }` column descriptors.
+- `table.ts` for shared `{ field, header }` column descriptors.
 
-Then update components and tests to import these types instead of redefining shapes locally or importing them from the Pinia store.
+Then update components and tests to import those types instead of redefining shapes locally or reaching into the Pinia store for them.
 
 Acceptance criteria:
 
 - `CatalogRow` and `DatastoreCache` no longer live in `catalogStore.ts`.
 - Datastore table/detail props use shared types.
-- Obvious `any[]` table prop types become `DatastoreRow[]` or a named response type.
+- Obvious `any[]` table props become `DatastoreRow[]` or a named response type.
 - Existing tests still pass.
 
-### 2. Split Data Access From Store State
+### 2. Split data access from store state
 
-Move API and DuckDB responsibilities into focused modules:
+Move API and DuckDB work into focused modules:
 
 - `src/services/catalogApi.ts`: metacatalog fetch, datastore metadata fetch, paged datastore fetch, project fetch.
 - `src/services/duckdbClient.ts`: DuckDB worker/bundle setup and cleanup.
-- `src/services/parquetTransforms.ts`: list normalization, catalog row normalization, datastore row normalization, sidecar filter option extraction.
+- `src/services/parquetTransforms.ts`: list normalisation, catalog row normalisation, datastore row normalisation, sidecar filter option extraction.
 - `src/config/catalogEndpoints.ts`: base URLs, object store paths, and environment-specific service URL selection.
 
-Keep `catalogStore.ts` as the state/cache orchestrator. It should call services, update refs, expose getters/actions, and avoid knowing the details of DuckDB vectors or endpoint string construction.
+`catalogStore.ts` should then be mostly the state/cache orchestrator: call services, update refs, expose getters/actions, and stop knowing about DuckDB vectors or endpoint string assembly details.
 
 Acceptance criteria:
 
-- Store file is materially smaller and mostly reads as state orchestration.
-- Normalization helpers have isolated unit tests without Pinia.
+- The store is materially smaller and mostly reads like state orchestration.
+- Normalisation helpers have isolated unit tests without Pinia in the middle.
 - Endpoint construction is covered by small tests or table-driven cases.
-- Debug logs are either removed, guarded, or centralized behind a tiny logger helper.
+- Debug logging is either removed, guarded, or pushed behind a tiny helper.
 
-### 3. Extract Filter And URL Composables
+### 3. Extract filter and URL composables
 
-Introduce composables for shared filtering workflows:
+Introduce composables for the shared filtering workflows:
 
-- `useFilterState` for current filter map, clearing, and update helpers.
+- `useFilterState` for current filter maps, clearing, and update helpers.
 - `useFilterUrlSync` for reading `*_filter` query params and writing current filters back to the router.
 - `useDynamicFilterOptions` for computing valid options under cross-column filters in eager/catalogue flows.
-- `useBufferedDynamicFilterOptions` for the lazy flow where dynamic options arrive from the API while dropdowns may be open.
+- `useBufferedDynamicFilterOptions` for the lazy flow, where dynamic options come back from the API while dropdowns may still be open.
 
 Acceptance criteria:
 
-- `MetacatTable.vue`, `EagerDatastoreDetail.vue`, and `LazyDatastoreDetail.vue` no longer hand-roll the same filter matching and URL query logic.
-- Filter matching behavior is covered once in composable tests.
-- `FilterSelectors.vue` receives typed filter maps and emits typed updates.
+- `MetacatTable.vue`, `EagerDatastoreDetail.vue`, and `LazyDatastoreDetail.vue` stop hand-rolling the same filter matching and URL query logic.
+- Filter matching behaviour is tested once at the composable level.
+- `FilterSelectors.vue` gets typed filter maps and emits typed updates.
 
-### 4. Consolidate Datastore Detail Setup
+### 4. Consolidate datastore detail setup
 
-Create a shared `useDatastoreDetail` composable that owns:
+Create a shared `useDatastoreDetail` composable to own:
 
 - `datastoreName` from route params.
 - cache lookup and load flow.
-- common loading/error/table loading state.
+- common loading/error/table-loading state.
 - total records, columns, filter options, selected columns, and available columns.
-- analytics event capture for detail views.
+- analytics capture for detail views.
 - route-change cleanup.
 
-Layer the strategy differences on top:
+Then layer the strategy differences on top:
 
 - Eager strategy provides `rawData`, local `filteredData`, and local dynamic filter options.
 - Lazy strategy provides API-backed table params and dynamic filter option updates.
 
 Acceptance criteria:
 
-- Eager and lazy detail components become mainly composition plus template.
-- Route watcher and unmount cleanup are implemented in one place.
-- Existing eager/lazy component tests are updated to assert the same visible behavior.
+- The eager and lazy detail components become mostly composition plus template.
+- Route watching and unmount cleanup live in one place.
+- Existing component tests still assert the same visible behaviour.
 
-### 5. Consolidate Datastore Table Rendering
+### 5. Consolidate datastore table rendering
 
-The eager and lazy datastore tables share nearly identical column body templates and modal behavior. Extract reusable pieces:
+The eager and lazy tables share most of their column-body and modal behaviour. Pull the reusable bits out:
 
 - `DatastoreTableCell.vue` for field-specific value rendering.
 - `useDatastoreEntryModal` for modal title/items/open state.
 - A shared column-selection handler composable or utility.
 
-Then keep two thin table wrappers only where PrimeVue pagination mode differs:
+Keep two thin wrappers only where pagination mode really differs:
 
 - Eager wrapper: local array data, local paginator.
 - Lazy wrapper: server-backed paginator, sort, page state, URL construction.
@@ -121,53 +123,53 @@ Acceptance criteria:
 - Field formatting logic exists once.
 - Modal state logic exists once.
 - Eager and lazy table components are small wrappers around shared rendering.
-- Tests for array truncation, "more" links, and field-specific badges move to the shared cell/component tests.
+- Tests for array truncation, "more" links, and field-specific badges move to shared tests.
 
-### 6. Improve Quick Start Code Structure
+### 6. Improve quick-start code structure
 
-`useQuickStartCode.ts` is already a good extraction. Improve it by separating pure generation from Vue side effects:
+`useQuickStartCode.ts` is already heading in the right direction. The cleanup here is to separate pure generation from Vue side effects:
 
 - `src/services/quickStartCode.ts` for pure code generation from typed inputs.
 - Keep clipboard, toast, router, analytics, and dialog state in the composable.
 
 Acceptance criteria:
 
-- Code generation can be tested without mounting Vue components.
-- Existing eager/lazy quick start component tests stay focused on UI behavior.
+- Code generation is testable without mounting Vue components.
+- Existing quick-start tests stay focused on UI behaviour.
 - Required project detection uses typed datastore cache metadata.
 
-### 7. Tighten Tests And Tooling
+### 7. Tighten tests and tooling
 
-After the structural refactors, add or update tests around the newly extracted logic:
+Once the structural refactors are in, add or update tests around the extracted logic:
 
-- row normalization and DuckDB vector handling.
+- row normalisation and DuckDB vector handling.
 - filter matching and dynamic option pruning.
-- URL query parse/write behavior.
-- eager versus lazy strategy selection around the `5000` record threshold.
+- URL query parse/write behaviour.
+- eager vs lazy strategy selection around the `5000` record threshold.
 - datastore table cell rendering.
 
-Also consider adding ESLint in a later PR if the team wants stronger ongoing guardrails. TypeScript strictness is already enabled, so the first cleanup should lean on that before introducing another tool.
+It may also be worth adding ESLint later if we want stronger guardrails, but I would do the structural cleanup first and let existing TypeScript strictness pull its weight before adding more tooling.
 
-## Suggested Branch/PR Strategy
+## Suggested branch / PR strategy
 
-This work is best reviewed as several small PRs rather than one sweeping rewrite:
+This is much easier to review as a run of small PRs than as one giant heroic rewrite:
 
 1. Types-only extraction.
 2. Service and transform extraction from the store.
 3. Filter and URL composables.
 4. Datastore detail composable.
 5. Shared datastore table cell/modal extraction.
-6. Quick start code pure generator extraction.
+6. Quick-start code pure generator extraction.
 
-Each PR should preserve behavior and carry its own focused tests. That keeps review manageable and gives the team clean rollback points if an extraction exposes hidden coupling.
+Each PR should preserve behaviour and bring its own focused tests. That keeps review sane and gives us clean rollback points if one of the extractions turns out to be hiding a weird dependency.
 
-## First Implementation Slice
+## First implementation slice
 
-The safest first implementation PR would be:
+The safest first PR is probably:
 
 1. Add shared `src/types/catalog.ts`, `src/types/datastore.ts`, and `src/types/table.ts`.
 2. Move exported interfaces out of `catalogStore.ts`.
-3. Replace local duplicated column and filter map types in components.
+3. Replace duplicated local column and filter-map types in components.
 4. Run `npm run build` and the affected Vitest suites.
 
-This should produce meaningful clarity with low behavioral risk and sets up the later service/composable refactors.
+That should buy a useful chunk of clarity with fairly low behavioural risk, and it sets up the later service/composable work cleanly.
