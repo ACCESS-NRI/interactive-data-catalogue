@@ -4,6 +4,12 @@ import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { capture } from './usePosthog';
 import type { FilterMap, FilterOptions } from '../types/datastore';
+import {
+  buildQuickStartCode,
+  getRequiredProjects,
+  hasActiveQuickStartFilters,
+  shouldShowQuickStartCellMethodsWarning,
+} from '../services/quickStartCode';
 
 /**
  * Shared composable for the QuickStartCode components (Eager and Lazy).
@@ -46,6 +52,7 @@ export function useQuickStartCode(
 
   /** Conservative legacy-safe URL length limit (IE). */
   const MAX_URL_LENGTH = 2083;
+  const catalogStore = useCatalogStore();
 
   const showLongUrlDialog = ref(false);
   const pendingLongUrl = ref('');
@@ -82,7 +89,7 @@ export function useQuickStartCode(
    * non-empty array.
    */
   const hasActiveFilters = computed(() => {
-    return Object.values(currentFilters.value).some((value) => value && value.length > 0);
+    return hasActiveQuickStartFilters(currentFilters.value);
   });
 
   /**
@@ -93,16 +100,7 @@ export function useQuickStartCode(
    * datastore entry in the catalog cache.
    */
   const requiredProjects = computed(() => {
-    const XP65 = 'xp65';
-    const projects = new Set<string>();
-    projects.add(XP65);
-
-    const cachedProject = useCatalogStore().getDatastoreFromCache(datastoreName.value)?.project ?? null;
-    if (cachedProject) {
-      projects.add(cachedProject);
-    }
-
-    return Array.from(projects).sort();
+    return getRequiredProjects(catalogStore.getDatastoreFromCache(datastoreName.value));
   });
 
   /**
@@ -115,14 +113,12 @@ export function useQuickStartCode(
    *    not already filtered by `temporal_label`).
    */
   const shouldShowCellMethodsWarning = computed((): boolean => {
-    if (!isXArrayMode.value) return false;
-    if (numDatasets.value !== 1) return false;
-
-    const hasFilteredTemporalLabels = (currentFilters.value['temporal_label']?.length ?? 0) > 0;
-    if (hasFilteredTemporalLabels) return false;
-
-    const temporalLabelOptions = dynamicFilterOptions.value['temporal_label'];
-    return !!(temporalLabelOptions && temporalLabelOptions.length > 1);
+    return shouldShowQuickStartCellMethodsWarning({
+      currentFilters: currentFilters.value,
+      dynamicFilterOptions: dynamicFilterOptions.value,
+      numDatasets: numDatasets.value,
+      isXArrayMode: isXArrayMode.value,
+    });
   });
 
   /**
@@ -132,49 +128,12 @@ export function useQuickStartCode(
    * optionally appends xarray/dask conversion calls.
    */
   const quickStartCode = computed(() => {
-    let code = `"""
-You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
-
-First we import intake and connect to a Dask cluster - we can then access the datastore.
-"""
-
-import intake
-from dask.distributed import Client
-
-client = Client(threads_per_worker=1)
-
-datastore = intake.cat.access_nri["${datastoreName.value}"]`;
-
-    if (hasActiveFilters.value) {
-      // intake-esm requires the `variable` filter to be applied last for correct
-      // variable filtering — sort all other columns first, then `variable`.
-      const entries = Object.entries(currentFilters.value);
-      const sortedEntries = [
-        ...entries.filter(([col]) => col !== 'variable'),
-        ...entries.filter(([col]) => col === 'variable'),
-      ];
-      for (const [column, values] of sortedEntries) {
-        if (values && values.length > 0) {
-          if (values.length === 1) {
-            code += `\ndatastore = datastore.search(${column}='${values[0]}')`;
-          } else {
-            code += `\ndatastore = datastore.search(${column}=${JSON.stringify(values)})`;
-          }
-        }
-      }
-    }
-
-    if (isXArrayMode.value) {
-      if (numDatasets.value > 1) {
-        code += `\n\n# Search contains ${numDatasets.value} datasets. This will generate a dataset dictionary: see https://intake-esm.readthedocs.io/en/stable/`;
-        code += `\n# To get to a single dataset, you will need to filter down to a single File ID.`;
-        code += `\ndataset_dict = datastore.to_dataset_dict()\ndataset_dict`;
-      } else {
-        code += `\ndataset = datastore.to_dask()\ndataset`;
-      }
-    }
-
-    return code;
+    return buildQuickStartCode({
+      datastoreName: datastoreName.value,
+      currentFilters: currentFilters.value,
+      numDatasets: numDatasets.value,
+      isXArrayMode: isXArrayMode.value,
+    });
   });
 
   /** Copy the current quick-start code to the clipboard. */
