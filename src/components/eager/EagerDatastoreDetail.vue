@@ -122,7 +122,12 @@ const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 
-const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(route, router, currentFilters, 'DatastoreDetail');
+const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
+  route,
+  router,
+  currentFilters,
+  'DatastoreDetail',
+);
 const {
   datastoreName,
   loading,
