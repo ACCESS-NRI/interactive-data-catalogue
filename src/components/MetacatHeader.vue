@@ -37,16 +37,27 @@
                 'flex items-center gap-2 px-2.5 py-1 rounded-md text-xs border',
                 appVersion.endsWith('.dirty')
                   ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700'
-                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600',
               ]"
               @mouseenter="showCommitPopover"
               @mouseleave="scheduleHidePopover"
             >
               <i
                 class="pi pi-github text-sm"
-                :class="appVersion.endsWith('.dirty') ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'"
+                :class="
+                  appVersion.endsWith('.dirty')
+                    ? 'text-amber-700 dark:text-amber-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                "
               ></i>
-              <span :class="appVersion.endsWith('.dirty') ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'">{{ appVersion }}</span>
+              <span
+                :class="
+                  appVersion.endsWith('.dirty')
+                    ? 'text-amber-700 dark:text-amber-300'
+                    : 'text-gray-500 dark:text-gray-400'
+                "
+                >{{ appVersion }}</span
+              >
             </span>
             <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
               <div class="p-3 max-w-md">
