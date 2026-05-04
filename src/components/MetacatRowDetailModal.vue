@@ -157,7 +157,7 @@ import Button from 'primevue/button';
 import TagList from './TagList.vue';
 import YamlTree from './YamlTree.vue';
 import { load as loadYaml } from 'js-yaml';
-import type { CatalogRow } from '../stores/catalogStore';
+import type { CatalogRow } from '../types/catalog';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import { usePostHog } from '../composables/usePosthog';

@@ -171,12 +171,14 @@ import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import { capture } from '../../composables/usePosthog';
+import type { DatastoreRow } from '../../types/datastore';
+import type { TableColumn } from '../../types/table';
 
 const props = defineProps<{
-  filteredData: any[];
+  filteredData: DatastoreRow[];
   tableLoading: boolean;
-  selectedColumns: Array<{ field: string; header: string }>;
-  availableColumns: Array<{ field: string; header: string }>;
+  selectedColumns: TableColumn[];
+  availableColumns: TableColumn[];
   columns: string[];
   datastoreName: string;
 }>();

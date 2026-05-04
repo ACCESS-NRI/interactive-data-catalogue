@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useCatalogStore } from '../catalogStore';
-import type { CatalogRow, DatastoreCache } from '../catalogStore';
+import type { CatalogRow } from '../../types/catalog';
+import type { DatastoreCache } from '../../types/datastore';
 
 // Mock DuckDB module
 vi.mock('@duckdb/duckdb-wasm', () => ({

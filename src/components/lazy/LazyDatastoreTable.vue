@@ -170,19 +170,13 @@ import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
 import { trackingServicesBaseUrl } from '../../stores/catalogStore';
 import { capture } from '../../composables/usePosthog';
-
-type PageEvent = {
-  page: number;
-  first: number;
-  rows: number;
-  pageCount: number;
-};
+import type { TableColumn, PageEvent } from '../../types/table';
 
 const props = defineProps<{
   tableLoading: boolean;
   filters: Record<string, string[]>;
-  selectedColumns: Array<{ field: string; header: string }>;
-  availableColumns: Array<{ field: string; header: string }>;
+  selectedColumns: TableColumn[];
+  availableColumns: TableColumn[];
   columns: string[];
   datastoreName: string;
 }>();
