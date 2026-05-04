@@ -106,39 +106,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useCatalogStore } from '../../stores/catalogStore';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import LazyQuickStartCode from './LazyQuickStartCode.vue';
 import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
+import { useDatastoreDetail } from '../../composables/useDatastoreDetail';
 import { useFilterState } from '../../composables/useFilterState';
 import { useFilterUrlSync } from '../../composables/useFilterUrlSync';
 import { useBufferedDynamicFilterOptions } from '../../composables/useBufferedDynamicFilterOptions';
-import type { FilterOptions } from '../../types/datastore';
-import type { TableColumn } from '../../types/table';
 
 const route = useRoute();
 const router = useRouter();
-const catalogStore = useCatalogStore();
-
-const datastoreName = computed(() => route.params.name as string);
-const loading = ref(false);
-const tableLoading = ref(false);
-const error = ref<string | null>(null);
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 
-const availableColumns = ref<TableColumn[]>([]);
-const selectedColumns = ref<TableColumn[]>([]);
-
-const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
-const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
-const columns = computed(() => cachedDatastore.value?.columns || []);
-const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
+const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(route, router, currentFilters, 'DatastoreDetail');
 const bufferedDynamicFilterOptions = useBufferedDynamicFilterOptions();
 const {
   dynamicFilterOptions,
@@ -148,114 +134,39 @@ const {
   resetBufferedDynamicFilterOptions,
 } = bufferedDynamicFilterOptions;
 
+const {
+  datastoreName,
+  loading,
+  tableLoading,
+  error,
+  availableColumns,
+  selectedColumns,
+  totalRecords,
+  columns,
+  filterOptions,
+  loadDatastore,
+} = useDatastoreDetail({
+  loadingStrategy: 'lazy',
+  isCacheReady: (cache) => cache.columns.length > 0,
+  initializeFiltersFromUrl,
+  stopFilterWatcher,
+  onCacheReady: (cache) => {
+    dynamicFilterOptions.value = cache.filterOptions;
+  },
+  onUnmount: () => {
+    resetBufferedDynamicFilterOptions();
+  },
+});
+
 defineExpose({
   openDropdowns: bufferedDynamicFilterOptions.openDropdowns,
   pendingFilterUpdates: bufferedDynamicFilterOptions.pendingFilterUpdates,
 });
 
-const formatColumnName = (c: string) =>
-  c
-    .split('_')
-    .map((w) => {
-      const s = w || '';
-      return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : '';
-    })
-    .join(' ');
-
-/* Setup available and selected columns based on datastore columns. Exclude useless
- * columns like 'path' and 'filename'
- */
-const setupColumns = (dataColumns: string[]) => {
-  dataColumns = dataColumns.filter((col) => col !== 'path' && col !== 'filename');
-  availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
-  selectedColumns.value = [...availableColumns.value];
-};
-
-const loadDatastore = async () => {
-  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.columns.length > 0) {
-    setupColumns(existingCache.columns);
-    // Initialize dynamic filter options with static options until API updates them
-    dynamicFilterOptions.value = existingCache.filterOptions;
-    loading.value = false;
-    tableLoading.value = false;
-    capture('datastore_detail_viewed', {
-      datastore_name: datastoreName.value,
-      loading_strategy: 'lazy',
-      record_count: existingCache.totalRecords,
-    });
-    return;
-  }
-  loading.value = true;
-  tableLoading.value = true;
-  error.value = null;
-  try {
-    const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
-    if (datastoreCache.columns.length > 0) {
-      setupColumns(datastoreCache.columns);
-      // Initialize dynamic filter options with static options until API updates them
-      dynamicFilterOptions.value = datastoreCache.filterOptions;
-    }
-    capture('datastore_detail_viewed', {
-      datastore_name: datastoreName.value,
-      loading_strategy: 'lazy',
-      record_count: datastoreCache.totalRecords,
-    });
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load datastore';
-  } finally {
-    loading.value = false;
-    tableLoading.value = false;
-  }
-};
-
-const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
-  route,
-  router,
-  currentFilters,
-  'DatastoreDetail',
-);
-
 const handleClearFilters = () => {
   clearFilters();
   capture('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
-
-const cleanup = () => {
-  catalogStore.clearDatastoreCache(datastoreName.value);
-};
-
-onMounted(() => {
-  initializeFiltersFromUrl();
-  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.columns.length > 0) {
-    setupColumns(existingCache.columns);
-    // Initialize dynamic filter options with static options until API updates them
-    dynamicFilterOptions.value = existingCache.filterOptions;
-    loading.value = false;
-    tableLoading.value = false;
-  } else {
-    loadDatastore();
-  }
-});
-
-const stopWatcher = watch(
-  () => route.params.name,
-  (newName, oldName) => {
-    if (oldName && newName !== oldName) catalogStore.clearDatastoreCache(oldName as string);
-    if (newName) {
-      initializeFiltersFromUrl();
-      loadDatastore();
-    }
-  },
-);
-
-onUnmounted(() => {
-  resetBufferedDynamicFilterOptions();
-  cleanup();
-  stopWatcher();
-  stopFilterWatcher();
-});
 </script>
 
 <style scoped>
