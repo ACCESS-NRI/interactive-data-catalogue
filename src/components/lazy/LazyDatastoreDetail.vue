@@ -115,6 +115,8 @@ import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
+import type { FilterMap, FilterOptions } from '../../types/datastore';
+import type { TableColumn } from '../../types/table';
 
 const route = useRoute();
 const router = useRouter();
@@ -124,22 +126,22 @@ const datastoreName = computed(() => route.params.name as string);
 const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
-const currentFilters = ref<Record<string, string[]>>({});
+const currentFilters = ref<FilterMap>({});
 const numDatasets = ref(0);
 
-const availableColumns = ref<{ field: string; header: string }[]>([]);
-const selectedColumns = ref<{ field: string; header: string }[]>([]);
+const availableColumns = ref<TableColumn[]>([]);
+const selectedColumns = ref<TableColumn[]>([]);
 
 const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
 const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
 const columns = computed(() => cachedDatastore.value?.columns || []);
 const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
-const dynamicFilterOptions = ref<Record<string, string[]>>({});
+const dynamicFilterOptions = ref<FilterOptions>({});
 
 // Track open dropdowns to buffer filter option updates
 // This prevents options from being disabled while user is actively selecting multiple values
 const openDropdowns = ref<Set<string>>(new Set());
-const pendingFilterUpdates = ref<Record<string, string[]>>({});
+const pendingFilterUpdates = ref<FilterOptions>({});
 
 const formatColumnName = (c: string) =>
   c
@@ -161,9 +163,9 @@ const setupColumns = (dataColumns: string[]) => {
 
 // Handler to receive dynamic filter options from the API via DatastoreTable
 // Buffers updates for open dropdowns to prevent options from being disabled during multi-select
-const handleDynamicFilterOptionsUpdate = (options: Record<string, string[]>) => {
-  const updates: Record<string, string[]> = {};
-  const buffered: Record<string, string[]> = {};
+const handleDynamicFilterOptionsUpdate = (options: FilterOptions) => {
+  const updates: FilterOptions = {};
+  const buffered: FilterOptions = {};
 
   for (const [column, values] of Object.entries(options)) {
     if (openDropdowns.value.has(column)) {
@@ -246,7 +248,7 @@ const loadDatastore = async () => {
 };
 
 const initializeFiltersFromUrl = () => {
-  const filters: Record<string, string[]> = {};
+  const filters: FilterMap = {};
   for (const [key, value] of Object.entries(route.query)) {
     if (key.endsWith('_filter') && typeof value === 'string') {
       const column = key.replace('_filter', '');

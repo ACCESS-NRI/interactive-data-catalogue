@@ -37,17 +37,18 @@ import MultiSelect from 'primevue/multiselect';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import { usePostHog } from '../composables/usePosthog';
+import type { FilterMap, FilterOptions } from '../types/datastore';
 
 interface Props {
-  filterOptions: Record<string, string[]>;
-  modelValue: Record<string, string[]>;
-  dynamicFilterOptions: Record<string, string[]>;
+  filterOptions: FilterOptions;
+  modelValue: FilterMap;
+  dynamicFilterOptions: FilterOptions;
   toast: boolean;
   analyticsContext?: 'catalogue' | 'datastore';
 }
 
 interface Emits {
-  (e: 'update:modelValue', value: Record<string, string[]>): void;
+  (e: 'update:modelValue', value: FilterMap): void;
   (e: 'clear'): void;
   (e: 'dropdown-opened', column: string): void;
   (e: 'dropdown-closed', column: string): void;

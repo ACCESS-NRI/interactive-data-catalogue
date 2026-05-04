@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import FilterSelectors from '../FilterSelectors.vue';
+import type { FilterMap } from '../../types/datastore';
 import MultiSelect from 'primevue/multiselect';
 import Button from 'primevue/button';
 import PrimeVue from 'primevue/config';
@@ -133,7 +134,7 @@ describe('FilterSelectors', () => {
     multiSelect.vm.$emit('update:model-value', ['proj1', 'proj2']);
 
     expect(wrapper.emitted('update:modelValue')).toBeTruthy();
-    const emittedValue = wrapper.emitted('update:modelValue')?.[0]?.[0] as Record<string, string[]>;
+    const emittedValue = wrapper.emitted('update:modelValue')?.[0]?.[0] as FilterMap;
     expect(emittedValue).toHaveProperty('project');
     expect(emittedValue.project).toEqual(['proj1', 'proj2']);
   });
@@ -154,7 +155,7 @@ describe('FilterSelectors', () => {
       variableFilter.vm.$emit('update:model-value', ['var1']);
     }
 
-    const emittedValue = wrapper.emitted('update:modelValue')?.[0]?.[0] as Record<string, string[]>;
+    const emittedValue = wrapper.emitted('update:modelValue')?.[0]?.[0] as FilterMap;
     expect(emittedValue).toEqual({
       project: ['proj1'],
       experiment: ['exp1'],

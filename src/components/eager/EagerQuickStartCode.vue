@@ -79,12 +79,13 @@ import MultipleCellMethodsWarning from '../MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
 import { useQuickStartCode } from '../../composables/useQuickStartCode';
 import 'highlight.js/lib/common';
+import type { DatastoreRow, FilterMap, FilterOptions } from '../../types/datastore';
 
 const props = defineProps<{
   datastoreName: string;
-  currentFilters: Record<string, string[]>;
-  rawData: any[];
-  dynamicFilterOptions: Record<string, string[]>;
+  currentFilters: FilterMap;
+  rawData: DatastoreRow[];
+  dynamicFilterOptions: FilterOptions;
   source?: 'builtin' | 'personal';
 }>();
 
@@ -94,7 +95,8 @@ const props = defineProps<{
 const numDatasets = computed(() => {
   const fileIds = new Set<string>();
   props.rawData.forEach((row) => {
-    if (row['file_id']) fileIds.add(row['file_id']);
+    const fileId = row['file_id'];
+    if (fileId != null) fileIds.add(String(fileId));
   });
   return fileIds.size;
 });

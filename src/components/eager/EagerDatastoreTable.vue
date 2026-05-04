@@ -171,12 +171,14 @@ import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import { capture } from '../../composables/usePosthog';
+import type { DatastoreCellValue, DatastoreRow } from '../../types/datastore';
+import type { TableColumn } from '../../types/table';
 
 const props = defineProps<{
-  filteredData: any[];
+  filteredData: DatastoreRow[];
   tableLoading: boolean;
-  selectedColumns: Array<{ field: string; header: string }>;
-  availableColumns: Array<{ field: string; header: string }>;
+  selectedColumns: TableColumn[];
+  availableColumns: TableColumn[];
   columns: string[];
   datastoreName: string;
 }>();
@@ -191,12 +193,12 @@ const toggleTable = () => {
   capture('datastore_table_toggled', { datastore_name: props.datastoreName, visible: showTable.value });
 };
 
-const onColumnToggle = (value: any[]) => {
+const onColumnToggle = (value: TableColumn[]) => {
   emit('update:selectedColumns', value);
   capture('table_columns_changed', {
     context: 'datastore',
     datastore_name: props.datastoreName,
-    visible_columns: value.map((c: { field: string }) => c.field),
+    visible_columns: value.map((c) => c.field),
   });
 };
 
@@ -212,9 +214,9 @@ const onTablePage = (event: { page: number; rows: number }) => {
 // Modal state for showing full array/field contents
 const showDataStoreEntryModal = ref(false);
 const modalTitle = ref('');
-const modalItems = ref<any>([]);
+const modalItems = ref<DatastoreCellValue[]>([]);
 
-const openDatastoreEntryModal = (title: string, items: any) => {
+const openDatastoreEntryModal = (title: string, items: DatastoreCellValue | DatastoreCellValue[]) => {
   modalTitle.value = title || 'Details';
   modalItems.value = Array.isArray(items) ? items : [items];
   showDataStoreEntryModal.value = true;
