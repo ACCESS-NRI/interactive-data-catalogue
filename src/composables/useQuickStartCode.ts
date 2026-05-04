@@ -3,6 +3,7 @@ import { useCatalogStore } from '../stores/catalogStore';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { capture } from './usePosthog';
+import type { FilterMap, FilterOptions } from '../types/datastore';
 
 /**
  * Shared composable for the QuickStartCode components (Eager and Lazy).
@@ -22,8 +23,8 @@ import { capture } from './usePosthog';
  */
 export function useQuickStartCode(
   datastoreName: Ref<string>,
-  currentFilters: Ref<Record<string, string[]>>,
-  dynamicFilterOptions: Ref<Record<string, string[]>>,
+  currentFilters: Ref<FilterMap>,
+  dynamicFilterOptions: Ref<FilterOptions>,
   numDatasets: Ref<number>,
 ) {
   const router = useRouter();

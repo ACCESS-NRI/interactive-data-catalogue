@@ -3,66 +3,8 @@ import { ref, computed } from 'vue';
 import * as duckdb from '@duckdb/duckdb-wasm';
 import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
 import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
-
-type OptionalProject = string | null;
-/**
- * A single normalized catalog row returned by querying the metacatalog
- * parquet file. All list-like fields are represented as arrays of strings
- * for consistent consumption by the UI.
- */
-export interface CatalogRow {
-  /** Display name or unique identifier for the catalog entry. */
-  name: string;
-  /** One or more model identifiers associated with this entry. */
-  model: string[];
-  /** Human-readable description of the entry. */
-  description: string;
-  /** One or more realms where this entry is applicable. */
-  realm: string[];
-  /** One or more frequency tags associated with the entry. */
-  frequency: string[];
-  /** One or more variable names referenced by this entry. */
-  variable: string[];
-  /** Optional YAML configuration payload attached to the entry (if any). */
-  yaml?: string;
-  /**
-   * Precomputed searchable strings created from list fields. These make
-   * client-side global search faster and simpler.
-   */
-  searchableModel?: string;
-  searchableRealm?: string;
-  searchableFrequency?: string;
-  searchableVariable?: string;
-}
-
-/**
- * Cached representation of an ESM datastore loaded from a parquet file.
- * The store keeps one cache entry per datastore name so components can
- * reuse previously-loaded data without re-downloading or re-parsing.
- */
-export interface DatastoreCache {
-  /** Raw transformed rows for use in tables and filters. */
-  data: any[];
-  /** Number of records in `data`. */
-  totalRecords: number;
-  /** Column names available for display in tables. */
-  columns: string[];
-  /** Precomputed filter options for each column (unique sorted values). */
-  filterOptions: Record<string, string[]>;
-  /** Whether this cache entry is currently loading. */
-  loading: boolean;
-  /** Any error message encountered while loading this datastore. */
-  error: string | null;
-  /** Timestamp when the datastore was last fetched. */
-  lastFetched: Date;
-  project?: OptionalProject;
-}
-
-interface DatastoreRow {
-  [key: string]: string | string[] | null;
-}
-
-type FilterOptions = Record<string, string[]>;
+import type { CatalogRow } from '../types/catalog';
+import type { DatastoreCache, DatastoreRow, FilterOptions } from '../types/datastore';
 
 export const trackingServicesBaseUrl =
   process.env.NODE_ENV === 'production'
@@ -348,7 +290,7 @@ export const useCatalogStore = defineStore('catalog', () => {
    * @param uint8Array - Bytes of the datastore parquet
    * @param datastoreName - Logical name used to register the buffer
    */
-  async function getEsmDatastoreProject(datastoreName: string): Promise<OptionalProject> {
+  async function getEsmDatastoreProject(datastoreName: string): Promise<string | null> {
     const endpoint = `${trackingServicesBaseUrl}intake/table/datastore-project/${datastoreName}`;
     return fetch(endpoint)
       .then((response) => {

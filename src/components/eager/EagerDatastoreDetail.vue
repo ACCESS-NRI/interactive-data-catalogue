@@ -112,6 +112,8 @@ import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
+import type { DatastoreRow, FilterMap, FilterOptions } from '../../types/datastore';
+import type { TableColumn } from '../../types/table';
 
 const route = useRoute();
 const router = useRouter();
@@ -121,11 +123,11 @@ const datastoreName = computed(() => route.params.name as string);
 const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
-const currentFilters = ref<Record<string, string[]>>({});
+const currentFilters = ref<FilterMap>({});
 const numDatasets = ref(0);
 
-const availableColumns = ref<{ field: string; header: string }[]>([]);
-const selectedColumns = ref<{ field: string; header: string }[]>([]);
+const availableColumns = ref<TableColumn[]>([]);
+const selectedColumns = ref<TableColumn[]>([]);
 
 const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
 const rawData = computed(() => cachedDatastore.value?.data || []);
@@ -153,11 +155,11 @@ const filteredData = computed(() => {
   let data = rawData.value;
   for (const [column, filterValues] of Object.entries(currentFilters.value)) {
     if (filterValues && filterValues.length > 0) {
-      data = data.filter((row: Record<string, any>) => {
+      data = data.filter((row: DatastoreRow) => {
         const cellValue = row[column];
         return filterValues.some((fv) => {
           if (Array.isArray(cellValue))
-            return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+            return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
           return String(cellValue || '')
             .toLowerCase()
             .includes(fv.toLowerCase());
@@ -169,7 +171,7 @@ const filteredData = computed(() => {
 });
 
 const dynamicFilterOptions = computed(() => {
-  const result: Record<string, string[]> = {};
+  const result: FilterOptions = {};
 
   for (const [column, allOptions] of Object.entries(filterOptions.value)) {
     let availableData = rawData.value;
@@ -177,11 +179,11 @@ const dynamicFilterOptions = computed(() => {
     // Apply all OTHER active filters (not the current column)
     for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
       if (filterColumn !== column && filterValues && filterValues.length > 0) {
-        availableData = availableData.filter((row: Record<string, any>) => {
+        availableData = availableData.filter((row: DatastoreRow) => {
           const cellValue = row[filterColumn];
           return filterValues.some((fv) => {
             if (Array.isArray(cellValue))
-              return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+              return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
             return String(cellValue || '')
               .toLowerCase()
               .includes(fv.toLowerCase());
@@ -195,7 +197,7 @@ const dynamicFilterOptions = computed(() => {
     for (const row of availableData) {
       const cellValue = row[column];
       if (Array.isArray(cellValue)) {
-        cellValue.forEach((val: any) => validOptions.add(String(val)));
+        cellValue.forEach((val) => validOptions.add(String(val)));
       } else if (cellValue !== null && cellValue !== undefined) {
         validOptions.add(String(cellValue));
       }
@@ -240,7 +242,7 @@ const loadDatastore = async () => {
 };
 
 const initializeFiltersFromUrl = () => {
-  const filters: Record<string, string[]> = {};
+  const filters: FilterMap = {};
   for (const [key, value] of Object.entries(route.query)) {
     if (key.endsWith('_filter') && typeof value === 'string') {
       const column = key.replace('_filter', '');

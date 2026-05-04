@@ -3,7 +3,8 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createWebHistory } from 'vue-router';
 import DatastoreDetail from '../DatastoreDetail.vue';
-import { useCatalogStore, type DatastoreCache } from '../../stores/catalogStore';
+import { useCatalogStore } from '../../stores/catalogStore';
+import type { DatastoreCache } from '../../types/datastore';
 import LazyDatastoreDetail from '../lazy/LazyDatastoreDetail.vue';
 import EagerDatastoreDetail from '../eager/EagerDatastoreDetail.vue';
 
