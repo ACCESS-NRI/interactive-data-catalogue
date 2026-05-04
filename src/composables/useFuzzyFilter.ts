@@ -47,3 +47,23 @@ export function useFuzzyFilter() {
 
   return { getSortedOptions };
 }
+
+/**
+ * Returns true if `searchTerm` (space-separated OR semantics) fuzzy-matches
+ * any string in `haystack`. Intended for per-row global search filtering.
+ *
+ * @param haystack - Array of strings to search within (e.g. row field values).
+ * @param searchTerm - The search string, optionally space-separated for OR.
+ */
+export function fuzzyMatchesSearch(haystack: string[], searchTerm: string): boolean {
+  const terms = searchTerm
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
+  if (terms.length === 0) return true;
+
+  return terms.some((term) => {
+    const idxs = uf.filter(haystack, term);
+    return idxs !== null && idxs.length > 0;
+  });
+}
