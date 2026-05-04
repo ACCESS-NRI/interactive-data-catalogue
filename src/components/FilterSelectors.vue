@@ -133,7 +133,10 @@ const getSortedOptions = (fallbackOptions: string[], searchTerm?: string): strin
   if (!searchTerm?.trim()) return fallbackOptions;
 
   // Split on whitespace for OR semantics: "uvel vvel" surfaces both independently
-  const terms = searchTerm.trim().split(/\s+/).filter((t) => t.length > 0);
+  const terms = searchTerm
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
 
   const matched = new Set<number>();
   for (const term of terms) {
