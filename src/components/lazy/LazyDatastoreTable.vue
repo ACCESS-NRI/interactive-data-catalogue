@@ -168,7 +168,7 @@ import { ref, computed, watch } from 'vue';
 import { useFetch } from '@vueuse/core';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
-import { trackingServicesBaseUrl } from '../../stores/catalogStore';
+import { buildEsmDatastoreTableUrl } from '../../config/catalogEndpoints';
 import { capture } from '../../composables/usePosthog';
 import type { DatastoreCellValue, FilterMap, PagedDatastoreResponse } from '../../types/datastore';
 import type { TableColumn } from '../../types/table';
@@ -206,7 +206,7 @@ const url = computed(() => {
     params.append('sortOrder', String(sortOrder.value));
   }
 
-  const endpoint = `${trackingServicesBaseUrl}intake/table/esm-datastore/${props.datastoreName}?${params.toString()}`;
+  const endpoint = buildEsmDatastoreTableUrl(props.datastoreName, params.toString());
 
   console.log('Fetching data from URL: ', endpoint);
 
