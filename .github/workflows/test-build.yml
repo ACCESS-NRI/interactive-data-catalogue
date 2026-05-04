@@ -26,8 +26,15 @@ jobs:
       - name: Lint formatting with Prettier
         run: npm run format:check
 
-      - name: Run tests
-        run: npm test -- --run
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --run
+
+      - name: Upload code coverage
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/cobertura-coverage.xml
+          fail_ci_if_error: false
 
       - name: Build project (includes type checking)
         run: NODE_ENV=production npm run build
