@@ -84,7 +84,7 @@
           v-model="currentFilters"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
-          @clear="clearFilters"
+          @clear="handleClearFilters"
           :toast="true"
           analytics-context="datastore"
         />
@@ -112,7 +112,10 @@ import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
-import type { DatastoreRow, FilterMap, FilterOptions } from '../../types/datastore';
+import { useFilterState } from '../../composables/useFilterState';
+import { useFilterUrlSync } from '../../composables/useFilterUrlSync';
+import { filterRowsBySelectedFilters, useDynamicFilterOptions } from '../../composables/useDynamicFilterOptions';
+import type { DatastoreRow } from '../../types/datastore';
 import type { TableColumn } from '../../types/table';
 
 const route = useRoute();
@@ -123,7 +126,7 @@ const datastoreName = computed(() => route.params.name as string);
 const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
-const currentFilters = ref<FilterMap>({});
+const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 
 const availableColumns = ref<TableColumn[]>([]);
@@ -151,63 +154,9 @@ const setupColumns = (dataColumns: string[]) => {
   selectedColumns.value = selectedColumns.value.filter((col) => col.field !== 'path' && col.field !== 'filename');
 };
 
-const filteredData = computed(() => {
-  let data = rawData.value;
-  for (const [column, filterValues] of Object.entries(currentFilters.value)) {
-    if (filterValues && filterValues.length > 0) {
-      data = data.filter((row: DatastoreRow) => {
-        const cellValue = row[column];
-        return filterValues.some((fv) => {
-          if (Array.isArray(cellValue))
-            return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
-          return String(cellValue || '')
-            .toLowerCase()
-            .includes(fv.toLowerCase());
-        });
-      });
-    }
-  }
-  return data;
-});
+const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));
 
-const dynamicFilterOptions = computed(() => {
-  const result: FilterOptions = {};
-
-  for (const [column, allOptions] of Object.entries(filterOptions.value)) {
-    let availableData = rawData.value;
-
-    // Apply all OTHER active filters (not the current column)
-    for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
-      if (filterColumn !== column && filterValues && filterValues.length > 0) {
-        availableData = availableData.filter((row: DatastoreRow) => {
-          const cellValue = row[filterColumn];
-          return filterValues.some((fv) => {
-            if (Array.isArray(cellValue))
-              return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
-            return String(cellValue || '')
-              .toLowerCase()
-              .includes(fv.toLowerCase());
-          });
-        });
-      }
-    }
-
-    // Find which options from this column exist in the filtered data
-    const validOptions = new Set<string>();
-    for (const row of availableData) {
-      const cellValue = row[column];
-      if (Array.isArray(cellValue)) {
-        cellValue.forEach((val) => validOptions.add(String(val)));
-      } else if (cellValue !== null && cellValue !== undefined) {
-        validOptions.add(String(cellValue));
-      }
-    }
-
-    result[column] = allOptions.filter((option) => validOptions.has(option));
-  }
-
-  return result;
-});
+const dynamicFilterOptions = useDynamicFilterOptions(rawData, filterOptions, currentFilters);
 
 const loadDatastore = async () => {
   const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
@@ -241,27 +190,15 @@ const loadDatastore = async () => {
   }
 };
 
-const initializeFiltersFromUrl = () => {
-  const filters: FilterMap = {};
-  for (const [key, value] of Object.entries(route.query)) {
-    if (key.endsWith('_filter') && typeof value === 'string') {
-      const column = key.replace('_filter', '');
-      filters[column] = value.split(',').filter((v) => v.trim());
-    }
-  }
-  currentFilters.value = filters;
-};
+const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
+  route,
+  router,
+  currentFilters,
+  'DatastoreDetail',
+);
 
-const updateUrlWithFilters = () => {
-  const query: Record<string, string> = {};
-  for (const [column, values] of Object.entries(currentFilters.value)) {
-    if (values && values.length > 0) query[`${column}_filter`] = values.join(',');
-  }
-  router.replace({ name: route.name || 'DatastoreDetail', params: route.params, query });
-};
-
-const clearFilters = () => {
-  currentFilters.value = {};
+const handleClearFilters = () => {
+  clearFilters();
   capture('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
 
@@ -291,8 +228,6 @@ const stopWatcher = watch(
     }
   },
 );
-
-const stopFilterWatcher = watch(currentFilters, () => updateUrlWithFilters(), { deep: true });
 
 onUnmounted(() => {
   cleanup();

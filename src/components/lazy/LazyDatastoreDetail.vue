@@ -83,7 +83,7 @@
           v-model="currentFilters"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
-          @clear="clearFilters"
+          @clear="handleClearFilters"
           @dropdown-opened="handleDropdownOpened"
           @dropdown-closed="handleDropdownClosed"
           :toast="true"
@@ -115,7 +115,10 @@ import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
-import type { FilterMap, FilterOptions } from '../../types/datastore';
+import { useFilterState } from '../../composables/useFilterState';
+import { useFilterUrlSync } from '../../composables/useFilterUrlSync';
+import { useBufferedDynamicFilterOptions } from '../../composables/useBufferedDynamicFilterOptions';
+import type { FilterOptions } from '../../types/datastore';
 import type { TableColumn } from '../../types/table';
 
 const route = useRoute();
@@ -126,7 +129,7 @@ const datastoreName = computed(() => route.params.name as string);
 const loading = ref(false);
 const tableLoading = ref(false);
 const error = ref<string | null>(null);
-const currentFilters = ref<FilterMap>({});
+const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 
 const availableColumns = ref<TableColumn[]>([]);
@@ -136,12 +139,19 @@ const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datast
 const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
 const columns = computed(() => cachedDatastore.value?.columns || []);
 const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
-const dynamicFilterOptions = ref<FilterOptions>({});
+const bufferedDynamicFilterOptions = useBufferedDynamicFilterOptions();
+const {
+  dynamicFilterOptions,
+  handleDynamicFilterOptionsUpdate,
+  handleDropdownOpened,
+  handleDropdownClosed,
+  resetBufferedDynamicFilterOptions,
+} = bufferedDynamicFilterOptions;
 
-// Track open dropdowns to buffer filter option updates
-// This prevents options from being disabled while user is actively selecting multiple values
-const openDropdowns = ref<Set<string>>(new Set());
-const pendingFilterUpdates = ref<FilterOptions>({});
+defineExpose({
+  openDropdowns: bufferedDynamicFilterOptions.openDropdowns,
+  pendingFilterUpdates: bufferedDynamicFilterOptions.pendingFilterUpdates,
+});
 
 const formatColumnName = (c: string) =>
   c
@@ -159,54 +169,6 @@ const setupColumns = (dataColumns: string[]) => {
   dataColumns = dataColumns.filter((col) => col !== 'path' && col !== 'filename');
   availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
   selectedColumns.value = [...availableColumns.value];
-};
-
-// Handler to receive dynamic filter options from the API via DatastoreTable
-// Buffers updates for open dropdowns to prevent options from being disabled during multi-select
-const handleDynamicFilterOptionsUpdate = (options: FilterOptions) => {
-  const updates: FilterOptions = {};
-  const buffered: FilterOptions = {};
-
-  for (const [column, values] of Object.entries(options)) {
-    if (openDropdowns.value.has(column)) {
-      // Buffer updates for open dropdowns
-      buffered[column] = values;
-    } else {
-      // Apply immediately for closed dropdowns
-      updates[column] = values;
-    }
-  }
-
-  // Apply immediate updates
-  if (Object.keys(updates).length > 0) {
-    dynamicFilterOptions.value = {
-      ...dynamicFilterOptions.value,
-      ...updates,
-    };
-  }
-
-  // Store buffered updates
-  pendingFilterUpdates.value = {
-    ...pendingFilterUpdates.value,
-    ...buffered,
-  };
-};
-
-const handleDropdownOpened = (column: string) => {
-  openDropdowns.value.add(column);
-};
-
-const handleDropdownClosed = (column: string) => {
-  openDropdowns.value.delete(column);
-
-  // Apply any buffered updates for this column
-  if (pendingFilterUpdates.value[column]) {
-    dynamicFilterOptions.value = {
-      ...dynamicFilterOptions.value,
-      [column]: pendingFilterUpdates.value[column],
-    };
-    delete pendingFilterUpdates.value[column];
-  }
 };
 
 const loadDatastore = async () => {
@@ -247,27 +209,15 @@ const loadDatastore = async () => {
   }
 };
 
-const initializeFiltersFromUrl = () => {
-  const filters: FilterMap = {};
-  for (const [key, value] of Object.entries(route.query)) {
-    if (key.endsWith('_filter') && typeof value === 'string') {
-      const column = key.replace('_filter', '');
-      filters[column] = value.split(',').filter((v) => v.trim());
-    }
-  }
-  currentFilters.value = filters;
-};
+const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
+  route,
+  router,
+  currentFilters,
+  'DatastoreDetail',
+);
 
-const updateUrlWithFilters = () => {
-  const query: Record<string, string> = {};
-  for (const [column, values] of Object.entries(currentFilters.value)) {
-    if (values && values.length > 0) query[`${column}_filter`] = values.join(',');
-  }
-  router.replace({ name: route.name || 'DatastoreDetail', params: route.params, query });
-};
-
-const clearFilters = () => {
-  currentFilters.value = {};
+const handleClearFilters = () => {
+  clearFilters();
   capture('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
 
@@ -300,11 +250,8 @@ const stopWatcher = watch(
   },
 );
 
-const stopFilterWatcher = watch(currentFilters, () => updateUrlWithFilters(), { deep: true });
-
 onUnmounted(() => {
-  openDropdowns.value.clear();
-  pendingFilterUpdates.value = {};
+  resetBufferedDynamicFilterOptions();
   cleanup();
   stopWatcher();
   stopFilterWatcher();
