@@ -64,98 +64,12 @@
         :sortable="true"
       >
         <template #body="{ data }">
-          <div class="max-w-sm overflow-x-scroll">
-            <!-- Special formatting for different column types -->
-            <div v-if="column.field === 'variable' && Array.isArray(data[column.field])">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="variable in data[column.field].slice(0, 3)"
-                  :key="variable"
-                  class="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-sm font-medium"
-                >
-                  {{ variable }}
-                </span>
-                <span
-                  v-if="data[column.field].length > 3"
-                  @click.prevent.stop="openDatastoreEntryModal(column.header, data[column.field])"
-                  role="button"
-                  tabindex="0"
-                  class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs cursor-pointer hover:bg-gray-200"
-                >
-                  +{{ data[column.field].length - 3 }} more
-                </span>
-              </div>
-            </div>
-
-            <div v-else-if="column.field === 'variable_units' && Array.isArray(data[column.field])">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="unit in data[column.field].slice(0, 2)"
-                  :key="unit"
-                  class="px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 rounded text-xs"
-                >
-                  {{ unit }}
-                </span>
-                <span
-                  v-if="data[column.field].length > 2"
-                  @click.prevent.stop="openDatastoreEntryModal(column.header, data[column.field])"
-                  role="button"
-                  tabindex="0"
-                  class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs cursor-pointer hover:bg-gray-200"
-                >
-                  +{{ data[column.field].length - 2 }} more
-                </span>
-              </div>
-            </div>
-
-            <span
-              v-else-if="column.field === 'frequency'"
-              class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-xs font-medium"
-            >
-              {{ data[column.field] || '-' }}
-            </span>
-
-            <span
-              v-else-if="column.field === 'realm'"
-              class="px-2 py-1 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-xs font-medium"
-            >
-              {{ data[column.field] || '-' }}
-            </span>
-
-            <!-- Long text fields with truncation -->
-            <div
-              v-else-if="
-                column.field.includes('variable_long_name') ||
-                column.field.includes('variable_standard_name') ||
-                column.field.includes('variable_cell_methods')
-              "
-            >
-              <div v-if="Array.isArray(data[column.field])">
-                <div v-for="(item, index) in data[column.field].slice(0, 2)" :key="index" class="mb-1 text-sm">
-                  <span v-if="item && item.length > 40" :title="item" class="text-gray-700 dark:text-gray-300">
-                    {{ item.substring(0, 40) }}...
-                  </span>
-                  <span v-else class="text-gray-700 dark:text-gray-300">{{ item || '-' }}</span>
-                </div>
-                <span v-if="data[column.field].length > 2" class="text-xs text-gray-500">
-                  <span
-                    @click.prevent.stop="openDatastoreEntryModal(column.header, data[column.field])"
-                    role="button"
-                    tabindex="0"
-                    class="cursor-pointer text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    +{{ data[column.field].length - 2 }} more
-                  </span>
-                </span>
-              </div>
-              <span v-else class="text-gray-700 dark:text-gray-300">{{ data[column.field] || '-' }}</span>
-            </div>
-
-            <!-- Default formatting -->
-            <span v-else class="text-gray-900 dark:text-gray-100">
-              {{ data[column.field] || '-' }}
-            </span>
-          </div>
+          <DatastoreTableCell
+            :field="column.field"
+            :header="column.header"
+            :value="data[column.field]"
+            @open-modal="openDatastoreEntryModal"
+          />
         </template>
       </Column>
     </DataTable>
@@ -170,8 +84,10 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import { ref } from 'vue';
 import DatastoreEntryModal from '../DatastoreEntryModal.vue';
+import DatastoreTableCell from '../DatastoreTableCell.vue';
 import { capture } from '../../composables/usePosthog';
-import type { DatastoreCellValue, DatastoreRow } from '../../types/datastore';
+import { useDatastoreEntryModal } from '../../composables/useDatastoreEntryModal';
+import type { DatastoreRow } from '../../types/datastore';
 import type { TableColumn } from '../../types/table';
 
 const props = defineProps<{
@@ -211,16 +127,7 @@ const onTablePage = (event: { page: number; rows: number }) => {
   });
 };
 
-// Modal state for showing full array/field contents
-const showDataStoreEntryModal = ref(false);
-const modalTitle = ref('');
-const modalItems = ref<DatastoreCellValue[]>([]);
-
-const openDatastoreEntryModal = (title: string, items: DatastoreCellValue | DatastoreCellValue[]) => {
-  modalTitle.value = title || 'Details';
-  modalItems.value = Array.isArray(items) ? items : [items];
-  showDataStoreEntryModal.value = true;
-};
+const { showDataStoreEntryModal, modalTitle, modalItems, openDatastoreEntryModal } = useDatastoreEntryModal();
 </script>
 
 <style scoped></style>
