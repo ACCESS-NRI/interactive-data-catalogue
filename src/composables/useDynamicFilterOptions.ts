@@ -2,6 +2,17 @@ import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import type { FilterMap, FilterOptions } from '../types/datastore';
 
+/**
+ * Checks whether a row cell matches a single selected filter value.
+ *
+ * Array-valued cells are treated as matching when any element contains the selected value.
+ * Scalar cells are matched with the same case-insensitive substring behaviour used elsewhere
+ * in the catalogue filters.
+ *
+ * @param cellValue - The raw value from the row for a given column.
+ * @param filterValue - The selected filter value to match against.
+ * @returns `true` when the cell matches the selected value.
+ */
 function cellMatchesFilterValue(cellValue: unknown, filterValue: string): boolean {
   if (Array.isArray(cellValue)) {
     return cellValue.some((item) => String(item).toLowerCase().includes(filterValue.toLowerCase()));
@@ -12,6 +23,14 @@ function cellMatchesFilterValue(cellValue: unknown, filterValue: string): boolea
     .includes(filterValue.toLowerCase());
 }
 
+/**
+ * Applies the currently selected column filters to a row collection.
+ *
+ * @typeParam Row - The row shape being filtered.
+ * @param rows - Input rows to filter.
+ * @param currentFilters - Active filter selections keyed by column name.
+ * @returns A new array containing only rows that satisfy every active column filter.
+ */
 export function filterRowsBySelectedFilters<Row extends Record<string, unknown>>(
   rows: Row[],
   currentFilters: FilterMap,
@@ -30,6 +49,18 @@ export function filterRowsBySelectedFilters<Row extends Record<string, unknown>>
   return filteredRows;
 }
 
+/**
+ * Computes the currently available options for each filter column.
+ *
+ * For each column, this applies all active filters except that column's own selection, then
+ * keeps only the options still represented in the remaining rows.
+ *
+ * @typeParam Row - The row shape being inspected.
+ * @param rows - Source rows from which options should be derived.
+ * @param filterOptions - The full set of possible options for each column.
+ * @param currentFilters - Active filter selections keyed by column name.
+ * @returns A narrowed filter-options map representing only currently valid selections.
+ */
 export function buildDynamicFilterOptions<Row extends Record<string, unknown>>(
   rows: Row[],
   filterOptions: FilterOptions,
@@ -59,6 +90,15 @@ export function buildDynamicFilterOptions<Row extends Record<string, unknown>>(
   return result;
 }
 
+/**
+ * Exposes dynamic filter options as a computed value derived from rows and active filters.
+ *
+ * @typeParam Row - The row shape being inspected.
+ * @param rows - Reactive source rows.
+ * @param filterOptions - Reactive full option set for each filter column.
+ * @param currentFilters - Reactive active filter selections.
+ * @returns A computed filter-options map narrowed to the currently valid options.
+ */
 export function useDynamicFilterOptions<Row extends Record<string, unknown>>(
   rows: Ref<Row[]> | ComputedRef<Row[]>,
   filterOptions: Ref<FilterOptions> | ComputedRef<FilterOptions>,

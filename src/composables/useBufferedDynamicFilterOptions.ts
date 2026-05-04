@@ -2,6 +2,15 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 import type { FilterOptions } from '../types/datastore';
 
+/**
+ * Buffers dynamic filter-option updates while dropdowns are open.
+ *
+ * This prevents options from disappearing mid-selection when the lazy datastore table emits a
+ * newly narrowed option set after each incremental filter change.
+ *
+ * @param initialOptions - Initial filter options, usually the static options from datastore metadata.
+ * @returns Reactive option state, dropdown tracking, buffered updates, and lifecycle helpers.
+ */
 export function useBufferedDynamicFilterOptions(initialOptions: FilterOptions = {}): {
   dynamicFilterOptions: Ref<FilterOptions>;
   openDropdowns: Ref<Set<string>>;
