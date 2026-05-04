@@ -36,7 +36,11 @@ describe('useDynamicFilterOptions', () => {
 
   it('exposes the same behaviour through the composable', () => {
     const currentFilters = ref({ realm: ['atmos'] });
-    const dynamicFilterOptions = useDynamicFilterOptions(ref(rows), computed(() => filterOptions), currentFilters);
+    const dynamicFilterOptions = useDynamicFilterOptions(
+      ref(rows),
+      computed(() => filterOptions),
+      currentFilters,
+    );
 
     expect(dynamicFilterOptions.value.variable).toEqual(['tas', 'pr']);
     expect(dynamicFilterOptions.value.frequency).toEqual(['day', 'mon']);

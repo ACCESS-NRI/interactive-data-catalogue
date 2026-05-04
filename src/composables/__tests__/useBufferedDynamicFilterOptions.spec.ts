@@ -13,15 +13,11 @@ describe('useBufferedDynamicFilterOptions', () => {
   });
 
   it('buffers updates for open dropdowns until close', () => {
-    const {
-      dynamicFilterOptions,
-      handleDynamicFilterOptionsUpdate,
-      handleDropdownOpened,
-      handleDropdownClosed,
-    } = useBufferedDynamicFilterOptions({
-      frequency: ['day', 'mon', 'year'],
-      realm: ['atmos', 'ocean', 'land'],
-    });
+    const { dynamicFilterOptions, handleDynamicFilterOptionsUpdate, handleDropdownOpened, handleDropdownClosed } =
+      useBufferedDynamicFilterOptions({
+        frequency: ['day', 'mon', 'year'],
+        realm: ['atmos', 'ocean', 'land'],
+      });
 
     handleDropdownOpened('frequency');
     handleDynamicFilterOptionsUpdate({
