@@ -170,6 +170,8 @@ import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import type { DataTableSortEvent } from 'primevue/datatable';
 import { trackingServicesBaseUrl } from '../../stores/catalogStore';
 import { capture } from '../../composables/usePosthog';
+import type { DatastoreCellValue, FilterMap, PagedDatastoreResponse } from '../../types/datastore';
+import type { TableColumn } from '../../types/table';
 
 type PageEvent = {
   page: number;
@@ -180,9 +182,9 @@ type PageEvent = {
 
 const props = defineProps<{
   tableLoading: boolean;
-  filters: Record<string, string[]>;
-  selectedColumns: Array<{ field: string; header: string }>;
-  availableColumns: Array<{ field: string; header: string }>;
+  filters: FilterMap;
+  selectedColumns: TableColumn[];
+  availableColumns: TableColumn[];
   columns: string[];
   datastoreName: string;
 }>();
@@ -229,7 +231,7 @@ const offset = computed(() => Number((limit.value ?? 0) * page.value));
 
 // error is not used - but we will probably want to later!
 // @ts-expect-error
-const { isFetching, error, data } = useFetch(url, { refetch: true }).json();
+const { isFetching, error, data } = useFetch(url, { refetch: true }).json<PagedDatastoreResponse>();
 
 async function onPageChange(event: PageEvent) {
   page.value = event.page;
@@ -254,9 +256,9 @@ function onSort(event: DataTableSortEvent) {
 
 const showDataStoreEntryModal = ref(false);
 const modalTitle = ref('');
-const modalItems = ref<any>([]);
+const modalItems = ref<DatastoreCellValue[]>([]);
 
-const openDatastoreEntryModal = (title: string, items: any) => {
+const openDatastoreEntryModal = (title: string, items: DatastoreCellValue | DatastoreCellValue[]) => {
   modalTitle.value = title || 'Details';
   modalItems.value = Array.isArray(items) ? items : [items];
   showDataStoreEntryModal.value = true;
@@ -264,12 +266,12 @@ const openDatastoreEntryModal = (title: string, items: any) => {
 
 const emit = defineEmits(['update:selectedColumns', 'setNumDatasets', 'setDynamicFilterOptions']);
 
-const onColumnToggle = (value: any[]) => {
+const onColumnToggle = (value: TableColumn[]) => {
   emit('update:selectedColumns', value);
   capture('table_columns_changed', {
     context: 'datastore',
     datastore_name: props.datastoreName,
-    visible_columns: value.map((c: { field: string }) => c.field),
+    visible_columns: value.map((c) => c.field),
   });
 };
 

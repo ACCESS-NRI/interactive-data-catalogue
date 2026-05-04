@@ -258,6 +258,9 @@ import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
 import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
+import type { CatalogRow } from '../types/catalog';
+import type { FilterMap, FilterOptions } from '../types/datastore';
+import type { TableColumn } from '../types/table';
 
 /**
  * Catalog table uses the catalog store to fetch and display catalog entries.
@@ -282,7 +285,7 @@ const globalSearchValue = ref('');
  * Keys are column field names (model, realm, frequency, variable);
  * values are arrays of selected option strings.
  */
-const currentFilters = ref<Record<string, string[]>>({});
+const currentFilters = ref<FilterMap>({});
 
 /** Reset all column filters. */
 const clearFilters = () => {
@@ -318,11 +321,11 @@ const filteredData = computed(() => {
   // Apply column filters
   for (const [column, filterValues] of Object.entries(currentFilters.value)) {
     if (filterValues && filterValues.length > 0) {
-      data = data.filter((row: Record<string, any>) => {
-        const cellValue = row[column];
+      data = data.filter((row: CatalogRow) => {
+        const cellValue = row[column as keyof CatalogRow];
         return filterValues.some((fv) => {
           if (Array.isArray(cellValue))
-            return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+            return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
           return String(cellValue || '')
             .toLowerCase()
             .includes(fv.toLowerCase());
@@ -335,20 +338,20 @@ const filteredData = computed(() => {
 });
 
 /** The filterable column fields. */
-const filterableFields = ['model', 'realm', 'frequency', 'variable'];
+const filterableFields = ['model', 'realm', 'frequency', 'variable'] as const;
 
 /**
  * All unique option values per filterable column, derived from the full
  * catalogue data. Used as the static options list for FilterSelectors.
  */
 const filterOptions = computed(() => {
-  const result: Record<string, string[]> = {};
+  const result: FilterOptions = {};
   for (const field of filterableFields) {
     const seen = new Set<string>();
     for (const row of catalogStore.data) {
-      const cellValue = (row as Record<string, any>)[field];
+      const cellValue = row[field as keyof CatalogRow];
       if (Array.isArray(cellValue)) {
-        cellValue.forEach((v: any) => seen.add(String(v)));
+        cellValue.forEach((v) => seen.add(String(v)));
       } else if (cellValue != null) {
         seen.add(String(cellValue));
       }
@@ -365,19 +368,19 @@ const filterOptions = computed(() => {
  * the values present in the remaining rows are returned.
  */
 const dynamicFilterOptions = computed(() => {
-  const result: Record<string, string[]> = {};
+  const result: FilterOptions = {};
   for (const field of filterableFields) {
     const allOptions = filterOptions.value[field] || [];
 
     // Apply all active filters except the current column
-    let availableData = catalogStore.data as Record<string, any>[];
+    let availableData = catalogStore.data as CatalogRow[];
     for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
       if (filterColumn !== field && filterValues && filterValues.length > 0) {
         availableData = availableData.filter((row) => {
-          const cellValue = row[filterColumn];
+          const cellValue = row[filterColumn as keyof CatalogRow];
           return filterValues.some((fv) => {
             if (Array.isArray(cellValue))
-              return cellValue.some((it: any) => String(it).toLowerCase().includes(fv.toLowerCase()));
+              return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
             return String(cellValue || '')
               .toLowerCase()
               .includes(fv.toLowerCase());
@@ -389,9 +392,9 @@ const dynamicFilterOptions = computed(() => {
     // Collect which values remain
     const validOptions = new Set<string>();
     for (const row of availableData) {
-      const cellValue = row[field];
+      const cellValue = row[field as keyof CatalogRow];
       if (Array.isArray(cellValue)) {
-        cellValue.forEach((v: any) => validOptions.add(String(v)));
+        cellValue.forEach((v) => validOptions.add(String(v)));
       } else if (cellValue != null) {
         validOptions.add(String(cellValue));
       }
@@ -406,7 +409,7 @@ const dynamicFilterOptions = computed(() => {
  * The available table columns (field + header). Kept as refs so the
  * MultiSelect component can bind to them.
  */
-const columns = ref([
+const columns = ref<TableColumn[]>([
   { field: 'name', header: 'Name' },
   { field: 'model', header: 'Model/ Data Source' },
   { field: 'description', header: 'Description' },
@@ -430,7 +433,7 @@ const arrayModalItems = ref<string[]>([]);
 /** Whether the row-detail modal is visible. */
 const detailModalVisible = ref(false);
 /** The currently selected row object for the detail modal. */
-const selectedRowData = ref<any | null>(null);
+const selectedRowData = ref<CatalogRow | null>(null);
 
 /**
  * Set of fields which are considered array-valued in the data.

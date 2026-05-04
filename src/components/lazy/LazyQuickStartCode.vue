@@ -78,11 +78,12 @@ import MultipleCellMethodsWarning from '../MultipleCellMethodsWarning.vue';
 import LongUrlConfirmDialog from '../LongUrlConfirmDialog.vue';
 import { useQuickStartCode } from '../../composables/useQuickStartCode';
 import 'highlight.js/lib/common';
+import type { FilterMap, FilterOptions } from '../../types/datastore';
 
 const props = defineProps<{
   datastoreName: string;
-  currentFilters: Record<string, string[]>;
-  dynamicFilterOptions: Record<string, string[]>;
+  currentFilters: FilterMap;
+  dynamicFilterOptions: FilterOptions;
   numDatasets: number;
 }>();
 

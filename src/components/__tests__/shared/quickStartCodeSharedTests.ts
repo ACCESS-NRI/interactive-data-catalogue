@@ -9,11 +9,13 @@ import { useCatalogStore } from '../../../stores/catalogStore';
  * props (Eager converts `numDatasets` → synthetic `rawData`; Lazy passes it
  * directly).
  */
+import type { FilterMap, FilterOptions } from '../../../types/datastore';
+
 export interface SharedWrapperProps {
   datastoreName?: string;
-  currentFilters?: Record<string, string[]>;
+  currentFilters?: FilterMap;
   numDatasets?: number;
-  dynamicFilterOptions?: Record<string, string[]>;
+  dynamicFilterOptions?: FilterOptions;
 }
 
 type CreateWrapperFn = (props: SharedWrapperProps) => VueWrapper<any>;
@@ -206,8 +208,8 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     expect(projects).toContain('tm70');
   });
 
-  const makeLongFilters = (): Record<string, string[]> => {
-    const filters: Record<string, string[]> = {};
+  const makeLongFilters = (): FilterMap => {
+    const filters: FilterMap = {};
     for (let i = 0; i < 100; i++) {
       filters[`column${i}`] = Array.from({ length: 50 }, (_, j) => `very-long-value-${i}-${j}`);
     }
