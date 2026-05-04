@@ -272,67 +272,6 @@ describe('FilterSelectors', () => {
     expect(wrapper.vm.filterValues.project).toBe('proj');
   });
 
-  // Test that getSortedOptions returns original order when no search term
-  it('returns options in original order when no search term provided', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['zebra', 'apple', 'banana'], undefined);
-    expect(sorted).toEqual(['zebra', 'apple', 'banana']);
-  });
-
-  // Test that exact matches appear in results
-  it('includes exact matches in results', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['project', 'proj1', 'my_project', 'proj'], 'proj');
-    expect(sorted).toContain('proj');
-    expect(sorted).toContain('proj1');
-    expect(sorted).toContain('project');
-  });
-
-  // Test that starts-with matches are included
-  it('includes starts-with matches in results', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['my_proj', 'proj1', 'proj2', 'another_proj'], 'proj');
-    expect(sorted).toContain('proj1');
-    expect(sorted).toContain('proj2');
-  });
-
-  // Test case-insensitive matching
-  it('matches case-insensitively', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['Project1', 'project', 'PROJ'], 'proj');
-    expect(sorted).toContain('PROJ');
-    expect(sorted).toContain('project');
-  });
-
-  // Test that fallback options are used when dynamic options are not available
-  it('uses fallback options when dynamic options are not available for column', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        // No 'project' key
-        experiment: ['exp1'],
-      },
-    });
-
-    const fallbackOptions = ['fallback1', 'fallback2'];
-    const sorted = wrapper.vm.getSortedOptions(fallbackOptions, undefined);
-    expect(sorted).toEqual(['fallback1', 'fallback2']);
-  });
-
-  // Test matching with mixed match types
-  it('returns exact, starts-with, and contains matches', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['var', 'variable', 'var1', 'my_var', 'test_variable'], 'var');
-    expect(sorted).toContain('var');
-    expect(sorted).toContain('var1');
-    expect(sorted).toContain('variable');
-    expect(sorted).toContain('my_var');
-  });
-
   // Test that isOptionDisabled returns false when dynamicFilterOptions includes the option
   it('marks option as enabled when present in dynamicFilterOptions', () => {
     const wrapper = createWrapper({
@@ -411,64 +350,6 @@ describe('FilterSelectors', () => {
       multiSelect.vm.$emit('update:model-value', ['proj1']);
 
       expect(mockToastAdd).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('getSortedOptions fuzzy behaviour', () => {
-    const options = ['cloud_fraction', 'cloud_amount', 'atmosphere', 'ua_850hpa', 'uvel', 'vvel', 'temperature'];
-
-    it('returns all options for an empty filter value', () => {
-      const wrapper = createWrapper();
-      expect(wrapper.vm.getSortedOptions(options, '')).toEqual(options);
-    });
-
-    it('returns all options for a whitespace-only filter value', () => {
-      const wrapper = createWrapper();
-      expect(wrapper.vm.getSortedOptions(options, '   ')).toEqual(options);
-    });
-
-    it('returns all options when no search term is provided', () => {
-      const wrapper = createWrapper();
-      expect(wrapper.vm.getSortedOptions(options, undefined)).toEqual(options);
-    });
-
-    it('matches on exact substrings', () => {
-      const wrapper = createWrapper();
-      expect(wrapper.vm.getSortedOptions(options, 'cloud')).toEqual(['cloud_fraction', 'cloud_amount']);
-    });
-
-    it('tolerates a single-character typo (transposition)', () => {
-      const wrapper = createWrapper();
-      // 'cluod' is a transposition of 'cloud'
-      const result = wrapper.vm.getSortedOptions(options, 'cluod');
-      expect(result).toContain('cloud_fraction');
-      expect(result).toContain('cloud_amount');
-    });
-
-    it('tolerates a single-character typo (substitution)', () => {
-      const wrapper = createWrapper();
-      const result = wrapper.vm.getSortedOptions(['temperature', 'pressure'], 'temperiture');
-      expect(result).toContain('temperature');
-    });
-
-    it('matches abbreviations via MultiInsert (chars in sequence)', () => {
-      const wrapper = createWrapper();
-      // 'atm' chars appear in sequence in 'atmosphere'
-      expect(wrapper.vm.getSortedOptions(options, 'atm')).toContain('atmosphere');
-    });
-
-    it('applies OR semantics for space-separated terms', () => {
-      const wrapper = createWrapper();
-      const result = wrapper.vm.getSortedOptions(options, 'uvel vvel');
-      expect(result).toContain('uvel');
-      expect(result).toContain('vvel');
-      expect(result).not.toContain('temperature');
-    });
-
-    it('preserves the original order of the options array', () => {
-      const wrapper = createWrapper();
-      const result = wrapper.vm.getSortedOptions(options, 'uvel vvel');
-      expect(result.indexOf('uvel')).toBeLessThan(result.indexOf('vvel'));
     });
   });
 });
