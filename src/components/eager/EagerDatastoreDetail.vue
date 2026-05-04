@@ -103,92 +103,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useCatalogStore } from '../../stores/catalogStore';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
 import { capture } from '../../composables/usePosthog';
+import { useDatastoreDetail } from '../../composables/useDatastoreDetail';
 import { useFilterState } from '../../composables/useFilterState';
 import { useFilterUrlSync } from '../../composables/useFilterUrlSync';
 import { filterRowsBySelectedFilters, useDynamicFilterOptions } from '../../composables/useDynamicFilterOptions';
 import type { DatastoreRow } from '../../types/datastore';
-import type { TableColumn } from '../../types/table';
 
 const route = useRoute();
 const router = useRouter();
-const catalogStore = useCatalogStore();
-
-const datastoreName = computed(() => route.params.name as string);
-const loading = ref(false);
-const tableLoading = ref(false);
-const error = ref<string | null>(null);
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
-
-const availableColumns = ref<TableColumn[]>([]);
-const selectedColumns = ref<TableColumn[]>([]);
-
-const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
-const rawData = computed(() => cachedDatastore.value?.data || []);
-const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
-const columns = computed(() => cachedDatastore.value?.columns || []);
-const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
-
-const formatColumnName = (c: string) =>
-  c
-    .split('_')
-    .map((w) => {
-      const s = w || '';
-      return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : '';
-    })
-    .join(' ');
-
-const setupColumns = (dataColumns: string[]) => {
-  availableColumns.value = dataColumns.map((col) => ({ field: col, header: formatColumnName(col) }));
-  selectedColumns.value = [...availableColumns.value];
-  // By default, let's get rid of 'path' and 'filename'
-  selectedColumns.value = selectedColumns.value.filter((col) => col.field !== 'path' && col.field !== 'filename');
-};
-
-const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));
-
-const dynamicFilterOptions = useDynamicFilterOptions(rawData, filterOptions, currentFilters);
-
-const loadDatastore = async () => {
-  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.data.length > 0) {
-    setupColumns(existingCache.columns);
-    loading.value = false;
-    tableLoading.value = false;
-    capture('datastore_detail_viewed', {
-      datastore_name: datastoreName.value,
-      loading_strategy: 'eager',
-      record_count: existingCache.totalRecords,
-    });
-    return;
-  }
-  loading.value = true;
-  tableLoading.value = true;
-  error.value = null;
-  try {
-    const datastoreCache = await catalogStore.loadDatastore(datastoreName.value);
-    if (datastoreCache.data.length > 0) setupColumns(datastoreCache.columns);
-    capture('datastore_detail_viewed', {
-      datastore_name: datastoreName.value,
-      loading_strategy: 'eager',
-      record_count: datastoreCache.totalRecords,
-    });
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load datastore';
-  } finally {
-    loading.value = false;
-    tableLoading.value = false;
-  }
-};
 
 const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
   route,
@@ -196,44 +128,33 @@ const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
   currentFilters,
   'DatastoreDetail',
 );
+const {
+  datastoreName,
+  loading,
+  tableLoading,
+  error,
+  availableColumns,
+  selectedColumns,
+  cachedDatastore,
+  totalRecords,
+  columns,
+  filterOptions,
+  loadDatastore,
+} = useDatastoreDetail({
+  loadingStrategy: 'eager',
+  isCacheReady: (cache) => cache.data.length > 0,
+  initializeFiltersFromUrl,
+  stopFilterWatcher,
+});
+
+const rawData = computed(() => cachedDatastore.value?.data || []);
+const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));
+const dynamicFilterOptions = useDynamicFilterOptions(rawData, filterOptions, currentFilters);
 
 const handleClearFilters = () => {
   clearFilters();
   capture('datastore_filters_cleared', { datastore_name: datastoreName.value });
 };
-
-const cleanup = () => {
-  catalogStore.clearDatastoreCache(datastoreName.value);
-};
-
-onMounted(() => {
-  initializeFiltersFromUrl();
-  const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
-  if (existingCache && existingCache.data.length > 0) {
-    setupColumns(existingCache.columns);
-    loading.value = false;
-    tableLoading.value = false;
-  } else {
-    loadDatastore();
-  }
-});
-
-const stopWatcher = watch(
-  () => route.params.name,
-  (newName, oldName) => {
-    if (oldName && newName !== oldName) catalogStore.clearDatastoreCache(oldName as string);
-    if (newName) {
-      initializeFiltersFromUrl();
-      loadDatastore();
-    }
-  },
-);
-
-onUnmounted(() => {
-  cleanup();
-  stopWatcher();
-  stopFilterWatcher();
-});
 </script>
 
 <style scoped>
