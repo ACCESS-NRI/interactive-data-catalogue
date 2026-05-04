@@ -402,7 +402,7 @@ describe('catalogStore', () => {
           'iterable.csv',
         );
 
-        expect(cache.data[0].variable).toEqual(['tas', 'pr']);
+        expect(cache.data[0]?.variable).toEqual(['tas', 'pr']);
         expect(cache.filterOptions.variable).toEqual(['pr', 'tas']);
       });
 
@@ -429,12 +429,12 @@ describe('catalogStore', () => {
           'typed.csv',
         );
 
-        expect(cache.data[0].variable).toEqual(['tas', 'pr']);
-        expect(cache.data[0].variable_long_name).toEqual(['Air temperature', 'Rainfall']);
-        expect(cache.data[0].variable_standard_name).toEqual(['air_temperature']);
-        expect(cache.data[0].variable_cell_methods).toEqual(['time: mean']);
-        expect(cache.data[0].variable_units).toEqual(['K', 'kg m-2 s-1']);
-        expect(cache.data[0].realm).toBe('atmos');
+        expect(cache.data[0]?.variable).toEqual(['tas', 'pr']);
+        expect(cache.data[0]?.variable_long_name).toEqual(['Air temperature', 'Rainfall']);
+        expect(cache.data[0]?.variable_standard_name).toEqual(['air_temperature']);
+        expect(cache.data[0]?.variable_cell_methods).toEqual(['time: mean']);
+        expect(cache.data[0]?.variable_units).toEqual(['K', 'kg m-2 s-1']);
+        expect(cache.data[0]?.realm).toBe('atmos');
       });
 
       it('replaces the previous personal datastore', () => {
