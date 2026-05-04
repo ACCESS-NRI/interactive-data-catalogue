@@ -17,7 +17,6 @@ export interface SharedWrapperProps {
   numDatasets?: number;
   dynamicFilterOptions?: FilterOptions;
   source?: 'builtin' | 'personal';
-
 }
 
 type CreateWrapperFn = (props: SharedWrapperProps) => VueWrapper<any>;
