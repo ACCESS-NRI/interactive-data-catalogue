@@ -14,6 +14,9 @@ export function useFilterState(initialFilters: FilterMap = {}): {
 } {
   const currentFilters = ref<FilterMap>(initialFilters);
 
+  /**
+   * Clears all active filter selections and returns the state to an unfiltered view.
+   */
   const clearFilters = () => {
     currentFilters.value = {};
   };

@@ -51,10 +51,16 @@ export function useFilterUrlSync(
   currentFilters: Ref<FilterMap>,
   fallbackRouteName = 'DatastoreDetail',
 ) {
+  /**
+   * Hydrates the reactive filter map from the current route query string.
+   */
   const initializeFiltersFromUrl = () => {
     currentFilters.value = parseFiltersFromQuery(route.query);
   };
 
+  /**
+   * Replaces the current route query with a serialized view of the active filters.
+   */
   const updateUrlWithFilters = () => {
     const query = buildFilterQuery(currentFilters.value);
     router.replace({ name: route.name || fallbackRouteName, params: route.params, query });

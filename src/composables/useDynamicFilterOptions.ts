@@ -104,5 +104,9 @@ export function useDynamicFilterOptions<Row extends Record<string, unknown>>(
   filterOptions: Ref<FilterOptions> | ComputedRef<FilterOptions>,
   currentFilters: Ref<FilterMap>,
 ) {
+  /**
+   * Recomputes the currently valid filter options whenever the rows, full option set, or active
+   * filter selections change.
+   */
   return computed(() => buildDynamicFilterOptions(rows.value, filterOptions.value, currentFilters.value));
 }

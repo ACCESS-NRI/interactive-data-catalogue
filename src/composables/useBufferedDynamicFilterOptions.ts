@@ -24,6 +24,12 @@ export function useBufferedDynamicFilterOptions(initialOptions: FilterOptions = 
   const openDropdowns = ref<Set<string>>(new Set());
   const pendingFilterUpdates = ref<FilterOptions>({});
 
+  /**
+   * Applies new dynamic filter options immediately for closed dropdowns while buffering updates
+   * for any dropdowns the user is actively interacting with.
+   *
+   * @param options - Newly computed dynamic options emitted by the lazy datastore table.
+   */
   const handleDynamicFilterOptionsUpdate = (options: FilterOptions) => {
     const updates: FilterOptions = {};
     const buffered: FilterOptions = {};
@@ -49,10 +55,20 @@ export function useBufferedDynamicFilterOptions(initialOptions: FilterOptions = 
     };
   };
 
+  /**
+   * Marks a filter dropdown as open so subsequent option updates for that column are buffered.
+   *
+   * @param column - The filter column whose dropdown was opened.
+   */
   const handleDropdownOpened = (column: string) => {
     openDropdowns.value.add(column);
   };
 
+  /**
+   * Marks a filter dropdown as closed and flushes any buffered option updates for that column.
+   *
+   * @param column - The filter column whose dropdown was closed.
+   */
   const handleDropdownClosed = (column: string) => {
     openDropdowns.value.delete(column);
 
@@ -65,6 +81,11 @@ export function useBufferedDynamicFilterOptions(initialOptions: FilterOptions = 
     }
   };
 
+  /**
+   * Resets the buffered-dropdown bookkeeping, typically during datastore changes or unmount.
+   *
+   * @param options - Optional replacement option set to use after clearing buffered state.
+   */
   const resetBufferedDynamicFilterOptions = (options: FilterOptions = {}) => {
     openDropdowns.value.clear();
     pendingFilterUpdates.value = {};
