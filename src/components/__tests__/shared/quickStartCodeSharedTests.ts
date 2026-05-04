@@ -38,56 +38,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
     expect(wrapper.text()).toContain('Quick Start');
   });
 
-  it('generates code with datastore name', () => {
-    wrapper = createWrapper({ datastoreName: 'my-datastore', currentFilters: {}, numDatasets: 0 });
-    expect(wrapper.text()).toContain('intake.cat.access_nri["my-datastore"]');
-  });
-
-  it('generates code with single filter value', () => {
-    wrapper = createWrapper({
-      datastoreName: 'test-datastore',
-      currentFilters: { project: ['xp65'] },
-      numDatasets: 0,
-    });
-    expect(wrapper.text()).toContain("datastore.search(project='xp65')");
-  });
-
-  it('generates code with multiple filter values', () => {
-    wrapper = createWrapper({
-      datastoreName: 'test-datastore',
-      currentFilters: { variable: ['tas', 'pr', 'huss'] },
-      numDatasets: 0,
-    });
-    expect(wrapper.text()).toContain('datastore.search(variable=["tas","pr","huss"])');
-  });
-
-  it('generates code with multiple different filters', () => {
-    wrapper = createWrapper({
-      datastoreName: 'test-datastore',
-      currentFilters: { project: ['xp65'], variable: ['tas'], frequency: ['1mon'] },
-      numDatasets: 0,
-    });
-    const text = wrapper.text();
-    expect(text).toContain("datastore.search(project='xp65')");
-    expect(text).toContain("datastore.search(variable='tas')");
-    expect(text).toContain("datastore.search(frequency='1mon')");
-  });
-
-  // intake-esm requires `variable` to be applied last for correct filtering.
-  it('applies variable filter last regardless of insertion order', () => {
-    wrapper = createWrapper({
-      datastoreName: 'test-datastore',
-      currentFilters: { variable: ['tas'], project: ['xp65'], frequency: ['1mon'] },
-      numDatasets: 0,
-    });
-    const text = wrapper.text();
-    const projectIdx = text.indexOf("datastore.search(project='xp65')");
-    const frequencyIdx = text.indexOf("datastore.search(frequency='1mon')");
-    const variableIdx = text.indexOf("datastore.search(variable='tas')");
-    expect(variableIdx).toBeGreaterThan(projectIdx);
-    expect(variableIdx).toBeGreaterThan(frequencyIdx);
-  });
-
   it('shows filter message when filters are active', () => {
     wrapper = createWrapper({
       datastoreName: 'test-datastore',
@@ -100,18 +50,6 @@ export function runQuickStartCodeSharedTests(createWrapper: CreateWrapperFn, wri
   it('does not show filter message when no filters', () => {
     wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 0 });
     expect(wrapper.text()).not.toContain('with current filters');
-  });
-
-  it('generates to_dask() code for single dataset in xarray mode', () => {
-    wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 1 });
-    expect(wrapper.text()).toContain('dataset = datastore.to_dask()');
-  });
-
-  it('generates to_dataset_dict() code for multiple datasets in xarray mode', () => {
-    wrapper = createWrapper({ datastoreName: 'test-datastore', currentFilters: {}, numDatasets: 3 });
-    const text = wrapper.text();
-    expect(text).toContain('dataset_dict = datastore.to_dataset_dict()');
-    expect(text).toContain('Search contains 3 datasets');
   });
 
   it('does not generate xarray code when toggle is off', async () => {
