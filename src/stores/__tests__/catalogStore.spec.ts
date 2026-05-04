@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useCatalogStore } from '../catalogStore';
+import * as catalogApi from '../../services/catalogApi';
+import * as duckdbClient from '../../services/duckdbClient';
+import * as parquetTransforms from '../../services/parquetTransforms';
 import type { CatalogRow } from '../../types/catalog';
 import type { DatastoreCache } from '../../types/datastore';
 
@@ -142,41 +145,59 @@ describe('catalogStore', () => {
 
       // Test that fetchCatalogData sets loading to true during execution
       it('sets loading to true during fetch', async () => {
-        // Mock initializeDuckDB to throw an error quickly
-        vi.spyOn(store, 'initializeDuckDB').mockRejectedValue(new Error('Test error'));
+        let releaseFetch: ((value: Uint8Array) => void) | undefined;
+
+        vi.spyOn(catalogApi, 'fetchMetaCatFile').mockImplementation(
+          () =>
+            new Promise<Uint8Array>((resolve) => {
+              releaseFetch = resolve;
+            }),
+        );
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({
+          db: { terminate: vi.fn() },
+          conn: { close: vi.fn() },
+        } as any);
+        vi.spyOn(parquetTransforms, 'queryMetaCatalogPq').mockResolvedValue({
+          data: [],
+          rawDataSample: [],
+        });
+
         const fetchPromise = store.fetchCatalogData();
 
         expect(store.loading).toBe(true);
 
-        await fetchPromise.catch(() => {});
+        releaseFetch?.(new Uint8Array([1, 2, 3]));
+        await fetchPromise;
         expect(store.loading).toBe(false);
       });
 
-      // These fail because I (and Claude) can't work out how to properly mock the
-      // store duckdb initialisation, so we wind up with nonsense. Circle back -
-      // everything seems to work properly anyway (for now...)
+      it('handles fetch errors gracefully', async () => {
+        vi.spyOn(catalogApi, 'fetchMetaCatFile').mockRejectedValue(new Error('Network error'));
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({
+          db: { terminate: vi.fn() },
+          conn: { close: vi.fn() },
+        } as any);
 
-      //      // Test that fetchCatalogData handles fetch errors gracefully
-      //      it('handles fetch errors', async () => {
-      //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('Network error'));
-      //
-      //        await store.fetchCatalogData();
-      //
-      //        expect(store.error).toBe('Network error');
-      //        expect(store.loading).toBe(false);
-      //      });
-      //
-      //      // Test that fetchCatalogData clears error state before fetching
-      //      it('clears previous error before fetching', async () => {
-      //        store.error = 'Previous error';
-      //        store.data = []; // Ensure it tries to fetch
-      //
-      //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('New error'));
-      //
-      //        await store.fetchCatalogData();
-      //
-      //        expect(store.error).toBe('New error');
-      //      });
+        await store.fetchCatalogData();
+
+        expect(store.error).toBe('Network error');
+        expect(store.loading).toBe(false);
+      });
+
+      it('clears previous error before fetching', async () => {
+        store.error = 'Previous error';
+        store.data = [];
+
+        vi.spyOn(catalogApi, 'fetchMetaCatFile').mockRejectedValue(new Error('New error'));
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({
+          db: { terminate: vi.fn() },
+          conn: { close: vi.fn() },
+        } as any);
+
+        await store.fetchCatalogData();
+
+        expect(store.error).toBe('New error');
+      });
     });
 
     describe('clearDatastoreCache', () => {
