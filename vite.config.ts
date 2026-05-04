@@ -12,6 +12,20 @@ const getGitCommitSha = () => {
   }
 };
 
+// Get app version: exact tag > last tag + '.dirty' > 'dev'
+const getAppVersion = () => {
+  try {
+    return execSync('git describe --tags --exact-match HEAD').toString().trim();
+  } catch {
+    try {
+      const lastTag = execSync('git describe --tags --abbrev=0').toString().trim();
+      return `${lastTag}.dirty`;
+    } catch {
+      return 'dev';
+    }
+  }
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/interactive-data-catalogue/' : '/',
@@ -19,6 +33,7 @@ export default defineConfig({
   define: {
     __GIT_COMMIT_SHA__: JSON.stringify(getGitCommitSha()),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __APP_VERSION__: JSON.stringify(getAppVersion()),
   },
   server: {
     headers: {

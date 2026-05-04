@@ -8,7 +8,7 @@
       <div class="flex items-center gap-5">
         <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
         <div class="inline-flex items-center">
-          <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
+          <div class="inline-flex">
             <Button
               icon="pi pi-info-circle"
               label="About & Privacy"
@@ -17,20 +17,43 @@
               class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
               @click="welcomeModalRef?.open()"
             />
+            <!-- Clean tagged release: link to GitHub Releases -->
             <a
-              :href="commitUrl"
+              v-if="isCleanRelease"
+              :href="releaseUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-2 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors text-xs font-mono border border-green-300 dark:border-green-700"
+              class="flex items-center gap-2 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors text-xs border border-green-300 dark:border-green-700"
               @mouseenter="showCommitPopover"
               @mouseleave="scheduleHidePopover"
             >
               <i class="pi pi-github text-sm text-green-700 dark:text-green-400"></i>
-              <span class="text-green-700 dark:text-green-300">{{ shortCommitSha }}</span>
+              <span class="text-green-700 dark:text-green-300">{{ appVersion }}</span>
             </a>
+            <!-- Dirty or dev build: non-linked badge -->
+            <span
+              v-else
+              :class="[
+                'flex items-center gap-2 px-2.5 py-1 rounded-md text-xs border',
+                appVersion.endsWith('.dirty')
+                  ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700'
+                  : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+              ]"
+              @mouseenter="showCommitPopover"
+              @mouseleave="scheduleHidePopover"
+            >
+              <i
+                class="pi pi-github text-sm"
+                :class="appVersion.endsWith('.dirty') ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'"
+              ></i>
+              <span :class="appVersion.endsWith('.dirty') ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'">{{ appVersion }}</span>
+            </span>
             <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
               <div class="p-3 max-w-md">
                 <div class="text-sm text-gray-900 dark:text-gray-100 mb-2">
+                  <strong>Version:</strong> {{ appVersion }}
+                </div>
+                <div v-if="commitSha && commitSha !== 'unknown'" class="text-sm text-gray-900 dark:text-gray-100 mb-2">
                   <strong>Commit:</strong> {{ commitSha }}
                 </div>
                 <div v-if="buildTime" class="text-xs text-gray-600 dark:text-gray-400 mb-3">
@@ -89,11 +112,15 @@ import { usePostHog } from '../composables/usePosthog';
 // Deployment information injected at build time
 declare const __GIT_COMMIT_SHA__: string;
 declare const __BUILD_TIME__: string;
+declare const __APP_VERSION__: string;
 
 const commitSha = typeof __GIT_COMMIT_SHA__ !== 'undefined' ? __GIT_COMMIT_SHA__ : null;
 const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null;
-const shortCommitSha = commitSha ? commitSha.substring(0, 7) : '';
-const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-catalogue/commit/${commitSha}` : '';
+const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+const isCleanRelease = appVersion !== 'dev' && !appVersion.endsWith('.dirty');
+const releaseUrl = isCleanRelease
+  ? `https://github.com/access-nri/interactive-data-catalogue/releases/tag/${appVersion}`
+  : '';
 
 // Popover management for commit SHA
 const commitPopover = ref();

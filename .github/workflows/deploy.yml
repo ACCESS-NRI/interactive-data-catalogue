@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
 
@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,6 +34,22 @@ jobs:
 
       - name: Run tests
         run: npm test -- --run
+
+      - name: Create version tag
+        id: version
+        run: |
+          BASE_TAG="v$(date -u +'%Y.%m.%d')"
+          TAG="$BASE_TAG"
+          COUNTER=2
+          while git tag -l "$TAG" | grep -q .; do
+            TAG="${BASE_TAG}-${COUNTER}"
+            COUNTER=$((COUNTER + 1))
+          done
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: NODE_ENV=production npm run build
