@@ -108,8 +108,17 @@ const emit = defineEmits<{
   (e: 'open-modal', title: string, items: DatastoreCellValue | DatastoreCellValue[]): void;
 }>();
 
+/**
+ * Normalized fallback display value for simple scalar rendering branches.
+ */
 const displayValue = computed(() => props.value || '-');
 
+/**
+ * Emits a request to show the shared datastore-entry modal for the current cell value.
+ *
+ * @param title - Modal title to display.
+ * @param items - One or more datastore cell values to show in the modal.
+ */
 const openModal = (title: string, items: DatastoreCellValue | DatastoreCellValue[]) => {
   emit('open-modal', title || 'Details', items);
 };
