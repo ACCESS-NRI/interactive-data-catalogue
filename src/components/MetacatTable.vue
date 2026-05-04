@@ -254,12 +254,15 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
+import { storeToRefs } from 'pinia';
 import MetacatHeader from './MetacatHeader.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
 import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
+import { useFilterState } from '../composables/useFilterState';
+import { filterRowsBySelectedFilters, useDynamicFilterOptions } from '../composables/useDynamicFilterOptions';
 import type { CatalogRow } from '../types/catalog';
-import type { FilterMap, FilterOptions } from '../types/datastore';
+import type { FilterOptions } from '../types/datastore';
 import type { TableColumn } from '../types/table';
 
 /**
@@ -271,6 +274,7 @@ import type { TableColumn } from '../types/table';
  *   array-preview modals for richer display of array-valued fields.
  */
 const catalogStore = useCatalogStore();
+const { data: catalogRows } = storeToRefs(catalogStore);
 
 // Trigger data fetch on component mount
 catalogStore.fetchCatalogData();
@@ -285,12 +289,7 @@ const globalSearchValue = ref('');
  * Keys are column field names (model, realm, frequency, variable);
  * values are arrays of selected option strings.
  */
-const currentFilters = ref<FilterMap>({});
-
-/** Reset all column filters. */
-const clearFilters = () => {
-  currentFilters.value = {};
-};
+const { currentFilters, clearFilters } = useFilterState();
 
 /**
  * Filtered data derived from the store's data and `globalSearchValue`.
@@ -318,23 +317,7 @@ const filteredData = computed(() => {
     });
   }
 
-  // Apply column filters
-  for (const [column, filterValues] of Object.entries(currentFilters.value)) {
-    if (filterValues && filterValues.length > 0) {
-      data = data.filter((row: CatalogRow) => {
-        const cellValue = row[column as keyof CatalogRow];
-        return filterValues.some((fv) => {
-          if (Array.isArray(cellValue))
-            return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
-          return String(cellValue || '')
-            .toLowerCase()
-            .includes(fv.toLowerCase());
-        });
-      });
-    }
-  }
-
-  return data;
+  return filterRowsBySelectedFilters(data, currentFilters.value);
 });
 
 /** The filterable column fields. */
@@ -367,43 +350,7 @@ const filterOptions = computed(() => {
  * For each column, all other active filters are applied and only
  * the values present in the remaining rows are returned.
  */
-const dynamicFilterOptions = computed(() => {
-  const result: FilterOptions = {};
-  for (const field of filterableFields) {
-    const allOptions = filterOptions.value[field] || [];
-
-    // Apply all active filters except the current column
-    let availableData = catalogStore.data as CatalogRow[];
-    for (const [filterColumn, filterValues] of Object.entries(currentFilters.value)) {
-      if (filterColumn !== field && filterValues && filterValues.length > 0) {
-        availableData = availableData.filter((row) => {
-          const cellValue = row[filterColumn as keyof CatalogRow];
-          return filterValues.some((fv) => {
-            if (Array.isArray(cellValue))
-              return cellValue.some((it) => String(it).toLowerCase().includes(fv.toLowerCase()));
-            return String(cellValue || '')
-              .toLowerCase()
-              .includes(fv.toLowerCase());
-          });
-        });
-      }
-    }
-
-    // Collect which values remain
-    const validOptions = new Set<string>();
-    for (const row of availableData) {
-      const cellValue = row[field as keyof CatalogRow];
-      if (Array.isArray(cellValue)) {
-        cellValue.forEach((v) => validOptions.add(String(v)));
-      } else if (cellValue != null) {
-        validOptions.add(String(cellValue));
-      }
-    }
-
-    result[field] = allOptions.filter((opt) => validOptions.has(opt));
-  }
-  return result;
-});
+const dynamicFilterOptions = useDynamicFilterOptions(catalogRows, filterOptions, currentFilters);
 
 /**
  * The available table columns (field + header). Kept as refs so the

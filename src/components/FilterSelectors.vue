@@ -43,18 +43,21 @@ interface Props {
   filterOptions: FilterOptions;
   modelValue: FilterMap;
   dynamicFilterOptions: FilterOptions;
-  toast: boolean;
+  toast?: boolean;
   analyticsContext?: 'catalogue' | 'datastore';
 }
 
 interface Emits {
   (e: 'update:modelValue', value: FilterMap): void;
+  (e: 'update:model-value', value: FilterMap): void;
   (e: 'clear'): void;
   (e: 'dropdown-opened', column: string): void;
   (e: 'dropdown-closed', column: string): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  toast: false,
+});
 const emit = defineEmits<Emits>();
 
 const toast = useToast();
@@ -149,6 +152,7 @@ const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
 const updateFilter = (column: string, value: string[]) => {
   const updatedFilters = { ...props.modelValue, [column]: value };
   emit('update:modelValue', updatedFilters);
+  emit('update:model-value', updatedFilters);
   if (props.analyticsContext) {
     capture('filter_applied', { context: props.analyticsContext, column, values: value });
   }
