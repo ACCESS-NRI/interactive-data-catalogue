@@ -10,6 +10,7 @@
           @update:model-value="updateFilter(column, $event)"
           :options="getSortedOptions(options, filterValues[column])"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
+          filterMatchMode="passthrough"
           @filter="(event) => handleFilterChange(column, event.value)"
           @show="handleDropdownShow(column)"
           @hide="emit('dropdown-closed', column)"
@@ -32,6 +33,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import uFuzzy from '@leeoniya/ufuzzy';
+import { FilterService } from '@primevue/core/api';
 import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Toast from 'primevue/toast';
@@ -59,6 +62,12 @@ const props = withDefaults(defineProps<Props>(), {
   toast: false,
 });
 const emit = defineEmits<Emits>();
+
+// Register a passthrough filter so PrimeVue doesn't re-filter our already fuzzy-matched options.
+FilterService.register('passthrough', () => true);
+
+// uFuzzy instance with SingleError mode — tolerates one-character typos (Damerau–Levenshtein ≤ 1)
+const uf = new uFuzzy({ intraMode: 1 });
 
 const toast = useToast();
 const { capture } = usePostHog();
@@ -116,37 +125,26 @@ const isOptionDisabled = (column: string, option: string): boolean => {
  * Without a search term, returns options in their original order.
  * Always uses the full filterOptions list to ensure all options remain visible.
  *
- * @param fallbackOptions - Default options to use if no dynamic options are available
- * @param searchTerm - Optional search term entered by the user in the filter input
- * @returns Sorted array of all options with exact matches first, then starts-with, then contains
+ * @param fallbackOptions - The full options list for this column.
+ * @param searchTerm - Optional search term entered by the user in the filter input.
+ * @returns Fuzzy-matched options in their original order, or all options when no term is given.
  */
-const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
-  // Always use the full list from filterOptions (fallback), not dynamicFilterOptions
-  const options = fallbackOptions;
+const getSortedOptions = (fallbackOptions: string[], searchTerm?: string): string[] => {
+  if (!searchTerm?.trim()) return fallbackOptions;
 
-  if (!searchTerm) {
-    return options;
+  // Split on whitespace for OR semantics: "uvel vvel" surfaces both independently
+  const terms = searchTerm.trim().split(/\s+/).filter((t) => t.length > 0);
+
+  const matched = new Set<number>();
+  for (const term of terms) {
+    const idxs = uf.filter(fallbackOptions, term);
+    if (idxs) idxs.forEach((i) => matched.add(i));
   }
 
-  const lowerSearch = searchTerm.toLowerCase();
-
-  // Sort options: exact match first, then starts with, then contains
-  return [...options].sort((a, b) => {
-    const aLower = a.toLowerCase();
-    const bLower = b.toLowerCase();
-
-    const aExact = aLower === lowerSearch;
-    const bExact = bLower === lowerSearch;
-    if (aExact && !bExact) return -1;
-    if (!aExact && bExact) return 1;
-
-    const aStarts = aLower.startsWith(lowerSearch);
-    const bStarts = bLower.startsWith(lowerSearch);
-    if (aStarts && !bStarts) return -1;
-    if (!aStarts && bStarts) return 1;
-
-    return 0;
-  });
+  return [...matched]
+    .sort((a, b) => a - b)
+    .map((i) => fallbackOptions[i])
+    .filter((o): o is string => o !== undefined);
 };
 
 const updateFilter = (column: string, value: string[]) => {

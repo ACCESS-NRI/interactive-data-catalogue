@@ -280,31 +280,32 @@ describe('FilterSelectors', () => {
     expect(sorted).toEqual(['zebra', 'apple', 'banana']);
   });
 
-  // Test that exact matches appear first
-  it('prioritizes exact matches first in sorted options', () => {
+  // Test that exact matches appear in results
+  it('includes exact matches in results', () => {
     const wrapper = createWrapper();
 
     const sorted = wrapper.vm.getSortedOptions(['project', 'proj1', 'my_project', 'proj'], 'proj');
-    expect(sorted[0]).toBe('proj');
+    expect(sorted).toContain('proj');
+    expect(sorted).toContain('proj1');
+    expect(sorted).toContain('project');
   });
 
-  // Test that starts-with matches appear after exact matches
-  it('prioritizes starts-with matches after exact matches', () => {
+  // Test that starts-with matches are included
+  it('includes starts-with matches in results', () => {
     const wrapper = createWrapper();
 
     const sorted = wrapper.vm.getSortedOptions(['my_proj', 'proj1', 'proj2', 'another_proj'], 'proj');
-    // proj1 and proj2 start with 'proj', they should come before others
-    expect(sorted[0]).toBe('proj1');
-    expect(sorted[1]).toBe('proj2');
+    expect(sorted).toContain('proj1');
+    expect(sorted).toContain('proj2');
   });
 
-  // Test case-insensitive sorting
-  it('performs case-insensitive sorting of options', () => {
+  // Test case-insensitive matching
+  it('matches case-insensitively', () => {
     const wrapper = createWrapper();
 
     const sorted = wrapper.vm.getSortedOptions(['Project1', 'project', 'PROJ'], 'proj');
-    // 'PROJ' is exact match (case-insensitive)
-    expect(sorted[0]).toBe('PROJ');
+    expect(sorted).toContain('PROJ');
+    expect(sorted).toContain('project');
   });
 
   // Test that fallback options are used when dynamic options are not available
@@ -321,16 +322,15 @@ describe('FilterSelectors', () => {
     expect(sorted).toEqual(['fallback1', 'fallback2']);
   });
 
-  // Test sorting with mixed match types
-  it('sorts with exact, starts-with, and contains matches in correct order', () => {
+  // Test matching with mixed match types
+  it('returns exact, starts-with, and contains matches', () => {
     const wrapper = createWrapper();
 
     const sorted = wrapper.vm.getSortedOptions(['var', 'variable', 'var1', 'my_var', 'test_variable'], 'var');
-    // Exact match first
-    expect(sorted[0]).toBe('var');
-    // Starts-with matches next
-    expect(['var1', 'variable']).toContain(sorted[1]);
-    expect(['var1', 'variable']).toContain(sorted[2]);
+    expect(sorted).toContain('var');
+    expect(sorted).toContain('var1');
+    expect(sorted).toContain('variable');
+    expect(sorted).toContain('my_var');
   });
 
   // Test that isOptionDisabled returns false when dynamicFilterOptions includes the option
@@ -411,6 +411,64 @@ describe('FilterSelectors', () => {
       multiSelect.vm.$emit('update:model-value', ['proj1']);
 
       expect(mockToastAdd).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getSortedOptions fuzzy behaviour', () => {
+    const options = ['cloud_fraction', 'cloud_amount', 'atmosphere', 'ua_850hpa', 'uvel', 'vvel', 'temperature'];
+
+    it('returns all options for an empty filter value', () => {
+      const wrapper = createWrapper();
+      expect(wrapper.vm.getSortedOptions(options, '')).toEqual(options);
+    });
+
+    it('returns all options for a whitespace-only filter value', () => {
+      const wrapper = createWrapper();
+      expect(wrapper.vm.getSortedOptions(options, '   ')).toEqual(options);
+    });
+
+    it('returns all options when no search term is provided', () => {
+      const wrapper = createWrapper();
+      expect(wrapper.vm.getSortedOptions(options, undefined)).toEqual(options);
+    });
+
+    it('matches on exact substrings', () => {
+      const wrapper = createWrapper();
+      expect(wrapper.vm.getSortedOptions(options, 'cloud')).toEqual(['cloud_fraction', 'cloud_amount']);
+    });
+
+    it('tolerates a single-character typo (transposition)', () => {
+      const wrapper = createWrapper();
+      // 'cluod' is a transposition of 'cloud'
+      const result = wrapper.vm.getSortedOptions(options, 'cluod');
+      expect(result).toContain('cloud_fraction');
+      expect(result).toContain('cloud_amount');
+    });
+
+    it('tolerates a single-character typo (substitution)', () => {
+      const wrapper = createWrapper();
+      const result = wrapper.vm.getSortedOptions(['temperature', 'pressure'], 'temperiture');
+      expect(result).toContain('temperature');
+    });
+
+    it('matches abbreviations via MultiInsert (chars in sequence)', () => {
+      const wrapper = createWrapper();
+      // 'atm' chars appear in sequence in 'atmosphere'
+      expect(wrapper.vm.getSortedOptions(options, 'atm')).toContain('atmosphere');
+    });
+
+    it('applies OR semantics for space-separated terms', () => {
+      const wrapper = createWrapper();
+      const result = wrapper.vm.getSortedOptions(options, 'uvel vvel');
+      expect(result).toContain('uvel');
+      expect(result).toContain('vvel');
+      expect(result).not.toContain('temperature');
+    });
+
+    it('preserves the original order of the options array', () => {
+      const wrapper = createWrapper();
+      const result = wrapper.vm.getSortedOptions(options, 'uvel vvel');
+      expect(result.indexOf('uvel')).toBeLessThan(result.indexOf('vvel'));
     });
   });
 });
