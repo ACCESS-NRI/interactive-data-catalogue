@@ -77,9 +77,7 @@ describe('useFuzzyFilter', () => {
       const result = getSortedOptions(allOptions, undefined, available);
       const lastAvailableIdx = Math.max(...available.map((o) => result.indexOf(o)));
       const firstUnavailableIdx = Math.min(
-        ...allOptions
-          .filter((o) => !available.includes(o))
-          .map((o) => result.indexOf(o)),
+        ...allOptions.filter((o) => !available.includes(o)).map((o) => result.indexOf(o)),
       );
       expect(lastAvailableIdx).toBeLessThan(firstUnavailableIdx);
     });

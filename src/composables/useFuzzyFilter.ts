@@ -34,11 +34,7 @@ export function useFuzzyFilter() {
    *   selectable given the active filters (from dynamicFilterOptions).
    * @returns Matched options, partitioned and sorted when availableOptions is given.
    */
-  const getSortedOptions = (
-    options: string[],
-    searchTerm?: string,
-    availableOptions?: string[],
-  ): string[] => {
+  const getSortedOptions = (options: string[], searchTerm?: string, availableOptions?: string[]): string[] => {
     let result: string[];
 
     if (!searchTerm?.trim()) {
@@ -65,9 +61,7 @@ export function useFuzzyFilter() {
 
     const availableSet = new Set(availableOptions);
     const available = result.filter((o) => availableSet.has(o)).sort((a, b) => a.localeCompare(b));
-    const unavailable = result
-      .filter((o) => !availableSet.has(o))
-      .sort((a, b) => a.localeCompare(b));
+    const unavailable = result.filter((o) => !availableSet.has(o)).sort((a, b) => a.localeCompare(b));
     return [...available, ...unavailable];
   };
 
