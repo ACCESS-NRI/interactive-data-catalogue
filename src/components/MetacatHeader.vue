@@ -16,7 +16,7 @@
               class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
             />
           </RouterLink>
-          <div v-if="commitSha && commitSha !== 'unknown'" class="inline-flex">
+          <div v-if="hasValidCommit" class="inline-flex">
             <Button
               icon="pi pi-info-circle"
               label="About & Privacy"
@@ -36,7 +36,7 @@
               <i class="pi pi-github text-sm text-green-700 dark:text-green-400"></i>
               <span class="text-green-700 dark:text-green-300">{{ shortCommitSha }}</span>
             </a>
-            <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
+            <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="scheduleHidePopover">
               <div class="p-3 max-w-md">
                 <div class="text-sm text-gray-900 dark:text-gray-100 mb-2">
                   <strong>Commit:</strong> {{ commitSha }}
@@ -80,10 +80,10 @@
         </a>
       </div>
     </div>
-
-    <!-- Welcome modal (teleports to body) -->
-    <WelcomeModal ref="welcomeModalRef" />
   </div>
+
+  <!-- Welcome modal (teleports to body) -->
+  <WelcomeModal ref="welcomeModalRef" />
 </template>
 
 <script setup lang="ts">
@@ -94,15 +94,9 @@ import Popover from 'primevue/popover';
 import GithubFeedbackButton from './GithubFeedbackButton.vue';
 import WelcomeModal from './WelcomeModal.vue';
 import { usePostHog } from '../composables/usePosthog';
+import { useBuildInfo } from '../composables/useBuildInfo';
 
-// Deployment information injected at build time
-declare const __GIT_COMMIT_SHA__: string;
-declare const __BUILD_TIME__: string;
-
-const commitSha = typeof __GIT_COMMIT_SHA__ !== 'undefined' ? __GIT_COMMIT_SHA__ : null;
-const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null;
-const shortCommitSha = commitSha ? commitSha.substring(0, 7) : '';
-const commitUrl = commitSha ? `https://github.com/access-nri/interactive-data-catalogue/commit/${commitSha}` : '';
+const { commitSha, buildTime, shortCommitSha, commitUrl, hasValidCommit } = useBuildInfo();
 
 // Popover management for commit SHA
 const commitPopover = ref();
@@ -129,10 +123,6 @@ const cancelHidePopover = () => {
     clearTimeout(hideTimeout);
     hideTimeout = null;
   }
-};
-
-const hideCommitPopover = () => {
-  scheduleHidePopover();
 };
 
 const copyCommitSha = async () => {
