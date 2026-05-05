@@ -13,7 +13,7 @@
               icon="pi pi-upload"
               label="Explore personal datastore"
               aria-label="Explore my personal datastore"
-              class="p-button-sm  text-white px-3 py-2 rounded-md text-sm font-medium transition-colors ml-2"
+              class="p-button-sm text-white px-3 py-2 rounded-md text-sm font-medium transition-colors ml-2"
             />
           </RouterLink>
           <div v-if="hasValidCommit" class="inline-flex">
@@ -22,7 +22,7 @@
               label="About & Privacy"
               aria-label="Reopen welcome guide"
               title="Reopen welcome guide"
-              class="p-button-sm  text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
+              class="p-button-sm text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
               @click="welcomeModalRef?.open()"
             />
             <a
