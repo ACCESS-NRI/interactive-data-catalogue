@@ -26,11 +26,7 @@ describe('parseCsvFile', () => {
         .fn()
         .mockResolvedValueOnce({
           // DESCRIBE response — schema rows
-          toArray: () => [
-            { column_name: 'variable' },
-            { column_name: 'realm' },
-            { column_name: 'filename' },
-          ],
+          toArray: () => [{ column_name: 'variable' }, { column_name: 'realm' }, { column_name: 'filename' }],
         })
         .mockResolvedValueOnce({
           // SELECT * response — data rows

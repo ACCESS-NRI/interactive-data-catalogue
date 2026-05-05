@@ -78,7 +78,7 @@ describe('parseStringList', () => {
     expect(parseStringList('["a","b"]')).toEqual(['a', 'b']);
   });
 
-  it("parses a Python-style bracket string with single quotes", () => {
+  it('parses a Python-style bracket string with single quotes', () => {
     expect(parseStringList("['tas', 'pr']")).toEqual(['tas', 'pr']);
   });
 

@@ -120,9 +120,7 @@ describe('PersonalDatastore', () => {
     });
 
     it('routes to PersonalDatastoreDetail after successful upload', async () => {
-      const loadSpy = vi
-        .spyOn(store, 'loadPersonalDatastoreCsv')
-        .mockResolvedValue(undefined);
+      const loadSpy = vi.spyOn(store, 'loadPersonalDatastoreCsv').mockResolvedValue(undefined);
 
       wrapper = mountComponent();
 
