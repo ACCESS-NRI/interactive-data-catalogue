@@ -38,10 +38,21 @@
     >
       <div class="flex items-center">
         <i class="pi pi-exclamation-triangle text-red-500 mr-2"></i>
-        <span class="text-red-700 dark:text-red-300 font-medium">Error loading datastore:</span>
+        <span class="text-red-700 dark:text-red-300 font-medium">{{
+          sessionExpired ? 'Session data unavailable' : 'Error loading datastore:'
+        }}</span>
       </div>
       <p class="text-red-600 dark:text-red-400 mt-1">{{ error }}</p>
       <button
+        v-if="sessionExpired"
+        @click="router.push({ name: 'PersonalDatastore' })"
+        class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+      >
+        <i class="pi pi-upload mr-2"></i>
+        Upload a CSV
+      </button>
+      <button
+        v-else
         @click="loadDatastore"
         class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
       >
@@ -146,6 +157,7 @@ const route = useRoute();
 const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
+const sessionExpired = ref(false);
 
 const routeName = props.source === 'personal' ? 'PersonalDatastoreDetail' : 'DatastoreDetail';
 
@@ -171,6 +183,14 @@ const {
   cacheKeyOverride: props.cacheKey,
   persistCacheOnUnmount: props.source === 'personal',
   skipRouteWatch: props.source === 'personal',
+  onCacheMissing:
+    props.source === 'personal'
+      ? () => {
+          sessionExpired.value = true;
+          error.value =
+            'Your personal datastore is no longer available — browser sessions are not persisted across page reloads. Please re-upload your CSV to continue.';
+        }
+      : undefined,
 });
 
 const rawData = computed(() => cachedDatastore.value?.data || []);

@@ -775,5 +775,20 @@ describe('catalogStore', () => {
       const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
       expect(cache?.totalRecords).toBe(1);
     });
+
+    it('replacePersonalDatastore preserves the existing datastore when parsing the new file throws', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockRejectedValue(
+        new Error('Not a valid CSV'),
+      );
+
+      const file = new File(['bad content'], 'bad.csv', { type: 'text/csv' });
+      await expect(store.replacePersonalDatastore(file, 'new-catalog')).rejects.toThrow('Not a valid CSV');
+
+      // Old datastore must still be intact
+      expect(store.personalDatastore?.name).toBe('old');
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
+    });
   });
 });

@@ -503,4 +503,34 @@ describe('DatastoreDetail', () => {
 
     expect(loadSpy).toHaveBeenCalledWith('test-datastore');
   });
+
+  it('shows a session-expiry error and "Upload a CSV" button when source is personal and cache is empty', async () => {
+    await router.isReady();
+
+    // No cache entry — simulates a page reload that lost the session data
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(null);
+
+    const personalStubs = {
+      Button: true,
+      DatastoreHeader: true,
+      EagerQuickStartCode: true,
+      EagerDatastoreTable: true,
+      FilterSelectors: true,
+      Toast: true,
+      RouterLink: { template: '<a><slot /></a>' },
+    };
+
+    wrapper = mount(EagerDatastoreDetail, {
+      props: { datastoreName: 'my-ds', cacheKey: '__personal_datastore__', source: 'personal' },
+      global: { plugins: [pinia, router, PrimeVue, ToastService], stubs: personalStubs },
+    });
+    await wrapper.vm.$nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(wrapper.text()).toContain('Session data unavailable');
+    expect(wrapper.text()).toContain('re-upload your CSV');
+
+    const uploadBtn = wrapper.find('button');
+    expect(uploadBtn.text()).toContain('Upload a CSV');
+  });
 });

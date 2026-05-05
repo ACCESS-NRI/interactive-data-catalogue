@@ -329,11 +329,15 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   /**
    * Replaces the current personal datastore with a new CSV file.
-   * Removes any existing personal datastore cache entry first.
+   *
+   * Parses and validates the new file first. The existing datastore is only
+   * cleared once the new file has been successfully parsed, so a failed
+   * replacement leaves the in-session datastore intact.
    */
   async function replacePersonalDatastore(file: File, datastoreName: string): Promise<void> {
+    const { rows, columns } = await parseCsvFile(file);
     clearPersonalDatastore();
-    await loadPersonalDatastoreCsv(file, datastoreName);
+    registerPersonalDatastoreRows(rows, columns, { name: datastoreName, csvFileName: file.name });
   }
 
   /** Removes the personal datastore state and cache entry. */
