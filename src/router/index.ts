@@ -20,6 +20,14 @@ const routes = [
       title: 'ESM Datastore Details',
     },
   },
+  {
+    path: '/personal-datastore',
+    name: 'PersonalDatastore',
+    component: () => import('../components/PersonalDatastore.vue'),
+    meta: {
+      title: 'Personal Datastore',
+    },
+  },
   // Future routes can be added here
 ];
 

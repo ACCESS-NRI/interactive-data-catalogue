@@ -13,12 +13,34 @@ import {
 } from '../services/catalogApi';
 import { initializeDuckDB } from '../services/duckdbClient';
 import {
+  deriveFilterOptionsFromRows,
   getEsmDatastoreSize,
   getFilterOptions,
   loadEsmDatastore,
+  normalizeDatastoreRows,
   queryMetaCatalogPq,
   setupColumns,
 } from '../services/parquetTransforms';
+import { parseCsvFile } from '../services/personalDatastoreCsv';
+
+/** Cache key under which the personal datastore is stored. */
+export const PERSONAL_DATASTORE_CACHE_KEY = '__personal_datastore__';
+
+/** Iterable columns expected in an intake-esm CSV. */
+export const PERSONAL_DATASTORE_ITERABLE_COLUMNS = [
+  'variable',
+  'variable_long_name',
+  'variable_standard_name',
+  'variable_cell_methods',
+  'variable_units',
+];
+
+/** Metadata about the currently loaded personal datastore. */
+export interface PersonalDatastoreState {
+  name: string;
+  csvFileName: string;
+  loadedAt: Date;
+}
 
 export const useCatalogStore = defineStore('catalog', () => {
   // State
@@ -29,6 +51,10 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Datastore cache state
   const datastoreCache = ref<Record<string, DatastoreCache>>({});
+
+  // Personal datastore state
+  const personalDatastore = ref<PersonalDatastoreState | null>(null);
+  const hasPersonalDatastore = computed(() => personalDatastore.value !== null);
 
   // Getters
   const catalogCount = computed(() => data.value.length);
@@ -259,6 +285,64 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  /**
+   * Registers pre-parsed CSV rows as a personal datastore in the cache.
+   *
+   * Normalises iterable columns to arrays and derives filter options from the
+   * row data rather than querying a sidecar parquet file.
+   */
+  function registerPersonalDatastoreRows(
+    rows: Record<string, unknown>[],
+    columns: string[],
+    meta: Omit<PersonalDatastoreState, 'loadedAt'>,
+  ): void {
+    if (rows.length === 0) throw new Error('Cannot register an empty personal datastore');
+
+    const displayColumns = setupColumns(columns);
+    const normalizedRows = normalizeDatastoreRows(rows, displayColumns, PERSONAL_DATASTORE_ITERABLE_COLUMNS);
+    const filterOptions = deriveFilterOptionsFromRows(normalizedRows, displayColumns);
+
+    datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY] = {
+      data: normalizedRows,
+      totalRecords: normalizedRows.length,
+      columns: displayColumns,
+      filterOptions,
+      loading: false,
+      error: null,
+      project: null,
+      lastFetched: new Date(),
+    };
+
+    personalDatastore.value = { ...meta, loadedAt: new Date() };
+    console.log(`✅ Registered personal datastore '${meta.name}' with ${normalizedRows.length} rows`);
+  }
+
+  /**
+   * Parses a CSV file and registers it as the personal datastore.
+   *
+   * This is the high-level entry point used by the upload UI.
+   */
+  async function loadPersonalDatastoreCsv(file: File, datastoreName: string): Promise<void> {
+    const { rows, columns } = await parseCsvFile(file);
+    registerPersonalDatastoreRows(rows, columns, { name: datastoreName, csvFileName: file.name });
+  }
+
+  /**
+   * Replaces the current personal datastore with a new CSV file.
+   * Removes any existing personal datastore cache entry first.
+   */
+  async function replacePersonalDatastore(file: File, datastoreName: string): Promise<void> {
+    clearPersonalDatastore();
+    await loadPersonalDatastoreCsv(file, datastoreName);
+  }
+
+  /** Removes the personal datastore state and cache entry. */
+  function clearPersonalDatastore(): void {
+    delete datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY];
+    personalDatastore.value = null;
+    console.log('🗑️ Cleared personal datastore');
+  }
+
   return {
     // State
     data,
@@ -266,6 +350,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     error,
     rawDataSample,
     datastoreCache,
+    personalDatastore,
+    hasPersonalDatastore,
 
     // Getters
     catalogCount,
@@ -282,6 +368,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     getDatastoreFromCache,
     isDatastoreLoading,
     clearDatastoreCache,
+
+    // Personal datastore
+    registerPersonalDatastoreRows,
+    loadPersonalDatastoreCsv,
+    replacePersonalDatastore,
+    clearPersonalDatastore,
 
     // Utility functions for other components
     fetchMetaCatFile,

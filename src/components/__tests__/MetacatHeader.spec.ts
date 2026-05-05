@@ -46,6 +46,9 @@ describe('MetacatHeader', () => {
           Button,
           Popover,
         },
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+        },
       },
     });
   };

@@ -52,6 +52,13 @@
     <div class="flex-shrink-0">
       <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 text-right">Documentation</div>
       <div class="flex flex-col space-y-2 items-end">
+        <RouterLink
+          :to="{ name: 'PersonalDatastore' }"
+          class="flex items-center gap-2 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 transition-colors text-sm font-medium"
+        >
+          <i class="pi pi-upload text-xs"></i>
+          Explore my personal datastore
+        </RouterLink>
         <a
           href="https://intake-esm.readthedocs.io/"
           target="_blank"
@@ -80,6 +87,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import GithubFeedbackButton from './GithubFeedbackButton.vue';

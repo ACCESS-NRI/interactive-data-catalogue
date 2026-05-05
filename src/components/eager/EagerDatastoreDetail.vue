@@ -8,6 +8,16 @@
             Catalog
           </RouterLink>
         </li>
+        <li v-if="source === 'personal'" class="flex items-center">
+          <i class="pi pi-angle-right mx-2 text-gray-400"></i>
+          <RouterLink
+            :to="{ name: 'PersonalDatastore' }"
+            class="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            <i class="pi pi-upload mr-1"></i>
+            Personal Datastore
+          </RouterLink>
+        </li>
         <li class="flex items-center">
           <i class="pi pi-angle-right mx-2 text-gray-400"></i>
           <i class="pi pi-database mr-1"></i>
@@ -77,6 +87,7 @@
           :raw-data="filteredData"
           :dynamic-filter-options="dynamicFilterOptions"
           :num-datasets="numDatasets"
+          :source="source"
           class="mb-6"
         />
 
@@ -117,16 +128,32 @@ import { useFilterUrlSync } from '../../composables/useFilterUrlSync';
 import { filterRowsBySelectedFilters, useDynamicFilterOptions } from '../../composables/useDynamicFilterOptions';
 import type { DatastoreRow } from '../../types/datastore';
 
+const props = withDefaults(
+  defineProps<{
+    /** Override for the datastore name; when absent falls back to route param. */
+    datastoreName?: string;
+    /** Override for the cache key; when absent falls back to the datastore name. */
+    cacheKey?: string;
+    /** Whether to auto-load on mount (default true). */
+    autoLoad?: boolean;
+    /** Whether this is a user-uploaded personal datastore. */
+    source?: 'builtin' | 'personal';
+  }>(),
+  { autoLoad: true, source: 'builtin' },
+);
+
 const route = useRoute();
 const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 
+const routeName = props.source === 'personal' ? 'PersonalDatastore' : 'DatastoreDetail';
+
 const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
   route,
   router,
   currentFilters,
-  'DatastoreDetail',
+  routeName,
 );
 const {
   datastoreName,
@@ -145,6 +172,10 @@ const {
   isCacheReady: (cache) => cache.data.length > 0,
   initializeFiltersFromUrl,
   stopFilterWatcher,
+  nameOverride: props.datastoreName,
+  cacheKeyOverride: props.cacheKey,
+  persistCacheOnUnmount: props.source === 'personal',
+  skipRouteWatch: props.source === 'personal',
 });
 
 const rawData = computed(() => cachedDatastore.value?.data || []);
