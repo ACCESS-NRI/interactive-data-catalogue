@@ -17,6 +17,13 @@ vi.mock('../WelcomeModal.vue', () => ({
   },
 }));
 
+vi.mock('../GithubFeedbackButton.vue', () => ({
+  default: {
+    name: 'GithubFeedbackButton',
+    template: '<div data-test="github-feedback-button" />',
+  },
+}));
+
 describe('MetacatHeader', () => {
   beforeEach(() => {
     vi.clearAllTimers();
@@ -106,6 +113,11 @@ describe('MetacatHeader', () => {
     const wrapper = createWrapper('abc123def456789', '2025-12-03T10:00:00Z');
     expect(wrapper.text()).toContain('abc123d');
     expect(wrapper.text()).not.toContain('abc123def456789');
+  });
+
+  it('renders the feedback button when deployment metadata is available', () => {
+    const wrapper = createWrapper('abc123def456789', '2025-12-03T10:00:00Z');
+    expect(wrapper.find('[data-test="github-feedback-button"]').exists()).toBe(true);
   });
 
   // Test that the popover shows on hover over the commit badge
