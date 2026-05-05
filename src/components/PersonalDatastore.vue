@@ -1,7 +1,22 @@
 <template>
   <div class="personal-datastore-container">
     <!-- Upload Section -->
-    <div v-if="!isDetailVisible">
+    <div v-if="!route.params.name">
+      <nav class="mb-6" aria-label="breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+          <li class="flex items-center">
+            <RouterLink to="/" class="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              <i class="pi pi-table mr-1"></i>
+              Catalog
+            </RouterLink>
+          </li>
+          <li class="flex items-center">
+            <i class="pi pi-angle-right mx-2 text-gray-400"></i>
+            <i class="pi pi-upload mr-1"></i>
+            <span class="font-medium text-gray-900 dark:text-gray-100">Personal Datastore</span>
+          </li>
+        </ol>
+      </nav>
       <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Personal Datastore</h1>
         <p class="text-gray-600 dark:text-gray-300">
@@ -26,7 +41,17 @@
             </p>
           </div>
           <div class="flex gap-2 flex-wrap">
-            <Button label="Browse it" icon="pi pi-search" size="small" @click="showDetail" />
+            <Button
+              label="Browse it"
+              icon="pi pi-search"
+              size="small"
+              @click="
+                router.push({
+                  name: 'PersonalDatastoreDetail',
+                  params: { name: slugify(catalogStore.personalDatastore!.name) },
+                })
+              "
+            />
             <Button
               label="Replace"
               icon="pi pi-upload"
@@ -53,9 +78,10 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"> Datastore name </label>
-            <InputText v-model="datastoreNameInput" placeholder="e.g. my-project-catalog" class="w-full" />
+            <InputText v-model="datastoreNameInput" placeholder="personal-datastore (default)" class="w-full" />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              A short label shown in the breadcrumb and quick-start code.
+              A short label shown in the breadcrumb and quick-start code. Defaults to
+              <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">personal-datastore</code> if left blank.
             </p>
           </div>
 
@@ -79,7 +105,7 @@
             <Button
               label="Load Datastore"
               icon="pi pi-check"
-              :disabled="!selectedFile || !datastoreNameInput.trim() || uploading"
+              :disabled="!selectedFile || uploading"
               :loading="uploading"
               @click="handleUpload"
             />
@@ -112,16 +138,6 @@
 
     <!-- Detail Section -->
     <div v-else>
-      <div class="mb-4">
-        <Button
-          label="Back to upload"
-          icon="pi pi-arrow-left"
-          severity="secondary"
-          outlined
-          size="small"
-          @click="hideDetail"
-        />
-      </div>
       <EagerDatastoreDetail
         :datastore-name="catalogStore.personalDatastore?.name ?? 'Personal Datastore'"
         :cache-key="PERSONAL_DATASTORE_CACHE_KEY"
@@ -133,6 +149,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import EagerDatastoreDetail from './eager/EagerDatastoreDetail.vue';
@@ -140,6 +157,15 @@ import { useCatalogStore } from '../stores/catalogStore';
 import { PERSONAL_DATASTORE_CACHE_KEY } from '../stores/catalogStore';
 
 const catalogStore = useCatalogStore();
+const route = useRoute();
+const router = useRouter();
+
+const slugify = (s: string) =>
+  s
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'personal-datastore';
 
 // Upload form state
 const datastoreNameInput = ref('');
@@ -148,7 +174,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 const uploadError = ref<string | null>(null);
 const showReplace = ref(false);
-const isDetailVisible = ref(false);
 
 const loadedAtFormatted = computed(() => {
   const date = catalogStore.personalDatastore?.loadedAt;
@@ -164,8 +189,8 @@ const handleFileChange = (event: Event) => {
 
 const handleUpload = async () => {
   const file = selectedFile.value;
-  const name = datastoreNameInput.value.trim();
-  if (!file || !name) return;
+  const name = datastoreNameInput.value.trim() || 'personal-datastore';
+  if (!file) return;
 
   uploading.value = true;
   uploadError.value = null;
@@ -179,7 +204,7 @@ const handleUpload = async () => {
     showReplace.value = false;
     selectedFile.value = null;
     if (fileInputRef.value) fileInputRef.value.value = '';
-    isDetailVisible.value = true;
+    router.push({ name: 'PersonalDatastoreDetail', params: { name: slugify(name) } });
   } catch (err) {
     uploadError.value = err instanceof Error ? err.message : 'Failed to load datastore';
   } finally {
@@ -192,14 +217,7 @@ const handleClear = () => {
   datastoreNameInput.value = '';
   selectedFile.value = null;
   if (fileInputRef.value) fileInputRef.value.value = '';
-};
-
-const showDetail = () => {
-  isDetailVisible.value = true;
-};
-
-const hideDetail = () => {
-  isDetailVisible.value = false;
+  if (route.params.name) router.push({ name: 'PersonalDatastore' });
 };
 </script>
 

@@ -28,6 +28,14 @@ const routes = [
       title: 'Personal Datastore',
     },
   },
+  {
+    path: '/personal-datastore/:name',
+    name: 'PersonalDatastoreDetail',
+    component: () => import('../components/PersonalDatastore.vue'),
+    meta: {
+      title: 'Personal Datastore',
+    },
+  },
   // Future routes can be added here
 ];
 
