@@ -8,7 +8,7 @@
         <MultiSelect
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="getSortedOptions(options, filterValues[column])"
+          :options="getSortedOptions(options, filterValues[column], dynamicFilterOptions[column])"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
           filterMatchMode="passthrough"
           @filter="(event) => handleFilterChange(column, event.value)"
