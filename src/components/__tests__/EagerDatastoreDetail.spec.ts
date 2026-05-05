@@ -451,6 +451,32 @@ describe('DatastoreDetail', () => {
     expect(wrapper.vm.selectedColumns[0].field).toBe('variable');
   });
 
+  // Test that the personal datastore breadcrumb is shown when source='personal'
+  it('renders the personal datastore breadcrumb when source is personal', async () => {
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
+
+    wrapper = mount(EagerDatastoreDetail, {
+      props: { datastoreName: 'my-personal-ds', source: 'personal' },
+      global: {
+        plugins: [pinia, router, PrimeVue, ToastService],
+        stubs: {
+          Button: true,
+          DatastoreHeader: true,
+          EagerQuickStartCode: true,
+          EagerDatastoreTable: true,
+          FilterSelectors: true,
+          Toast: true,
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Personal Datastore');
+  });
+
   // Test that refresh event from table triggers data reload
   it('reloads datastore when refresh event is emitted from table', async () => {
     await router.isReady();

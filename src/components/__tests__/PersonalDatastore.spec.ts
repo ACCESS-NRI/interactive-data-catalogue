@@ -119,6 +119,32 @@ describe('PersonalDatastore', () => {
       expect(clearSpy).toHaveBeenCalled();
     });
 
+    it('calls replacePersonalDatastore when a datastore is already loaded', async () => {
+      store.personalDatastore = { name: 'old-ds', csvFileName: 'old.csv', loadedAt: new Date() };
+      const replaceSpy = vi.spyOn(store, 'replacePersonalDatastore').mockResolvedValue(undefined);
+
+      wrapper = mountComponent();
+      await wrapper.vm.$nextTick();
+
+      // Open the replace form
+      const replaceBtn = wrapper.findAll('button').find((b) => b.text() === 'Replace');
+      await replaceBtn?.trigger('click');
+      await wrapper.vm.$nextTick();
+
+      // Pick a file
+      const fileInput = wrapper.find('input[type="file"]');
+      const file = new File(['variable\ntas'], 'new.csv', { type: 'text/csv' });
+      Object.defineProperty(fileInput.element, 'files', { value: [file], configurable: true });
+      await fileInput.trigger('change');
+
+      // Load
+      const loadBtn = wrapper.findAll('button').find((b) => b.text() === 'Load Datastore');
+      await loadBtn?.trigger('click');
+      await flushPromises();
+
+      expect(replaceSpy).toHaveBeenCalledWith(file, 'personal-datastore');
+    });
+
     it('routes to PersonalDatastoreDetail after successful upload', async () => {
       const loadSpy = vi.spyOn(store, 'loadPersonalDatastoreCsv').mockResolvedValue(undefined);
 

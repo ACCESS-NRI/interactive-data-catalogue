@@ -93,6 +93,14 @@ describe('parseStringList', () => {
   it('returns null for an empty string', () => {
     expect(parseStringList('')).toBeNull();
   });
+
+  it('returns null when JSON.parse succeeds but the result is not an array', () => {
+    // Force the try-branch to succeed with a non-array so execution falls
+    // through to the final `return null` (line 200 of parquetTransforms.ts).
+    vi.spyOn(JSON, 'parse').mockReturnValueOnce('not-an-array');
+    expect(parseStringList('[anything]')).toBeNull();
+    vi.restoreAllMocks();
+  });
 });
 
 describe('normalizeDatastoreField', () => {
@@ -137,6 +145,12 @@ describe('normalizeDatastoreField', () => {
   it('forces a Vector single value into an array when forceList is true', () => {
     const vector = { toArray: () => ['atmos'] };
     expect(normalizeDatastoreField(vector, true)).toEqual(['atmos']);
+  });
+
+  it('converts a non-string primitive (number) to a string via the else branch', () => {
+    // Numbers are not DuckDB vectors, not arrays, and not strings — they hit
+    // the `else { values = [value] }` branch (line 226 of parquetTransforms.ts).
+    expect(normalizeDatastoreField(42)).toBe('42');
   });
 });
 
