@@ -4,6 +4,7 @@ import { useCatalogStore, PERSONAL_DATASTORE_CACHE_KEY, PERSONAL_DATASTORE_ITERA
 import * as catalogApi from '../../services/catalogApi';
 import * as duckdbClient from '../../services/duckdbClient';
 import * as parquetTransforms from '../../services/parquetTransforms';
+import * as personalDatastoreCsvModule from '../../services/personalDatastoreCsv';
 import type { CatalogRow } from '../../types/catalog';
 import type { DatastoreCache } from '../../types/datastore';
 
@@ -739,6 +740,40 @@ describe('catalogStore', () => {
       expect(store.hasPersonalDatastore).toBe(false);
       expect(store.personalDatastore).toBeNull();
       expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).toBeNull();
+    });
+
+    it('loadPersonalDatastoreCsv parses the file and registers it', async () => {
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: mockRows,
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable\ntas'], 'catalog.csv', { type: 'text/csv' });
+      await store.loadPersonalDatastoreCsv(file, 'my-catalog');
+
+      expect(store.hasPersonalDatastore).toBe(true);
+      expect(store.personalDatastore?.name).toBe('my-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('catalog.csv');
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache?.totalRecords).toBe(2);
+    });
+
+    it('replacePersonalDatastore clears the old entry and loads the new file', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      const newRows = [{ variable: "['ua']", realm: 'atmos', frequency: 'day', path: '/data/new.nc' }];
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: newRows,
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable\nua'], 'new.csv', { type: 'text/csv' });
+      await store.replacePersonalDatastore(file, 'new-catalog');
+
+      expect(store.personalDatastore?.name).toBe('new-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('new.csv');
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache?.totalRecords).toBe(1);
     });
   });
 });
