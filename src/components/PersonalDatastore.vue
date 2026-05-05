@@ -5,8 +5,8 @@
       <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Personal Datastore</h1>
         <p class="text-gray-600 dark:text-gray-300">
-          Upload your own intake-esm CSV file to browse it using the same interface as the ACCESS-NRI catalogue.
-          Your data stays in your browser session and is never uploaded to any server.
+          Upload your own intake-esm CSV file to browse it using the same interface as the ACCESS-NRI catalogue. Your
+          data stays in your browser session and is never uploaded to any server.
         </p>
       </div>
 
@@ -22,17 +22,11 @@
               <strong>{{ catalogStore.personalDatastore?.name }}</strong> is loaded
             </p>
             <p class="text-blue-700 dark:text-blue-300 text-sm mt-1">
-              From <em>{{ catalogStore.personalDatastore?.csvFileName }}</em> —
-              loaded {{ loadedAtFormatted }}
+              From <em>{{ catalogStore.personalDatastore?.csvFileName }}</em> — loaded {{ loadedAtFormatted }}
             </p>
           </div>
           <div class="flex gap-2 flex-wrap">
-            <Button
-              label="Browse it"
-              icon="pi pi-search"
-              size="small"
-              @click="showDetail"
-            />
+            <Button label="Browse it" icon="pi pi-search" size="small" @click="showDetail" />
             <Button
               label="Replace"
               icon="pi pi-upload"
@@ -41,14 +35,7 @@
               outlined
               @click="showReplace = true"
             />
-            <Button
-              label="Clear"
-              icon="pi pi-trash"
-              size="small"
-              severity="danger"
-              outlined
-              @click="handleClear"
-            />
+            <Button label="Clear" icon="pi pi-trash" size="small" severity="danger" outlined @click="handleClear" />
           </div>
         </div>
       </div>
@@ -65,33 +52,20 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Datastore name
-            </label>
-            <InputText
-              v-model="datastoreNameInput"
-              placeholder="e.g. my-project-catalog"
-              class="w-full"
-            />
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"> Datastore name </label>
+            <InputText v-model="datastoreNameInput" placeholder="e.g. my-project-catalog" class="w-full" />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               A short label shown in the breadcrumb and quick-start code.
             </p>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Intake-ESM CSV file
-            </label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"> Intake-ESM CSV file </label>
             <input
               ref="fileInputRef"
               type="file"
               accept=".csv"
-              class="block w-full text-sm text-gray-700 dark:text-gray-300
-                     file:mr-4 file:py-2 file:px-4
-                     file:rounded file:border-0
-                     file:text-sm file:font-medium
-                     file:bg-blue-50 file:text-blue-700
-                     hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-300"
+              class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-300"
               @change="handleFileChange"
             />
           </div>
@@ -109,13 +83,7 @@
               :loading="uploading"
               @click="handleUpload"
             />
-            <Button
-              v-if="showReplace"
-              label="Cancel"
-              severity="secondary"
-              outlined
-              @click="showReplace = false"
-            />
+            <Button v-if="showReplace" label="Cancel" severity="secondary" outlined @click="showReplace = false" />
           </div>
         </div>
       </div>
@@ -131,8 +99,8 @@
           <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">variable</code>,
           <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">frequency</code>,
           <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">realm</code>, and
-          <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">path</code>.
-          You can find the CSV file for any intake-esm catalog in its JSON descriptor under the
+          <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">path</code>. You can find the CSV file for any
+          intake-esm catalog in its JSON descriptor under the
           <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">catalog_file</code> key.
         </p>
         <p class="text-sm text-gray-500 dark:text-gray-400">

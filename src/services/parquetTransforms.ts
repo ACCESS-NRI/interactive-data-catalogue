@@ -187,9 +187,7 @@ export function parseStringList(value: string): string[] | null {
     if (Array.isArray(parsed)) return parsed.map(String);
   } catch {
     // Fall back to single/double quoted item matching
-    const quotedMatches = Array.from(trimmed.matchAll(/'([^']*)'|"([^"]*)"/g)).map(
-      (match) => match[1] ?? match[2],
-    );
+    const quotedMatches = Array.from(trimmed.matchAll(/'([^']*)'|"([^"]*)"/g)).map((match) => match[1] ?? match[2]);
     if (quotedMatches.length > 0) return quotedMatches.filter((item): item is string => item !== undefined);
 
     return trimmed

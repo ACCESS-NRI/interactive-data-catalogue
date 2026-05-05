@@ -83,9 +83,7 @@ export function buildQuickStartCode({
   const opening =
     source === 'personal'
       ? `# Open your local ESM datastore, for example:\ndatastore = intake.open_esm_datastore("path/to/your/datastore.json"${
-          iterableColumns.length
-            ? `, columns_with_iterables=[${iterableColumns.map((c) => `'${c}'`).join(', ')}]`
-            : ''
+          iterableColumns.length ? `, columns_with_iterables=[${iterableColumns.map((c) => `'${c}'`).join(', ')}]` : ''
         })`
       : `datastore = intake.cat.access_nri["${datastoreName}"]`;
 

@@ -149,12 +149,7 @@ const numDatasets = ref(0);
 
 const routeName = props.source === 'personal' ? 'PersonalDatastore' : 'DatastoreDetail';
 
-const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
-  route,
-  router,
-  currentFilters,
-  routeName,
-);
+const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(route, router, currentFilters, routeName);
 const {
   datastoreName,
   loading,
