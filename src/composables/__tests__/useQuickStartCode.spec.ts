@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type MockInstance } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
@@ -23,7 +23,7 @@ const makeRouter = () =>
 
 describe('useQuickStartCode', () => {
   let router: ReturnType<typeof makeRouter>;
-  let clipboardSpy: ReturnType<typeof vi.spyOn>;
+  let clipboardSpy: MockInstance<(data: string) => Promise<void>>;
 
   beforeEach(() => {
     const pinia = createPinia();
