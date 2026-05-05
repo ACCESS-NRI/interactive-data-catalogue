@@ -10,6 +10,7 @@ import {
   hasActiveQuickStartFilters,
   shouldShowQuickStartCellMethodsWarning,
 } from '../services/quickStartCode';
+import { PERSONAL_DATASTORE_ITERABLE_COLUMNS } from '../stores/catalogStore';
 
 /**
  * Shared composable for the QuickStartCode components (Eager and Lazy).
@@ -26,12 +27,14 @@ import {
  * @param currentFilters - Ref to the per-column active filter map.
  * @param dynamicFilterOptions - Ref to the per-column available options map.
  * @param numDatasets    - Ref to the number of unique datasets currently matched.
+ * @param source         - Ref indicating whether this is a builtin or personal datastore.
  */
 export function useQuickStartCode(
   datastoreName: Ref<string>,
   currentFilters: Ref<FilterMap>,
   dynamicFilterOptions: Ref<FilterOptions>,
   numDatasets: Ref<number>,
+  source: Ref<'builtin' | 'personal'> = ref('builtin'),
 ) {
   const router = useRouter();
   const toast = useToast();
@@ -133,6 +136,8 @@ export function useQuickStartCode(
       currentFilters: currentFilters.value,
       numDatasets: numDatasets.value,
       isXArrayMode: isXArrayMode.value,
+      source: source.value,
+      iterableColumns: source.value === 'personal' ? PERSONAL_DATASTORE_ITERABLE_COLUMNS : [],
     });
   });
 
@@ -159,6 +164,8 @@ export function useQuickStartCode(
    *
    * If the resulting URL exceeds `MAX_URL_LENGTH` the long-URL confirmation
    * dialog is shown instead of copying immediately.
+   *
+   * For personal datastores the link routes to the PersonalDatastore page.
    */
   const copySearchLink = async (): Promise<void> => {
     const query: Record<string, string> = {};
@@ -169,11 +176,12 @@ export function useQuickStartCode(
       }
     }
 
-    const route = router.resolve({
-      name: 'DatastoreDetail',
-      params: { name: datastoreName.value },
-      query,
-    });
+    const routeTarget =
+      source.value === 'personal'
+        ? { name: 'PersonalDatastore', query }
+        : { name: 'DatastoreDetail', params: { name: datastoreName.value }, query };
+
+    const route = router.resolve(routeTarget);
 
     const fullUrl = new URL(route.href, window.location.href).toString();
 

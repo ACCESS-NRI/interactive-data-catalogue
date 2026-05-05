@@ -173,3 +173,109 @@ export async function getFilterOptions(
 export function setupColumns(dataColumns: string[]): string[] {
   return dataColumns.filter((col) => col !== '__index_level_0__');
 }
+
+/**
+ * Parses a bracket-wrapped string list such as `"['a', 'b']"` or `'["a","b"]'`
+ * into an array of strings. Returns null when the value is not a bracket-wrapped list.
+ */
+export function parseStringList(value: string): string[] | null {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {
+    // Fall back to single/double quoted item matching
+    const quotedMatches = Array.from(trimmed.matchAll(/'([^']*)'|"([^"]*)"/g)).map((match) => match[1] ?? match[2]);
+    if (quotedMatches.length > 0) return quotedMatches.filter((item): item is string => item !== undefined);
+
+    return trimmed
+      .slice(1, -1)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return null;
+}
+
+/**
+ * Normalizes a single field value from a CSV/parquet row.
+ *
+ * - DuckDB Vector → array of strings
+ * - JS array → array of strings
+ * - bracket-wrapped string → parsed array
+ * - scalar string → single string or null when empty
+ *
+ * When `forceList` is true the result is always an array.
+ */
+export function normalizeDatastoreField(value: unknown, forceList = false): string | string[] | null {
+  if (value === null || value === undefined) return null;
+
+  let values: unknown[];
+  if (isDuckDbVector(value)) {
+    values = value.toArray();
+  } else if (Array.isArray(value)) {
+    values = value;
+  } else if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    values = parseStringList(trimmed) ?? [value];
+  } else {
+    values = [value];
+  }
+
+  const normalized = values.filter((v) => v !== null && v !== undefined && String(v).trim()).map(String);
+  if (normalized.length === 0) return null;
+  if (forceList) return normalized;
+  return normalized.length === 1 ? normalized[0]! : normalized;
+}
+
+/**
+ * Normalizes an array of raw rows into typed DatastoreRow objects.
+ *
+ * Columns listed in `iterableColumns` are always returned as string arrays.
+ * All other columns use scalar-or-array output depending on the data.
+ */
+export function normalizeDatastoreRows(
+  rows: Record<string, unknown>[],
+  columns: string[],
+  iterableColumns: string[] = [],
+): DatastoreRow[] {
+  const iterableColumnSet = new Set(iterableColumns);
+  return rows.map((row) => {
+    const transformedRow: DatastoreRow = {};
+    for (const column of columns) {
+      transformedRow[column] = normalizeDatastoreField(row[column], iterableColumnSet.has(column));
+    }
+    return transformedRow;
+  });
+}
+
+/**
+ * Derives per-column filter options by collecting the unique non-empty values
+ * across all rows. Skips `path` and `filename` columns.
+ */
+export function deriveFilterOptionsFromRows(rows: DatastoreRow[], columns: string[]): FilterOptions {
+  const filterOptions: FilterOptions = {};
+
+  for (const column of columns) {
+    if (column === 'path' || column === 'filename') continue;
+
+    const seen = new Set<string>();
+    for (const row of rows) {
+      const value = row[column];
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          if (item !== null && item !== undefined && String(item).trim()) seen.add(String(item));
+        });
+      } else if (value !== null && value !== undefined && String(value).trim()) {
+        seen.add(String(value));
+      }
+    }
+    filterOptions[column] = Array.from(seen).sort();
+  }
+
+  return filterOptions;
+}

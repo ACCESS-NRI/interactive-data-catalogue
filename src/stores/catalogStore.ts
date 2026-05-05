@@ -13,12 +13,34 @@ import {
 } from '../services/catalogApi';
 import { initializeDuckDB } from '../services/duckdbClient';
 import {
+  deriveFilterOptionsFromRows,
   getEsmDatastoreSize,
   getFilterOptions,
   loadEsmDatastore,
+  normalizeDatastoreRows,
   queryMetaCatalogPq,
   setupColumns,
 } from '../services/parquetTransforms';
+import { parseCsvFile } from '../services/personalDatastoreCsv';
+
+/** Cache key under which the personal datastore is stored. */
+export const PERSONAL_DATASTORE_CACHE_KEY = '__personal_datastore__';
+
+/** Iterable columns expected in an intake-esm CSV. */
+export const PERSONAL_DATASTORE_ITERABLE_COLUMNS = [
+  'variable',
+  'variable_long_name',
+  'variable_standard_name',
+  'variable_cell_methods',
+  'variable_units',
+];
+
+/** Metadata about the currently loaded personal datastore. */
+export interface PersonalDatastoreState {
+  name: string;
+  csvFileName: string;
+  loadedAt: Date;
+}
 
 export const useCatalogStore = defineStore('catalog', () => {
   // State
@@ -29,6 +51,10 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   // Datastore cache state
   const datastoreCache = ref<Record<string, DatastoreCache>>({});
+
+  // Personal datastore state
+  const personalDatastore = ref<PersonalDatastoreState | null>(null);
+  const hasPersonalDatastore = computed(() => personalDatastore.value !== null);
 
   // Getters
   const catalogCount = computed(() => data.value.length);
@@ -259,6 +285,93 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  /**
+   * Builds a new personal datastore cache entry and state object from pre-parsed rows.
+   *
+   * Pure computation — does not touch the store. Throws if the rows are invalid
+   * so callers can validate before mutating any existing state.
+   */
+  function buildPersonalDatastoreCache(
+    rows: Record<string, unknown>[],
+    columns: string[],
+    meta: Omit<PersonalDatastoreState, 'loadedAt'>,
+  ): { cache: DatastoreCache; state: PersonalDatastoreState } {
+    if (rows.length === 0) throw new Error('Cannot register an empty personal datastore');
+
+    const displayColumns = setupColumns(columns);
+    const normalizedRows = normalizeDatastoreRows(rows, displayColumns, PERSONAL_DATASTORE_ITERABLE_COLUMNS);
+    const filterOptions = deriveFilterOptionsFromRows(normalizedRows, displayColumns);
+
+    return {
+      cache: {
+        data: normalizedRows,
+        totalRecords: normalizedRows.length,
+        columns: displayColumns,
+        filterOptions,
+        loading: false,
+        error: null,
+        project: null,
+        lastFetched: new Date(),
+      },
+      state: { ...meta, loadedAt: new Date() },
+    };
+  }
+
+  /**
+   * Registers pre-parsed CSV rows as a personal datastore in the cache.
+   *
+   * Normalises iterable columns to arrays and derives filter options from the
+   * row data rather than querying a sidecar parquet file.
+   */
+  function registerPersonalDatastoreRows(
+    rows: Record<string, unknown>[],
+    columns: string[],
+    meta: Omit<PersonalDatastoreState, 'loadedAt'>,
+  ): void {
+    const { cache, state } = buildPersonalDatastoreCache(rows, columns, meta);
+    datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY] = cache;
+    personalDatastore.value = state;
+    console.log(`✅ Registered personal datastore '${state.name}' with ${cache.totalRecords} rows`);
+  }
+
+  /**
+   * Parses a CSV file and registers it as the personal datastore.
+   *
+   * This is the high-level entry point used by the upload UI.
+   */
+  async function loadPersonalDatastoreCsv(file: File, datastoreName: string): Promise<void> {
+    const { rows, columns } = await parseCsvFile(file);
+    registerPersonalDatastoreRows(rows, columns, { name: datastoreName, csvFileName: file.name });
+  }
+
+  /**
+   * Replaces the current personal datastore with a new CSV file.
+   *
+   * Both parsing and all post-parse validation run before the existing
+   * datastore is touched. The swap (clear old + write new) is a synchronous
+   * two-line commit that cannot partially fail, so the old state is preserved
+   * if anything throws — including a header-only CSV or future validation.
+   */
+  async function replacePersonalDatastore(file: File, datastoreName: string): Promise<void> {
+    const { rows, columns } = await parseCsvFile(file);
+    const { cache, state } = buildPersonalDatastoreCache(rows, columns, {
+      name: datastoreName,
+      csvFileName: file.name,
+    });
+    // Atomic swap — only reached if both parse and build succeeded
+    delete datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY];
+    datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY] = cache;
+    personalDatastore.value = state;
+    console.log(`✅ Replaced personal datastore with '${state.name}' (${cache.totalRecords} rows)`);
+  }
+
+  /** Removes the personal datastore state and cache entry. */
+  function clearPersonalDatastore(): void {
+    delete datastoreCache.value[PERSONAL_DATASTORE_CACHE_KEY];
+    personalDatastore.value = null;
+    console.log('🗑️ Cleared personal datastore');
+  }
+
   return {
     // State
     data,
@@ -266,6 +379,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     error,
     rawDataSample,
     datastoreCache,
+    personalDatastore,
+    hasPersonalDatastore,
 
     // Getters
     catalogCount,
@@ -282,6 +397,12 @@ export const useCatalogStore = defineStore('catalog', () => {
     getDatastoreFromCache,
     isDatastoreLoading,
     clearDatastoreCache,
+
+    // Personal datastore
+    registerPersonalDatastoreRows,
+    loadPersonalDatastoreCsv,
+    replacePersonalDatastore,
+    clearPersonalDatastore,
 
     // Utility functions for other components
     fetchMetaCatFile,

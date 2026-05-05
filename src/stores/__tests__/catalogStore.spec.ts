@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { useCatalogStore } from '../catalogStore';
+import { useCatalogStore, PERSONAL_DATASTORE_CACHE_KEY, PERSONAL_DATASTORE_ITERABLE_COLUMNS } from '../catalogStore';
 import * as catalogApi from '../../services/catalogApi';
 import * as duckdbClient from '../../services/duckdbClient';
 import * as parquetTransforms from '../../services/parquetTransforms';
+import * as personalDatastoreCsvModule from '../../services/personalDatastoreCsv';
 import type { CatalogRow } from '../../types/catalog';
 import type { DatastoreCache } from '../../types/datastore';
 
@@ -649,6 +650,162 @@ describe('catalogStore', () => {
       };
 
       expect(cache.error).toBe('Failed to load');
+    });
+  });
+
+  describe('Personal Datastore', () => {
+    const mockRows = [
+      { variable: "['tas', 'pr']", realm: 'atmos', frequency: 'mon', path: '/data/file1.nc' },
+      { variable: "['ua']", realm: 'atmos', frequency: 'day', path: '/data/file2.nc' },
+    ];
+    const mockColumns = ['variable', 'realm', 'frequency', 'path'];
+
+    it('exports PERSONAL_DATASTORE_CACHE_KEY', () => {
+      expect(PERSONAL_DATASTORE_CACHE_KEY).toBe('__personal_datastore__');
+    });
+
+    it('exports PERSONAL_DATASTORE_ITERABLE_COLUMNS', () => {
+      expect(PERSONAL_DATASTORE_ITERABLE_COLUMNS).toContain('variable');
+    });
+
+    it('initializes with no personal datastore', () => {
+      expect(store.personalDatastore).toBeNull();
+      expect(store.hasPersonalDatastore).toBe(false);
+    });
+
+    it('registerPersonalDatastoreRows sets personal datastore state', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      expect(store.hasPersonalDatastore).toBe(true);
+      expect(store.personalDatastore?.name).toBe('my-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('catalog.csv');
+      expect(store.personalDatastore?.loadedAt).toBeInstanceOf(Date);
+    });
+
+    it('registerPersonalDatastoreRows populates the cache under PERSONAL_DATASTORE_CACHE_KEY', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache).not.toBeNull();
+      expect(cache!.totalRecords).toBe(2);
+      expect(cache!.loading).toBe(false);
+    });
+
+    it('registerPersonalDatastoreRows coerces iterable columns to arrays', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      const firstRow = cache!.data[0];
+      // variable is an iterable column — must always be an array
+      expect(Array.isArray(firstRow!['variable'])).toBe(true);
+    });
+
+    it('registerPersonalDatastoreRows derives filter options from rows', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache!.filterOptions['realm']).toContain('atmos');
+      expect(cache!.filterOptions['frequency']).toContain('mon');
+    });
+
+    it('registerPersonalDatastoreRows throws on empty rows', () => {
+      expect(() =>
+        store.registerPersonalDatastoreRows([], mockColumns, {
+          name: 'empty',
+          csvFileName: 'empty.csv',
+        }),
+      ).toThrow();
+    });
+
+    it('clearPersonalDatastore removes state and cache entry', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      store.clearPersonalDatastore();
+
+      expect(store.hasPersonalDatastore).toBe(false);
+      expect(store.personalDatastore).toBeNull();
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).toBeNull();
+    });
+
+    it('loadPersonalDatastoreCsv parses the file and registers it', async () => {
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: mockRows,
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable\ntas'], 'catalog.csv', { type: 'text/csv' });
+      await store.loadPersonalDatastoreCsv(file, 'my-catalog');
+
+      expect(store.hasPersonalDatastore).toBe(true);
+      expect(store.personalDatastore?.name).toBe('my-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('catalog.csv');
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache?.totalRecords).toBe(2);
+    });
+
+    it('replacePersonalDatastore clears the old entry and loads the new file', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      const newRows = [{ variable: "['ua']", realm: 'atmos', frequency: 'day', path: '/data/new.nc' }];
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: newRows,
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable\nua'], 'new.csv', { type: 'text/csv' });
+      await store.replacePersonalDatastore(file, 'new-catalog');
+
+      expect(store.personalDatastore?.name).toBe('new-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('new.csv');
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache?.totalRecords).toBe(1);
+    });
+
+    it('replacePersonalDatastore preserves the existing datastore when parsing the new file throws', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockRejectedValue(new Error('Not a valid CSV'));
+
+      const file = new File(['bad content'], 'bad.csv', { type: 'text/csv' });
+      await expect(store.replacePersonalDatastore(file, 'new-catalog')).rejects.toThrow('Not a valid CSV');
+
+      // Old datastore must still be intact
+      expect(store.personalDatastore?.name).toBe('old');
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
+    });
+
+    it('replacePersonalDatastore preserves the existing datastore when post-parse validation fails (empty rows)', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      // Parse succeeds but returns zero data rows (header-only CSV)
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: [],
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable,realm\n'], 'empty.csv', { type: 'text/csv' });
+      await expect(store.replacePersonalDatastore(file, 'new-catalog')).rejects.toThrow(
+        'Cannot register an empty personal datastore',
+      );
+
+      // Old datastore must still be intact
+      expect(store.personalDatastore?.name).toBe('old');
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
     });
   });
 });

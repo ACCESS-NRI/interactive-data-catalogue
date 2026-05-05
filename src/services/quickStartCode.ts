@@ -10,6 +10,10 @@ export interface QuickStartCodeOptions {
   currentFilters: FilterMap;
   numDatasets: number;
   isXArrayMode: boolean;
+  /** Whether this is a personal (user-uploaded) datastore. Default: 'builtin'. */
+  source?: 'builtin' | 'personal';
+  /** Column names that hold iterable values, used in the personal datastore opening. */
+  iterableColumns?: string[];
 }
 
 /**
@@ -73,7 +77,16 @@ export function buildQuickStartCode({
   currentFilters,
   numDatasets,
   isXArrayMode,
+  source = 'builtin',
+  iterableColumns = [],
 }: QuickStartCodeOptions): string {
+  const opening =
+    source === 'personal'
+      ? `# Open your local ESM datastore, for example:\ndatastore = intake.open_esm_datastore("path/to/your/datastore.json"${
+          iterableColumns.length ? `, columns_with_iterables=[${iterableColumns.map((c) => `'${c}'`).join(', ')}]` : ''
+        })`
+      : `datastore = intake.cat.access_nri["${datastoreName}"]`;
+
   let code = `"""
 You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
 
@@ -85,7 +98,7 @@ from dask.distributed import Client
 
 client = Client(threads_per_worker=1)
 
-datastore = intake.cat.access_nri["${datastoreName}"]`;
+${opening}`;
 
   if (hasActiveQuickStartFilters(currentFilters)) {
     const entries = Object.entries(currentFilters);
