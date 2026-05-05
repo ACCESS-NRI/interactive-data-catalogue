@@ -96,10 +96,7 @@ describe('catalogApi', () => {
 
   describe('getEsmDatastoreRecordCount', () => {
     it('returns the length of the fetched JSON array', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({ ok: true, json: async () => [{ a: 1 }, { b: 2 }, { c: 3 }] }),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [{ a: 1 }, { b: 2 }, { c: 3 }] }));
 
       await expect(getEsmDatastoreRecordCount('my-datastore')).resolves.toBe(3);
     });
@@ -124,10 +121,7 @@ describe('catalogApi', () => {
     });
 
     it('throws on non-ok response', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' }),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' }));
 
       await expect(queryEsmDatastore('my-datastore')).rejects.toThrow('HTTP error 404');
     });
@@ -135,19 +129,13 @@ describe('catalogApi', () => {
 
   describe('getEsmDatastoreProject', () => {
     it('returns the project field from the response', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ project: 'my-project' }) }),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ project: 'my-project' }) }));
 
       await expect(getEsmDatastoreProject('my-datastore')).resolves.toBe('my-project');
     });
 
     it('throws on non-ok response', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({ ok: false, status: 403, statusText: 'Forbidden' }),
-      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403, statusText: 'Forbidden' }));
 
       await expect(getEsmDatastoreProject('my-datastore')).rejects.toThrow('HTTP error 403');
     });

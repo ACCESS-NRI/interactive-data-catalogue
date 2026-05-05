@@ -230,7 +230,9 @@ describe('queryMetaCatalogPq', () => {
 describe('loadEsmDatastore', () => {
   it('queries schema and data and returns transformed rows', async () => {
     const schemaRows = [{ column_name: 'realm' }, { column_name: 'frequency' }, { column_name: 'filename' }];
-    const dataRows = [{ realm: { toArray: () => ['atmos'] }, frequency: { toArray: () => ['mon'] }, filename: 'f.parquet' }];
+    const dataRows = [
+      { realm: { toArray: () => ['atmos'] }, frequency: { toArray: () => ['mon'] }, filename: 'f.parquet' },
+    ];
 
     const mockConn = {
       query: vi
@@ -284,9 +286,7 @@ describe('getEsmDatastoreSize', () => {
     const encoder = new TextEncoder();
     const mockConn = {
       query: vi.fn().mockResolvedValue({
-        toArray: () => [
-          { key: encoder.encode('num_records'), value: encoder.encode('42') },
-        ],
+        toArray: () => [{ key: encoder.encode('num_records'), value: encoder.encode('42') }],
       }),
     };
 
