@@ -533,4 +533,21 @@ describe('DatastoreDetail', () => {
     const uploadBtn = wrapper.find('button');
     expect(uploadBtn.text()).toContain('Upload a CSV');
   });
+
+  it('handleClearFilters clears filters and captures analytics event', async () => {
+    await router.push('/datastore/test-datastore?frequency_filter=daily');
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
+
+    wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.currentFilters.frequency).toEqual(['daily']);
+
+    wrapper.vm.handleClearFilters();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.currentFilters).toEqual({});
+  });
 });

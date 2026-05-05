@@ -377,4 +377,43 @@ describe('LazyDatastoreTable', () => {
     // Should not show more button when only 2 units
     expect(html).not.toContain('+1 more');
   });
+
+  it('onPageChange updates page and limit', async () => {
+    const wrapper = createWrapper();
+    await showTable(wrapper);
+
+    await wrapper.vm.onPageChange({ page: 2, rows: 50 });
+
+    expect(wrapper.vm.page).toBe(2);
+    expect(wrapper.vm.limit).toBe(50);
+  });
+
+  it('onSort updates sortField and sortOrder', async () => {
+    const wrapper = createWrapper();
+    await showTable(wrapper);
+
+    await wrapper.vm.onSort({ sortField: 'frequency', sortOrder: -1 });
+
+    expect(wrapper.vm.sortField).toBe('frequency');
+    expect(wrapper.vm.sortOrder).toBe(-1);
+    expect(wrapper.vm.page).toBe(0); // reset to first page
+  });
+
+  it('onSort handles null sortOrder (0) by setting sortOrder to null', async () => {
+    const wrapper = createWrapper();
+    await showTable(wrapper);
+
+    await wrapper.vm.onSort({ sortField: 'realm', sortOrder: 0 });
+
+    expect(wrapper.vm.sortOrder).toBeNull();
+  });
+
+  it('onSort handles non-string sortField by setting sortField to null', async () => {
+    const wrapper = createWrapper();
+    await showTable(wrapper);
+
+    await wrapper.vm.onSort({ sortField: null, sortOrder: 1 });
+
+    expect(wrapper.vm.sortField).toBeNull();
+  });
 });
