@@ -3,7 +3,7 @@
     type="button"
     icon="pi pi-github"
     label="Give us feedback"
-    class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+    class="p-button-sm text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
     title="Open a new issue pre-filled with the feedback template"
     @click="openFeedbackIssue"
   />
