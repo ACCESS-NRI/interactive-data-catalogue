@@ -788,5 +788,24 @@ describe('catalogStore', () => {
       expect(store.personalDatastore?.name).toBe('old');
       expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
     });
+
+    it('replacePersonalDatastore preserves the existing datastore when post-parse validation fails (empty rows)', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      // Parse succeeds but returns zero data rows (header-only CSV)
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: [],
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable,realm\n'], 'empty.csv', { type: 'text/csv' });
+      await expect(store.replacePersonalDatastore(file, 'new-catalog')).rejects.toThrow(
+        'Cannot register an empty personal datastore',
+      );
+
+      // Old datastore must still be intact
+      expect(store.personalDatastore?.name).toBe('old');
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
+    });
   });
 });
