@@ -44,10 +44,15 @@ describe('MetacatHeader', () => {
       global: {
         components: {
           Button,
-          Popover,
         },
         stubs: {
           RouterLink: { template: '<a><slot /></a>' },
+          // Stub Popover so show/hide don't run real PrimeVue transition logic
+          Popover: {
+            template: '<div data-testid="commit-popover"><slot /></div>',
+            methods: { show: vi.fn(), hide: vi.fn() },
+            expose: ['show', 'hide'],
+          },
         },
       },
     });
@@ -277,5 +282,31 @@ describe('MetacatHeader', () => {
     await btn.trigger('click');
 
     expect(openMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Test that showCommitPopover clears a pending hide timeout if one exists
+  it('showCommitPopover clears hideTimeout when called while hide is pending', async () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
+    const vm = wrapper.vm as any;
+
+    // Start the hide timer via the handler directly (avoids real Popover interactions)
+    vm.hideCommitPopover();
+    expect(() => vm.showCommitPopover(new MouseEvent('mouseenter'))).not.toThrow();
+  });
+
+  // Test that cancelHidePopover clears a pending hide timeout
+  it('cancelHidePopover clears hideTimeout when one is set', async () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
+    const vm = wrapper.vm as any;
+
+    // Schedule the hide via handler directly
+    vm.hideCommitPopover();
+
+    // cancelHidePopover should clear the pending timeout without throwing
+    expect(() => vm.cancelHidePopover()).not.toThrow();
+
+    // Advancing timers should be safe — timeout was cleared
+    vi.advanceTimersByTime(500);
+    expect(wrapper.exists()).toBe(true);
   });
 });

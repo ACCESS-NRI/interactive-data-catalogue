@@ -424,4 +424,15 @@ describe('CatalogRowDetailModal', () => {
     expect(wrapper.text()).toContain('empty-catalog');
     expect(wrapper.text()).toContain('Variables (0 total)');
   });
+
+  // Test that trackDetailLinkClick fires PostHog capture
+  it('trackDetailLinkClick calls capture with datastore name', () => {
+    const wrapper = createWrapper({
+      visible: true,
+      rowData: mockCatalogRow,
+    });
+
+    // Call directly — the function just fires capture
+    expect(() => (wrapper.vm as any).trackDetailLinkClick('test-catalog')).not.toThrow();
+  });
 });

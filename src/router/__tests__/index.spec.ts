@@ -39,4 +39,15 @@ describe('router', () => {
     expect(router.currentRoute.value.name).toBe('PersonalDatastoreDetail');
     expect(router.currentRoute.value.params.name).toBe('test-catalog');
   });
+
+  it('afterEach sets isNavigating to false after the 100ms timeout', async () => {
+    vi.useFakeTimers();
+
+    await router.push('/personal-datastore');
+    // Before the timer fires, isNavigating may still be true
+    vi.advanceTimersByTime(100);
+    expect(isNavigating.value).toBe(false);
+
+    vi.useRealTimers();
+  });
 });

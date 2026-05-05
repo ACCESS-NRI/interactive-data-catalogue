@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount, VueWrapper } from '@vue/test-utils';
+import { mount, VueWrapper, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import LazyDatastoreDetail from '../lazy/LazyDatastoreDetail.vue';
@@ -599,20 +599,24 @@ describe('DatastoreDetail', () => {
     // This test mainly ensures no errors occur during unmount with open dropdowns
   });
 
-  it('handleClearFilters clears filters and captures analytics event', async () => {
+  it('handleClearFilters clears filters when FilterSelectors emits clear', async () => {
     await router.push('/datastore/test-datastore?frequency_filter=daily');
     await router.isReady();
 
     vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
 
     wrapper = createWrapper();
-    await wrapper.vm.$nextTick();
+    await flushPromises();
 
-    expect(wrapper.vm.currentFilters.frequency).toEqual(['daily']);
+    // Verify route has filter query params initially
+    expect(router.currentRoute.value.query.frequency_filter).toBe('daily');
 
-    wrapper.vm.handleClearFilters();
-    await wrapper.vm.$nextTick();
+    // Trigger handleClearFilters via the FilterSelectors 'clear' event
+    const filterSelectors = wrapper.findComponent({ name: 'FilterSelectors' });
+    await filterSelectors.vm.$emit('clear');
+    await flushPromises();
 
-    expect(wrapper.vm.currentFilters).toEqual({});
+    // Filters should be cleared from the URL
+    expect(router.currentRoute.value.query.frequency_filter).toBeUndefined();
   });
 });

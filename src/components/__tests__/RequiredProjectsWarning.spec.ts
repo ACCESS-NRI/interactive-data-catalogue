@@ -123,4 +123,19 @@ describe('RequiredProjectsWarning', () => {
     expect(projectSpan.classes()).toContain('cursor-pointer');
     expect(projectSpan.classes()).toContain('font-mono');
   });
+
+  // Test that openCondaAnalysis3Docs opens the correct docs URL
+  it('openCondaAnalysis3Docs opens the conda analysis docs URL', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    const wrapper = createWrapper({ projects: ['xp65'] });
+    (wrapper.vm as any).openCondaAnalysis3Docs();
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are',
+      '_blank',
+    );
+
+    openSpy.mockRestore();
+  });
 });

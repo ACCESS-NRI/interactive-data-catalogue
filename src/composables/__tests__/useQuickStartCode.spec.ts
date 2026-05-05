@@ -85,4 +85,122 @@ describe('useQuickStartCode', () => {
       expect(writtenUrl).toContain('/datastore/test-ds');
     });
   });
+
+  describe('confirmCopyLongUrl', () => {
+    it('writes to clipboard and hides the dialog on success', async () => {
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      const url = 'https://example.com/very-long-url';
+      await composable.current!.confirmCopyLongUrl(url);
+
+      expect(clipboardSpy).toHaveBeenCalledWith(url);
+      expect(composable.current!.showLongUrlDialog.value).toBe(false);
+    });
+
+    it('logs error when clipboard write fails in confirmCopyLongUrl', async () => {
+      clipboardSpy.mockRejectedValueOnce(new Error('clipboard denied'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      await composable.current!.confirmCopyLongUrl('https://example.com/url');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to copy long link:', expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('copyCodeToClipboard', () => {
+    it('logs error when clipboard write fails', async () => {
+      clipboardSpy.mockRejectedValueOnce(new Error('clipboard denied'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      await composable.current!.copyCodeToClipboard();
+
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('copySearchLink', () => {
+    it('logs error when clipboard write fails', async () => {
+      clipboardSpy.mockRejectedValueOnce(new Error('clipboard denied'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      await router.push('/datastore/test-ds');
+      await router.isReady();
+
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      await composable.current!.copySearchLink();
+
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('shows long URL dialog when URL exceeds limit', async () => {
+      // Use a very long filter value to push the URL over 2083 chars
+      const longFilter = 'a'.repeat(2100);
+      const pinia = createPinia();
+      setActivePinia(pinia);
+      const composableRef: { current: ReturnType<typeof useQuickStartCode> | null } = { current: null };
+
+      const TestComponent = defineComponent({
+        setup() {
+          composableRef.current = useQuickStartCode(
+            ref('test-ds'),
+            ref({ variable: [longFilter] }),
+            ref({ variable: [longFilter] }),
+            ref(5),
+            ref('builtin'),
+          );
+          return () => h('div');
+        },
+      });
+
+      await router.push('/datastore/test-ds');
+      await router.isReady();
+      mount(TestComponent, { global: { plugins: [pinia, router] } });
+      await composableRef.current!.copySearchLink();
+
+      expect(composableRef.current!.showLongUrlDialog.value).toBe(true);
+    });
+  });
+
+  describe('copyCodeAndOpenARESession', () => {
+    it('logs error when clipboard write fails in ARE session copy', async () => {
+      clipboardSpy.mockRejectedValueOnce(new Error('clipboard denied'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(window, 'open').mockReturnValue(null);
+
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      await composable.current!.copyCodeAndOpenARESession();
+
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('cancelCopyLongUrl', () => {
+    it('resets the long URL dialog state', async () => {
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      composable.current!.pendingLongUrl.value = 'https://example.com/long';
+      composable.current!.showLongUrlDialog.value = true;
+
+      composable.current!.cancelCopyLongUrl();
+
+      expect(composable.current!.showLongUrlDialog.value).toBe(false);
+      expect(composable.current!.pendingLongUrl.value).toBe('');
+    });
+  });
 });
