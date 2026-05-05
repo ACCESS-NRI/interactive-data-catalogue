@@ -68,4 +68,51 @@ describe('useFuzzyFilter', () => {
       expect(result).toContain('project');
     });
   });
+
+  describe('getSortedOptions — with availableOptions', () => {
+    const allOptions = ['zebra', 'apple', 'mango', 'banana', 'cherry'];
+
+    it('puts available items before unavailable items', () => {
+      const available = ['apple', 'cherry'];
+      const result = getSortedOptions(allOptions, undefined, available);
+      const lastAvailableIdx = Math.max(...available.map((o) => result.indexOf(o)));
+      const firstUnavailableIdx = Math.min(
+        ...allOptions
+          .filter((o) => !available.includes(o))
+          .map((o) => result.indexOf(o)),
+      );
+      expect(lastAvailableIdx).toBeLessThan(firstUnavailableIdx);
+    });
+
+    it('sorts each partition alphabetically', () => {
+      const available = ['mango', 'apple'];
+      const result = getSortedOptions(allOptions, undefined, available);
+      // available section: apple, mango
+      expect(result[0]).toBe('apple');
+      expect(result[1]).toBe('mango');
+      // unavailable section: banana, cherry, zebra
+      expect(result[2]).toBe('banana');
+      expect(result[3]).toBe('cherry');
+      expect(result[4]).toBe('zebra');
+    });
+
+    it('partitions and sorts after fuzzy filtering', () => {
+      const opts = ['cloud_fraction', 'cloud_amount', 'atmosphere', 'cloud_cover'];
+      const available = ['cloud_amount', 'cloud_cover'];
+      const result = getSortedOptions(opts, 'cloud', available);
+      // all three cloud matches returned; available ones first, alphabetically
+      expect(result).toEqual(['cloud_amount', 'cloud_cover', 'cloud_fraction']);
+    });
+
+    it('returns all items as unavailable when availableOptions is empty', () => {
+      const result = getSortedOptions(allOptions, undefined, []);
+      // no available items — all items returned sorted alphabetically
+      expect(result).toEqual(['apple', 'banana', 'cherry', 'mango', 'zebra']);
+    });
+
+    it('falls back to original behaviour when availableOptions is undefined', () => {
+      // No availableOptions: returns all options in original order unchanged
+      expect(getSortedOptions(allOptions, undefined, undefined)).toEqual(allOptions);
+    });
+  });
 });

@@ -16,33 +16,59 @@ const uf = new uFuzzy({ intraMode: 1 });
  */
 export function useFuzzyFilter() {
   /**
-   * Returns the subset of `options` that fuzzy-match `searchTerm`.
+   * Returns the subset of `options` that fuzzy-match `searchTerm`, optionally
+   * partitioned so available items appear before unavailable ones.
+   *
    * Space-separated terms use OR semantics: each term is matched independently
    * and results are unioned, so "uvel vvel" surfaces both options.
    * Returns all options unchanged when `searchTerm` is empty or absent.
    *
+   * When `availableOptions` is provided the result is split into two
+   * alphabetically-sorted groups: available items first, unavailable below.
+   * When `availableOptions` is omitted the original index order is preserved
+   * (existing behaviour — used for non-lazy datastores).
+   *
    * @param options - The full options list for this column.
    * @param searchTerm - Optional search term entered by the user.
-   * @returns Matched options in their original order.
+   * @param availableOptions - Optional subset of options that are currently
+   *   selectable given the active filters (from dynamicFilterOptions).
+   * @returns Matched options, partitioned and sorted when availableOptions is given.
    */
-  const getSortedOptions = (options: string[], searchTerm?: string): string[] => {
-    if (!searchTerm?.trim()) return options;
+  const getSortedOptions = (
+    options: string[],
+    searchTerm?: string,
+    availableOptions?: string[],
+  ): string[] => {
+    let result: string[];
 
-    const terms = searchTerm
-      .trim()
-      .split(/\s+/)
-      .filter((t) => t.length > 0);
+    if (!searchTerm?.trim()) {
+      result = options;
+    } else {
+      const terms = searchTerm
+        .trim()
+        .split(/\s+/)
+        .filter((t) => t.length > 0);
 
-    const matched = new Set<number>();
-    for (const term of terms) {
-      const idxs = uf.filter(options, term);
-      if (idxs) idxs.forEach((i) => matched.add(i));
+      const matched = new Set<number>();
+      for (const term of terms) {
+        const idxs = uf.filter(options, term);
+        if (idxs) idxs.forEach((i) => matched.add(i));
+      }
+
+      result = [...matched]
+        .sort((a, b) => a - b)
+        .map((i) => options[i])
+        .filter((o): o is string => o !== undefined);
     }
 
-    return [...matched]
-      .sort((a, b) => a - b)
-      .map((i) => options[i])
-      .filter((o): o is string => o !== undefined);
+    if (!availableOptions) return result;
+
+    const availableSet = new Set(availableOptions);
+    const available = result.filter((o) => availableSet.has(o)).sort((a, b) => a.localeCompare(b));
+    const unavailable = result
+      .filter((o) => !availableSet.has(o))
+      .sort((a, b) => a.localeCompare(b));
+    return [...available, ...unavailable];
   };
 
   return { getSortedOptions };
