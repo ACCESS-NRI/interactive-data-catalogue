@@ -48,9 +48,7 @@ describe('useDynamicFilterOptions', () => {
 
   it('handles falsy scalar cell values in cellMatchesFilterValue', () => {
     // A row with a null scalar value (not an array) should not match a non-empty filter value
-    const rowsWithNull = [
-      { realm: null as any, frequency: ['day'], variable: ['tas'] },
-    ];
+    const rowsWithNull = [{ realm: null as any, frequency: ['day'], variable: ['tas'] }];
     const result = filterRowsBySelectedFilters(rowsWithNull, { realm: ['atmos'] });
     expect(result).toEqual([]);
   });

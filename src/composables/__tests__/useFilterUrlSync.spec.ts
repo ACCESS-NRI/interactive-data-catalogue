@@ -77,9 +77,7 @@ describe('useFilterUrlSync', () => {
     currentFilters.value = { realm: ['atmos'] };
     await nextTick();
 
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'DatastoreDetail' }),
-    );
+    expect(router.replace).toHaveBeenCalledWith(expect.objectContaining({ name: 'DatastoreDetail' }));
 
     stopFilterWatcher();
   });

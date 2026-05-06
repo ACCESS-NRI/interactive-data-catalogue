@@ -22,8 +22,9 @@ describe('DatastoreTableCell', () => {
       const wrapper = createWrapper('variable', ['a', 'b', 'c', 'd'], 'Variables');
       const moreBtn = wrapper.find('[role="button"]');
       await moreBtn.trigger('click');
-      expect(wrapper.emitted('open-modal')).toBeTruthy();
-      expect(wrapper.emitted('open-modal')![0]).toEqual(['Variables', ['a', 'b', 'c', 'd']]);
+      const events = wrapper.emitted('open-modal');
+      expect(events).toBeTruthy();
+      expect(events?.[0]).toEqual(['Variables', ['a', 'b', 'c', 'd']]);
     });
 
     it('does not render +N more when 3 or fewer items', () => {
@@ -133,7 +134,7 @@ describe('DatastoreTableCell', () => {
       const wrapper = createWrapper('variable', ['a', 'b', 'c', 'd'], '');
       const moreBtn = wrapper.find('[role="button"]');
       await moreBtn.trigger('click');
-      expect(wrapper.emitted('open-modal')![0][0]).toBe('Details');
+      expect(wrapper.emitted('open-modal')?.[0]?.[0]).toBe('Details');
     });
   });
 });
