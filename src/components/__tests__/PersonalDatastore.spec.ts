@@ -209,4 +209,112 @@ describe('PersonalDatastore', () => {
       expect(wrapper.text()).not.toContain('Upload Datastore CSV');
     });
   });
+
+  // ── Uncovered branches ────────────────────────────────────────────────────
+
+  describe('slugify fallback', () => {
+    it('falls back to "personal-datastore" when name slugifies to empty string', async () => {
+      const loadSpy = vi.spyOn(store, 'loadPersonalDatastoreCsv').mockResolvedValue(undefined);
+
+      wrapper = mountComponent();
+
+      // Set a name that has no alphanumeric characters — InputText stub renders as <input> without type attr
+      const input = wrapper.find('input:not([type="file"])');
+      await input.setValue('---');
+
+      const fileInput = wrapper.find('input[type="file"]');
+      const file = new File(['variable\ntas'], 'my.csv', { type: 'text/csv' });
+      Object.defineProperty(fileInput.element, 'files', { value: [file], configurable: true });
+      await fileInput.trigger('change');
+
+      const loadBtn = wrapper.findAll('button').find((b) => b.text() === 'Load Datastore');
+      await loadBtn?.trigger('click');
+      await flushPromises();
+
+      expect(loadSpy).toHaveBeenCalled();
+      // The route should use the fallback slug
+      expect(router.currentRoute.value.params.name).toBe('personal-datastore');
+    });
+  });
+
+  describe('loadedAtFormatted', () => {
+    it('returns empty string when no datastore is loaded', () => {
+      wrapper = mountComponent();
+      // No personalDatastore set → loadedAtFormatted should return ''
+      expect((wrapper.vm as any).loadedAtFormatted).toBe('');
+    });
+
+    it('returns formatted time when datastore has a loadedAt date', () => {
+      store.personalDatastore = { name: 'ds', csvFileName: 'x.csv', loadedAt: new Date() };
+      wrapper = mountComponent();
+      // Should return a non-empty time string
+      expect((wrapper.vm as any).loadedAtFormatted).not.toBe('');
+    });
+  });
+
+  describe('handleFileChange edge cases', () => {
+    it('sets selectedFile to null when files is null/empty', async () => {
+      wrapper = mountComponent();
+      const fileInput = wrapper.find('input[type="file"]');
+
+      // Trigger change with no files
+      Object.defineProperty(fileInput.element, 'files', { value: null, configurable: true });
+      await fileInput.trigger('change');
+
+      expect((wrapper.vm as any).selectedFile).toBeNull();
+    });
+  });
+
+  describe('handleUpload early return', () => {
+    it('does nothing when no file is selected', async () => {
+      const loadSpy = vi.spyOn(store, 'loadPersonalDatastoreCsv').mockResolvedValue(undefined);
+      wrapper = mountComponent();
+
+      // Click Load without selecting a file
+      const loadBtn = wrapper.findAll('button').find((b) => b.text() === 'Load Datastore');
+      await loadBtn?.trigger('click');
+      await flushPromises();
+
+      expect(loadSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleUpload non-Error exception', () => {
+    it('shows generic error message when thrown value is not an Error instance', async () => {
+      vi.spyOn(store, 'loadPersonalDatastoreCsv').mockRejectedValue('string error');
+
+      wrapper = mountComponent();
+
+      const fileInput = wrapper.find('input[type="file"]');
+      const file = new File(['bad'], 'my.csv', { type: 'text/csv' });
+      Object.defineProperty(fileInput.element, 'files', { value: [file], configurable: true });
+      await fileInput.trigger('change');
+
+      const loadBtn = wrapper.findAll('button').find((b) => b.text() === 'Load Datastore');
+      await loadBtn?.trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Failed to load datastore');
+    });
+  });
+
+  describe('handleClear with route param', () => {
+    it('navigates to PersonalDatastore when cleared from detail route', async () => {
+      store.personalDatastore = { name: 'my-ds', csvFileName: 'my.csv', loadedAt: new Date() };
+      await router.push('/personal-datastore/my-ds');
+      await router.isReady();
+
+      wrapper = mountComponent();
+      await wrapper.vm.$nextTick();
+
+      const clearSpy = vi.spyOn(store, 'clearPersonalDatastore');
+
+      // Call handleClear directly — it should redirect to PersonalDatastore
+      (wrapper.vm as any).handleClear();
+      await flushPromises();
+
+      expect(clearSpy).toHaveBeenCalled();
+      expect(router.currentRoute.value.name).toBe('PersonalDatastore');
+    });
+  });
 });

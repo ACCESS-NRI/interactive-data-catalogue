@@ -395,6 +395,105 @@ describe('catalogStore', () => {
 
         expect(store.datastoreCache['new-datastore']).toBeDefined();
       });
+
+      // Test that loadDatastore stores metadata-only for large datastores (>5000 records)
+      it('stores metadata-only for large datastores (>5000 records)', async () => {
+        const mockSidecar = new Uint8Array([1, 2, 3]);
+        const mockDb = {
+          registerFileBuffer: vi.fn().mockResolvedValue(undefined),
+          terminate: vi.fn().mockResolvedValue(undefined),
+        };
+        const mockConn = {
+          close: vi.fn().mockResolvedValue(undefined),
+        };
+
+        vi.spyOn(catalogApi, 'fetchDatastoreSidecarParquet').mockResolvedValue(mockSidecar);
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({ db: mockDb as any, conn: mockConn as any });
+        vi.spyOn(catalogApi, 'getEsmDatastoreProject').mockResolvedValue('test-project');
+        vi.spyOn(parquetTransforms, 'getFilterOptions').mockResolvedValue({ realm: ['atmos'] });
+        vi.spyOn(parquetTransforms, 'getEsmDatastoreSize').mockResolvedValue(10000); // > 5000
+        vi.spyOn(catalogApi, 'queryEsmDatastore').mockResolvedValue([{ name: 'row1' }]);
+
+        const result = await store.loadDatastore('large-datastore');
+
+        expect(result).toBeDefined();
+        expect(result!.totalRecords).toBe(10000);
+        expect(result!.data).toEqual([]); // No data stored for large datastores
+        expect(result!.project).toBe('test-project');
+        expect(result!.loading).toBe(false);
+        expect(result!.error).toBeNull();
+      });
+
+      // Test that loadDatastore loads all data for small datastores (<=5000 records)
+      it('loads full data for small datastores (<=5000 records)', async () => {
+        const mockSidecar = new Uint8Array([1, 2, 3]);
+        const mockParquet = new Uint8Array([4, 5, 6]);
+        const mockRows = [{ name: 'row1', realm: 'atmos' }];
+        const mockDb = {
+          registerFileBuffer: vi.fn().mockResolvedValue(undefined),
+          terminate: vi.fn().mockResolvedValue(undefined),
+        };
+        const mockConn = {
+          close: vi.fn().mockResolvedValue(undefined),
+        };
+
+        vi.spyOn(catalogApi, 'fetchDatastoreSidecarParquet').mockResolvedValue(mockSidecar);
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({ db: mockDb as any, conn: mockConn as any });
+        vi.spyOn(catalogApi, 'getEsmDatastoreProject').mockResolvedValue('small-project');
+        vi.spyOn(parquetTransforms, 'getFilterOptions').mockResolvedValue({ realm: ['atmos'] });
+        vi.spyOn(parquetTransforms, 'getEsmDatastoreSize').mockResolvedValue(100); // <= 5000
+        vi.spyOn(catalogApi, 'queryEsmDatastore').mockResolvedValue([{ name: 'row1' }]);
+        vi.spyOn(catalogApi, 'fetchDatastoreParquet').mockResolvedValue(mockParquet);
+        vi.spyOn(parquetTransforms, 'loadEsmDatastore').mockResolvedValue(mockRows as any);
+
+        const result = await store.loadDatastore('small-datastore');
+
+        expect(result).toBeDefined();
+        expect(result!.totalRecords).toBe(100);
+        expect(result!.data).toEqual(mockRows);
+        expect(result!.project).toBe('small-project');
+        expect(result!.loading).toBe(false);
+        expect(result!.error).toBeNull();
+      });
+
+      // Test that loadDatastore stores a non-Error exception message
+      it('stores "Failed to load datastore" for non-Error throws', async () => {
+        vi.spyOn(catalogApi, 'fetchDatastoreSidecarParquet').mockRejectedValue('plain string error');
+
+        await expect(store.loadDatastore('err-datastore')).rejects.toBe('plain string error');
+
+        const cache = store.datastoreCache['err-datastore'];
+        expect(cache?.error).toBe('Failed to load datastore');
+      });
+    });
+  });
+
+  describe('createEmptyCache', () => {
+    it('returns a cache object with error state', () => {
+      // createEmptyCache is called when in-progress load has no cache entry
+      // We test it indirectly by exposing via the store's waitForLoad path
+      // by accessing it through a loading→undefined race condition
+      store.datastoreCache = {
+        'race-datastore': {
+          data: [],
+          totalRecords: 0,
+          columns: [],
+          filterOptions: {},
+          loading: true,
+          error: null,
+          lastFetched: new Date(),
+        },
+      };
+
+      // Remove the cache entry while loading flag is still set to trigger createEmptyCache
+      setTimeout(() => {
+        delete store.datastoreCache['race-datastore'];
+      }, 0);
+
+      return store.loadDatastore('race-datastore').then((result) => {
+        expect(result).toBeDefined();
+        expect(result!.error).toBe('Datastore not found');
+      });
     });
   });
 

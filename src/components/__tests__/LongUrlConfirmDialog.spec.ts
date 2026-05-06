@@ -127,7 +127,7 @@ describe('LongUrlConfirmDialog', () => {
     expect(buttonTexts).toContain('Copy anyway');
   });
 
-  // Test that the copy button has the appropriate icon
+  // Test that rendering copy icon on confirm button
   it('renders copy icon on confirm button', () => {
     const wrapper = createWrapper({
       visible: true,
@@ -140,5 +140,19 @@ describe('LongUrlConfirmDialog', () => {
     const icon = copyButton?.find('i');
     expect(icon?.classes()).toContain('pi');
     expect(icon?.classes()).toContain('pi-copy');
+  });
+
+  // Test that handleVisibilityChange emits update:visible when Dialog emits it
+  it('handleVisibilityChange forwards visibility change to parent', () => {
+    const wrapper = createWrapper({
+      visible: true,
+      url: 'https://example.com',
+      urlLength: 3000,
+    });
+
+    (wrapper.vm as any).handleVisibilityChange(false);
+
+    expect(wrapper.emitted('update:visible')).toBeTruthy();
+    expect(wrapper.emitted('update:visible')?.[0]).toEqual([false]);
   });
 });

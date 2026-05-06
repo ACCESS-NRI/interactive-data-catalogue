@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildDatastoreContentUrl,
   buildDatastoreObjectStoreUrl,
@@ -37,5 +37,16 @@ describe('catalogEndpoints', () => {
     expect(buildEsmDatastoreTableUrl('woa23', 'offset=0&limit=25')).toBe(
       `${trackingServicesBaseUrl}intake/table/esm-datastore/woa23?offset=0&limit=25`,
     );
+  });
+
+  it('trackingServicesBaseUrl uses the production URL when NODE_ENV is production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.resetModules();
+
+    const { trackingServicesBaseUrl: prodUrl } = await import('../catalogEndpoints');
+    expect(prodUrl).toBe('https://reporting-dev.access-nri-store.cloud.edu.au/');
+
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 });

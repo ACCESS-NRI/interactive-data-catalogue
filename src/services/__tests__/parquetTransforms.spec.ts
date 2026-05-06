@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildRawDataSample,
   deriveFilterOptionsFromRows,
+  getEsmDatastoreSize,
   getFilterOptions,
+  loadEsmDatastore,
   normalizeCatalogRows,
   normalizeDatastoreField,
   normalizeDatastoreRows,
   parseStringList,
+  queryMetaCatalogPq,
   setupColumns,
 } from '../parquetTransforms';
 
@@ -192,5 +195,143 @@ describe('deriveFilterOptionsFromRows', () => {
     const rows = [{ variable: null }, { variable: '' }, { variable: 'tas' }];
     const opts = deriveFilterOptionsFromRows(rows as any, ['variable']);
     expect(opts.variable).toEqual(['tas']);
+  });
+});
+
+describe('processListField — fallback branch', () => {
+  it('converts a raw number value to a single-element string array via normalizeCatalogRows', () => {
+    // processListField is not exported; exercise it indirectly via normalizeCatalogRows.
+    // Passing a bare number for `realm` (not null, not array, not string, not DuckDB vector)
+    // hits the `return [String(value)]` fallback on line 32 of parquetTransforms.ts.
+    const rows = normalizeCatalogRows([
+      {
+        name: 'test',
+        model: [],
+        description: '',
+        realm: 42 as any,
+        frequency: [],
+        variable: [],
+        yaml: null,
+      },
+    ]);
+    expect(rows[0]!.realm).toEqual(['42']);
+  });
+});
+
+describe('queryMetaCatalogPq', () => {
+  it('registers the file buffer and returns normalized catalog rows and raw sample', async () => {
+    const rawRows = [
+      {
+        name: 'cat1',
+        model: { toArray: () => ['ACCESS-CM2'] },
+        description: 'desc',
+        realm: { toArray: () => ['atmos'] },
+        frequency: { toArray: () => ['mon'] },
+        variable: { toArray: () => ['tas'] },
+        yaml: 'sources: {}',
+      },
+    ];
+    const mockDb = {
+      registerFileBuffer: vi.fn().mockResolvedValue(undefined),
+    };
+    const mockConn = {
+      query: vi.fn().mockResolvedValue({ toArray: () => rawRows }),
+    };
+
+    const result = await queryMetaCatalogPq(mockDb as any, mockConn as any, new Uint8Array([1, 2, 3]));
+
+    expect(mockDb.registerFileBuffer).toHaveBeenCalledWith('metacatalog.parquet', expect.any(Uint8Array));
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]!.name).toBe('cat1');
+    expect(result.rawDataSample).toHaveLength(1);
+  });
+});
+
+describe('loadEsmDatastore', () => {
+  it('queries schema and data and returns transformed rows', async () => {
+    const schemaRows = [{ column_name: 'realm' }, { column_name: 'frequency' }, { column_name: 'filename' }];
+    const dataRows = [
+      { realm: { toArray: () => ['atmos'] }, frequency: { toArray: () => ['mon'] }, filename: 'f.parquet' },
+    ];
+
+    const mockConn = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ toArray: () => schemaRows }) // DESCRIBE query
+        .mockResolvedValueOnce({ toArray: () => dataRows }), // SELECT * query
+    };
+
+    const result = await loadEsmDatastore(mockConn as any, 'test.parquet');
+
+    // filename column is filtered out; realm and frequency remain
+    expect(result).toHaveLength(1);
+    expect(result[0]).toHaveProperty('realm');
+    expect(result[0]).toHaveProperty('frequency');
+    expect(result[0]).not.toHaveProperty('filename');
+  });
+
+  it('collapses single-element arrays to scalar values', async () => {
+    const schemaRows = [{ column_name: 'realm' }];
+    const dataRows = [{ realm: { toArray: () => ['atmos'] } }];
+
+    const mockConn = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ toArray: () => schemaRows })
+        .mockResolvedValueOnce({ toArray: () => dataRows }),
+    };
+
+    const result = await loadEsmDatastore(mockConn as any, 'test.parquet');
+    expect(result[0]!['realm']).toBe('atmos');
+  });
+
+  it('returns null for empty vector values', async () => {
+    const schemaRows = [{ column_name: 'variable' }];
+    const dataRows = [{ variable: { toArray: () => [] } }];
+
+    const mockConn = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ toArray: () => schemaRows })
+        .mockResolvedValueOnce({ toArray: () => dataRows }),
+    };
+
+    const result = await loadEsmDatastore(mockConn as any, 'test.parquet');
+    expect(result[0]!['variable']).toBeNull();
+  });
+});
+
+describe('getEsmDatastoreSize', () => {
+  it('returns num_records from parquet metadata', async () => {
+    const encoder = new TextEncoder();
+    const mockConn = {
+      query: vi.fn().mockResolvedValue({
+        toArray: () => [{ key: encoder.encode('num_records'), value: encoder.encode('42') }],
+      }),
+    };
+
+    const result = await getEsmDatastoreSize(mockConn as any, 'test_uniqs.parquet');
+    expect(result).toBe(42);
+  });
+
+  it('returns 1000000 when num_records key is missing', async () => {
+    const encoder = new TextEncoder();
+    const mockConn = {
+      query: vi.fn().mockResolvedValue({
+        toArray: () => [{ key: encoder.encode('other_key'), value: encoder.encode('somevalue') }],
+      }),
+    };
+
+    const result = await getEsmDatastoreSize(mockConn as any, 'test_uniqs.parquet');
+    expect(result).toBe(1000000);
+  });
+
+  it('returns 1000000 when the query throws', async () => {
+    const mockConn = {
+      query: vi.fn().mockRejectedValue(new Error('Query failed')),
+    };
+
+    const result = await getEsmDatastoreSize(mockConn as any, 'test_uniqs.parquet');
+    expect(result).toBe(1000000);
   });
 });
