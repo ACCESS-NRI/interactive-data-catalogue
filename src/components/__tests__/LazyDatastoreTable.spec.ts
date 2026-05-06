@@ -9,6 +9,15 @@ import DatastoreEntryModal from '../DatastoreEntryModal.vue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 
+const createFetchResponse = (body: unknown) =>
+  ({
+    ok: true,
+    json: () => Promise.resolve(body),
+    clone: () => ({
+      json: () => Promise.resolve(body),
+    }),
+  }) as Response;
+
 // Mock the fetch API
 const mockFetchResponse = {
   records: [
@@ -40,12 +49,7 @@ describe('LazyDatastoreTable', () => {
 
   beforeEach(() => {
     // Mock fetch for all tests
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockFetchResponse),
-      } as Response),
-    );
+    global.fetch = vi.fn(() => Promise.resolve(createFetchResponse(mockFetchResponse)));
   });
 
   // Helper to create wrapper with PrimeVue components
@@ -264,12 +268,7 @@ describe('LazyDatastoreTable', () => {
 
   // Test that the component handles empty data gracefully
   it('handles empty data', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ records: [], total: 0, unique_file_ids: [] }),
-      } as Response),
-    );
+    global.fetch = vi.fn(() => Promise.resolve(createFetchResponse({ records: [], total: 0, unique_file_ids: [] })));
 
     const wrapper = createWrapper();
     await flushPromises();
@@ -415,5 +414,27 @@ describe('LazyDatastoreTable', () => {
     await wrapper.vm.onSort({ sortField: null, sortOrder: 1 });
 
     expect(wrapper.vm.sortField).toBeNull();
+  });
+
+  it('emits setNumDatasets and setDynamicFilterOptions when fetched data changes', async () => {
+    // Override to include dynamic_filter_options so both watchers fire on initial load
+    global.fetch = vi.fn(() =>
+      Promise.resolve(
+        createFetchResponse({
+          records: [{ __index_level_0__: 1, variable: ['tas'], frequency: 'daily', realm: 'atmos' }],
+          total: 1,
+          unique_file_ids: ['file1', 'file2'],
+          dynamic_filter_options: { realm: ['atmos', 'ocean'] },
+        }),
+      ),
+    );
+
+    const wrapper = createWrapper();
+    await showTable(wrapper);
+    await flushPromises();
+
+    // Both watchers fire when data first arrives (numDatasets: 0→2, dynamicFilterOptions: {}→{realm:[...]})
+    expect(wrapper.emitted('setNumDatasets')).toBeTruthy();
+    expect(wrapper.emitted('setDynamicFilterOptions')).toBeTruthy();
   });
 });

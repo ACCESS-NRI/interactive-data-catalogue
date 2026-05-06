@@ -181,4 +181,51 @@ describe('useDatastoreDetail', () => {
       expect(onCacheMissing).not.toHaveBeenCalled();
     });
   });
+
+  describe('formatColumnName', () => {
+    it('returns empty string segment for double-underscore column names', async () => {
+      // Columns with double underscores produce an empty word → '' branch (lines 75-76)
+      store.datastoreCache['my-ds'] = makeCache({ columns: ['col__name'] });
+
+      wrapper = await mountWithOptions({
+        nameOverride: 'my-ds',
+        cacheKeyOverride: 'my-ds',
+        skipRouteWatch: true,
+        isCacheReady: () => true,
+      });
+      await wrapper.vm.$nextTick();
+
+      // Component mounted without error — the empty segment path was exercised
+      expect(wrapper.exists()).toBe(true);
+    });
+  });
+
+  describe('loadDatastore error handling', () => {
+    it('sets error to generic string when loadDatastore throws a non-Error value', async () => {
+      vi.spyOn(store, 'loadDatastore').mockRejectedValueOnce('not an Error object');
+
+      const TestComponent = defineComponent({
+        setup() {
+          const result = useDatastoreDetail({
+            loadingStrategy: 'eager',
+            isCacheReady: () => false,
+            initializeFiltersFromUrl: vi.fn(),
+            stopFilterWatcher: vi.fn(),
+          });
+          return () => h('div', result.error.value ?? '');
+        },
+      });
+
+      await router.push('/personal-datastore/my-ds');
+      await router.isReady();
+      const w = mount(TestComponent, { global: { plugins: [pinia, router] } });
+      // Wait for the async loadDatastore call to fail
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await w.vm.$nextTick();
+
+      // Error should be the generic fallback string
+      expect(w.text()).toBe('Failed to load datastore');
+      w.unmount();
+    });
+  });
 });

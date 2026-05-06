@@ -312,4 +312,36 @@ describe('MetacatHeader', () => {
     vi.advanceTimersByTime(500);
     expect(wrapper.exists()).toBe(true);
   });
+
+  // Test that buildTime false branch is hit when buildTime is not set
+  it('does not render build time section when buildTime is absent', () => {
+    delete (globalThis as any).__BUILD_TIME__;
+    // createWrapper without buildTime arg so __BUILD_TIME__ stays deleted
+    (globalThis as any).__GIT_COMMIT_SHA__ = 'abc123def456';
+    const wrapper = createWrapper('abc123def456', undefined);
+    // The v-if="buildTime" false branch — "Built:" text should not appear
+    expect(wrapper.html()).not.toContain('Built:');
+  });
+
+  // Test that copyCommitSha hides popover on successful clipboard write (line 129)
+  it('copyCommitSha calls hide on commitPopover after successful clipboard write', async () => {
+    const commitSha = 'abc123def456789';
+    const wrapper = createWrapper(commitSha, '2025-12-03T10:00:00Z');
+
+    // Inject a mock popover so commitPopover.value?.hide() can be called
+    const hideMock = vi.fn();
+    (wrapper.vm as any).commitPopover = { hide: hideMock };
+
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextMock },
+      writable: true,
+      configurable: true,
+    });
+
+    await (wrapper.vm as any).copyCommitSha();
+
+    expect(writeTextMock).toHaveBeenCalledWith(commitSha);
+    expect(hideMock).toHaveBeenCalled();
+  });
 });

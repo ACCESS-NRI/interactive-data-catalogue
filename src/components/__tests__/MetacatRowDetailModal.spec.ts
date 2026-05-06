@@ -5,6 +5,12 @@ import { createRouter, createMemoryHistory } from 'vue-router';
 import CatalogRowDetailModal from '../MetacatRowDetailModal.vue';
 import type { CatalogRow } from '../../types/catalog';
 
+// Allow tests to override js-yaml's load per-call
+vi.mock('js-yaml', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('js-yaml')>();
+  return { ...actual, load: vi.fn(actual.load) };
+});
+
 // Mock router
 const router = createRouter({
   history: createMemoryHistory(),
@@ -434,5 +440,62 @@ describe('CatalogRowDetailModal', () => {
 
     // Call directly — the function just fires capture
     expect(() => (wrapper.vm as any).trackDetailLinkClick('test-catalog')).not.toThrow();
+  });
+
+  // Test that YAML parse error falls back to String(err) when err has no .message (lines 208, 211)
+  it('falls back to String(err) when yaml error has no message property', async () => {
+    const { load } = await import('js-yaml');
+    // Make load throw a plain string (not an Error) for this test only
+    vi.mocked(load).mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw 'plain string error';
+    });
+
+    const wrapper = createWrapper({
+      visible: true,
+      rowData: mockCatalogRow,
+    });
+    await wrapper.vm.$nextTick();
+
+    expect((wrapper.vm as any).parseFailure).toBe(true);
+    expect((wrapper.vm as any).yamlParseError).toBe('plain string error');
+  });
+
+  // Test handleFilterClick when the field IS in the cached datastore filterOptions (lines 235-247)
+  it('navigates with filter query param when cached datastore has the clicked field', async () => {
+    const { useCatalogStore } = await import('../../stores/catalogStore');
+    const store = useCatalogStore();
+
+    // Pre-populate the cache so `getDatastoreFromCache` returns data with filterOptions containing 'model'
+    store.datastoreCache['test-catalog'] = {
+      data: [],
+      totalRecords: 0,
+      columns: ['model'],
+      filterOptions: { model: ['ACCESS-CM2', 'ACCESS-ESM1-5'] },
+      loading: false,
+      error: null,
+      project: null,
+      lastFetched: new Date(),
+    };
+
+    const pushSpy = vi.spyOn(router, 'push');
+
+    const wrapper = createWrapper({
+      visible: true,
+      rowData: mockCatalogRow,
+    });
+
+    // Click the first .tag-chip in the Models TagList (the stub renders actual spans)
+    const chip = wrapper.find('.tag-list .tag-chip');
+    if (chip.exists()) {
+      await chip.trigger('click');
+    }
+
+    // With hasField = true, router.push should include the filter query
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ model_filter: 'ACCESS-CM2' }),
+      }),
+    );
   });
 });

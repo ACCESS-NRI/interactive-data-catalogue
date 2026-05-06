@@ -292,4 +292,15 @@ describe('DatastoreEntryModal', () => {
     expect(chip).toBeDefined();
     expect(chip?.attributes('title')).toBe('[object Object]');
   });
+
+  // Test that null element inside items array is formatted as dash (formatItem line 57)
+  it('formats null element in items array as a dash', () => {
+    const wrapper = createWrapper({
+      modelValue: true,
+      items: [null],
+    });
+
+    const chip = wrapper.findAll('span').find((span) => span.classes().includes('px-2'));
+    expect(chip?.text()).toBe('-');
+  });
 });

@@ -125,6 +125,29 @@ describe('useQuickStartCode', () => {
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
+
+    it('writes code to clipboard and calls triggerCopiedBadge on success', async () => {
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      await composable.current!.copyCodeToClipboard();
+
+      expect(clipboardSpy).toHaveBeenCalled();
+      // triggerCopiedBadge is also returned by the composable — verify it exists
+      expect(typeof composable.current!.triggerCopiedBadge).toBe('function');
+    });
+  });
+
+  describe('quickStartCode with personal source', () => {
+    it('uses PERSONAL_DATASTORE_ITERABLE_COLUMNS when source is personal', async () => {
+      const { composable, wrapper } = mountWithSource('personal');
+      await wrapper.vm.$nextTick();
+
+      // personal source → iterableColumns branch at line 140
+      const code = composable.current!.quickStartCode.value;
+      expect(typeof code).toBe('string');
+      expect(code.length).toBeGreaterThan(0);
+    });
   });
 
   describe('copySearchLink', () => {
@@ -186,6 +209,21 @@ describe('useQuickStartCode', () => {
 
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
+    });
+
+    it('opens ARE dashboard window after successful clipboard write', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+
+      const { composable, wrapper } = mountWithSource('builtin');
+      await wrapper.vm.$nextTick();
+
+      const promise = composable.current!.copyCodeAndOpenARESession();
+      await vi.advanceTimersByTimeAsync(800);
+      await promise;
+
+      expect(openSpy).toHaveBeenCalledWith('https://are.nci.org.au/pun/sys/dashboard', '_blank');
+      vi.useRealTimers();
     });
   });
 

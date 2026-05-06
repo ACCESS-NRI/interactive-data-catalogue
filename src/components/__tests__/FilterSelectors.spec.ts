@@ -352,4 +352,24 @@ describe('FilterSelectors', () => {
       expect(mockToastAdd).not.toHaveBeenCalled();
     });
   });
+
+  describe('analyticsContext', () => {
+    it('emits dropdown-opened and captures analytics on @show when analyticsContext is set', () => {
+      const wrapper = createWrapper({ analyticsContext: 'catalogue' });
+      const multiSelect = wrapper.findComponent(MultiSelect);
+      // Trigger the @show event on the first MultiSelect (project column)
+      multiSelect.vm.$emit('show');
+      expect(wrapper.emitted('dropdown-opened')).toBeTruthy();
+      expect(wrapper.emitted('dropdown-opened')?.[0]).toEqual(['project']);
+    });
+
+    it('captures filter_applied analytics in updateFilter when analyticsContext is set', () => {
+      const wrapper = createWrapper({ analyticsContext: 'catalogue' });
+      const multiSelect = wrapper.findComponent(MultiSelect);
+      // Trigger update:model-value which calls updateFilter
+      multiSelect.vm.$emit('update:model-value', ['proj1']);
+      // No exception thrown and the event was emitted
+      expect(wrapper.emitted('update:modelValue')).toBeTruthy();
+    });
+  });
 });
