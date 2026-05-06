@@ -198,6 +198,26 @@ describe('deriveFilterOptionsFromRows', () => {
   });
 });
 
+describe('processListField — fallback branch', () => {
+  it('converts a raw number value to a single-element string array via normalizeCatalogRows', () => {
+    // processListField is not exported; exercise it indirectly via normalizeCatalogRows.
+    // Passing a bare number for `realm` (not null, not array, not string, not DuckDB vector)
+    // hits the `return [String(value)]` fallback on line 32 of parquetTransforms.ts.
+    const rows = normalizeCatalogRows([
+      {
+        name: 'test',
+        model: [],
+        description: '',
+        realm: 42 as any,
+        frequency: [],
+        variable: [],
+        yaml: null,
+      },
+    ]);
+    expect(rows[0]!.realm).toEqual(['42']);
+  });
+});
+
 describe('queryMetaCatalogPq', () => {
   it('registers the file buffer and returns normalized catalog rows and raw sample', async () => {
     const rawRows = [

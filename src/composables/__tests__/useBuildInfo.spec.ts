@@ -82,4 +82,19 @@ describe('useBuildInfo', () => {
       expect(useBuildInfo().shortCommitSha).toBe('');
     });
   });
+
+  describe('when __BUILD_TIME__ is not defined', () => {
+    beforeEach(() => {
+      (globalThis as any).__GIT_COMMIT_SHA__ = 'abc123def456';
+      delete (globalThis as any).__BUILD_TIME__;
+    });
+
+    it('returns null for buildTime', () => {
+      expect(useBuildInfo().buildTime).toBeNull();
+    });
+
+    it('still returns a valid commit SHA', () => {
+      expect(useBuildInfo().hasValidCommit).toBe(true);
+    });
+  });
 });

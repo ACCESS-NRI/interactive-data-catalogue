@@ -127,5 +127,13 @@ describe('DatastoreTableCell', () => {
       const wrapper = createWrapper('unknown_field', null);
       expect(wrapper.text()).toContain('-');
     });
+
+    it('emits "Details" as fallback title when header prop is empty', async () => {
+      // openModal emits `title || 'Details'` — empty header triggers the fallback
+      const wrapper = createWrapper('variable', ['a', 'b', 'c', 'd'], '');
+      const moreBtn = wrapper.find('[role="button"]');
+      await moreBtn.trigger('click');
+      expect(wrapper.emitted('open-modal')![0][0]).toBe('Details');
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { useFuzzyFilter } from '../useFuzzyFilter';
+import { useFuzzyFilter, fuzzyMatchesSearch } from '../useFuzzyFilter';
 
 describe('useFuzzyFilter', () => {
   const { getSortedOptions } = useFuzzyFilter();
@@ -98,6 +98,7 @@ describe('useFuzzyFilter', () => {
       const opts = ['cloud_fraction', 'cloud_amount', 'atmosphere', 'cloud_cover'];
       const available = ['cloud_amount', 'cloud_cover'];
       const result = getSortedOptions(opts, 'cloud', available);
+      void result;
       // all three cloud matches returned; available ones first, alphabetically
       expect(result).toEqual(['cloud_amount', 'cloud_cover', 'cloud_fraction']);
     });
@@ -112,5 +113,29 @@ describe('useFuzzyFilter', () => {
       // No availableOptions: returns all options in original order unchanged
       expect(getSortedOptions(allOptions, undefined, undefined)).toEqual(allOptions);
     });
+  });
+});
+
+describe('fuzzyMatchesSearch', () => {
+  const haystack = ['cloud_fraction', 'atmosphere', 'temperature'];
+
+  it('returns true for an empty search term (no filter)', () => {
+    expect(fuzzyMatchesSearch(haystack, '')).toBe(true);
+  });
+
+  it('returns true for a whitespace-only search term', () => {
+    expect(fuzzyMatchesSearch(haystack, '   ')).toBe(true);
+  });
+
+  it('returns true when at least one term matches a haystack entry', () => {
+    expect(fuzzyMatchesSearch(haystack, 'cloud')).toBe(true);
+  });
+
+  it('returns false when no term matches any haystack entry', () => {
+    expect(fuzzyMatchesSearch(haystack, 'zzzzz')).toBe(false);
+  });
+
+  it('returns true with OR semantics — one term matches even if another does not', () => {
+    expect(fuzzyMatchesSearch(haystack, 'cloud zzzzz')).toBe(true);
   });
 });

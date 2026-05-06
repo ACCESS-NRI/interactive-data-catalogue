@@ -183,4 +183,16 @@ describe('WelcomeModal', () => {
     (wrapper.vm as any).close();
     expect(localStorage.getItem(STORAGE_KEY)).toBe('true');
   });
+
+  it('does not persist dismissal when the checkbox is checked then unchecked', async () => {
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    await checkbox.setValue(true);
+    await checkbox.setValue(false);
+
+    (wrapper.vm as any).close();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
 });
