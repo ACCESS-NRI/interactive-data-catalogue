@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: github-pages-deploy
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -42,25 +46,22 @@ jobs:
           files: ./coverage/cobertura-coverage.xml
           fail_ci_if_error: false
 
-      - name: Create version tag
+      - name: Determine version tag
         id: version
         run: |
           BASE_TAG="v$(date -u +'%Y.%m.%d')"
-          TAG="$BASE_TAG"
-          COUNTER=2
+          COUNTER=0
+          TAG="${BASE_TAG}-${COUNTER}"
           while git tag -l "$TAG" | grep -q .; do
-            TAG="${BASE_TAG}-${COUNTER}"
             COUNTER=$((COUNTER + 1))
+            TAG="${BASE_TAG}-${COUNTER}"
           done
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
           echo "version=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: NODE_ENV=production npm run build
         env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
           VITE_PUBLIC_POSTHOG_KEY: ${{ secrets.VITE_PUBLIC_POSTHOG_KEY }}
           VITE_PUBLIC_POSTHOG_HOST: ${{ secrets.VITE_PUBLIC_POSTHOG_HOST }}
 
@@ -76,3 +77,10 @@ jobs:
         id: deployment
         if: github.ref == 'refs/heads/main'
         uses: actions/deploy-pages@v4
+
+      - name: Create version tag
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"

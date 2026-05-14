@@ -12,8 +12,12 @@ const getGitCommitSha = () => {
   }
 };
 
-// Get app version: exact tag > last tag + '.dirty' > 'dev'
+// Get app version: workflow-provided version > exact tag > last tag + '.dirty' > 'dev'
 const getAppVersion = () => {
+  if (process.env.APP_VERSION) {
+    return process.env.APP_VERSION;
+  }
+
   try {
     return execSync('git describe --tags --exact-match HEAD').toString().trim();
   } catch {
