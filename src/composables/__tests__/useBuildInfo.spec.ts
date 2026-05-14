@@ -4,6 +4,7 @@ import { useBuildInfo } from '../useBuildInfo';
 describe('useBuildInfo', () => {
   const originalSha = (globalThis as any).__GIT_COMMIT_SHA__;
   const originalTime = (globalThis as any).__BUILD_TIME__;
+  const originalAppVersion = (globalThis as any).__APP_VERSION__;
 
   afterEach(() => {
     if (originalSha === undefined) {
@@ -16,12 +17,18 @@ describe('useBuildInfo', () => {
     } else {
       (globalThis as any).__BUILD_TIME__ = originalTime;
     }
+    if (originalAppVersion === undefined) {
+      delete (globalThis as any).__APP_VERSION__;
+    } else {
+      (globalThis as any).__APP_VERSION__ = originalAppVersion;
+    }
   });
 
   describe('with a valid commit SHA', () => {
     beforeEach(() => {
       (globalThis as any).__GIT_COMMIT_SHA__ = 'abc123def456';
       (globalThis as any).__BUILD_TIME__ = '2025-12-03T10:00:00Z';
+      (globalThis as any).__APP_VERSION__ = 'v2026.05.04';
     });
 
     it('returns the full commitSha', () => {
@@ -44,6 +51,14 @@ describe('useBuildInfo', () => {
 
     it('returns the buildTime', () => {
       expect(useBuildInfo().buildTime).toBe('2025-12-03T10:00:00Z');
+    });
+
+    it('returns clean release metadata', () => {
+      expect(useBuildInfo().appVersion).toBe('v2026.05.04');
+      expect(useBuildInfo().isCleanRelease).toBe(true);
+      expect(useBuildInfo().releaseUrl).toBe(
+        'https://github.com/access-nri/interactive-data-catalogue/releases/tag/v2026.05.04',
+      );
     });
   });
 
@@ -95,6 +110,30 @@ describe('useBuildInfo', () => {
 
     it('still returns a valid commit SHA', () => {
       expect(useBuildInfo().hasValidCommit).toBe(true);
+    });
+  });
+
+  describe('when __APP_VERSION__ is not defined', () => {
+    beforeEach(() => {
+      delete (globalThis as any).__APP_VERSION__;
+    });
+
+    it('falls back to dev version metadata', () => {
+      expect(useBuildInfo().appVersion).toBe('dev');
+      expect(useBuildInfo().isCleanRelease).toBe(false);
+      expect(useBuildInfo().releaseUrl).toBe('');
+    });
+  });
+
+  describe('when __APP_VERSION__ is dirty', () => {
+    beforeEach(() => {
+      (globalThis as any).__APP_VERSION__ = 'v2026.05.04.dirty';
+    });
+
+    it('does not treat it as a clean release', () => {
+      expect(useBuildInfo().appVersion).toBe('v2026.05.04.dirty');
+      expect(useBuildInfo().isCleanRelease).toBe(false);
+      expect(useBuildInfo().releaseUrl).toBe('');
     });
   });
 });

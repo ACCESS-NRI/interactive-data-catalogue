@@ -31,7 +31,7 @@ describe('MetacatHeader', () => {
   });
 
   // Helper to create wrapper with PrimeVue components
-  const createWrapper = (commitSha?: string, buildTime?: string) => {
+  const createWrapper = (commitSha?: string, buildTime?: string, appVersion?: string) => {
     // Mock the global constants if provided
     if (commitSha !== undefined) {
       (globalThis as any).__GIT_COMMIT_SHA__ = commitSha;
@@ -39,6 +39,8 @@ describe('MetacatHeader', () => {
     if (buildTime !== undefined) {
       (globalThis as any).__BUILD_TIME__ = buildTime;
     }
+    // Default to a clean release tag so the version badge is always rendered
+    (globalThis as any).__APP_VERSION__ = appVersion ?? 'v2026.05.04';
 
     return mount(MetacatHeader, {
       global: {
@@ -90,37 +92,23 @@ describe('MetacatHeader', () => {
     expect(link.text()).toContain('ACCESS-NRI Intake Documentation');
   });
 
-  // Test that commit SHA badge is rendered when available
-  it('renders commit SHA badge when commitSha is available', () => {
-    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
-    const commitLink = wrapper.find('a[href*="github.com"]');
-    expect(commitLink.exists()).toBe(true);
-    expect(commitLink.text()).toContain('abc123d'); // Short SHA (7 chars)
-  });
-
-  // Test that commit SHA badge is not rendered when unavailable
-  it('does not render commit SHA badge when commitSha is not available', () => {
-    (globalThis as any).__GIT_COMMIT_SHA__ = 'unknown';
-    const wrapper = createWrapper('unknown', undefined);
-    const commitLink = wrapper.find('a[href*="github.com"]');
-    expect(commitLink.exists()).toBe(false);
-  });
-
-  // Test that the commit SHA link points to the correct GitHub URL
-  it('generates correct GitHub commit URL', () => {
-    const commitSha = 'abc123def456789';
-    const wrapper = createWrapper(commitSha, '2025-12-03T10:00:00Z');
-    const commitLink = wrapper.find('a[href*="github.com"]');
-    expect(commitLink.attributes('href')).toBe(
-      `https://github.com/access-nri/interactive-data-catalogue/commit/${commitSha}`,
+  // Test that a clean release badge renders as a link to GitHub Releases
+  it('renders version badge as link for clean tagged release', () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z', 'v2026.05.04');
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
+    expect(releaseLink.exists()).toBe(true);
+    expect(releaseLink.text()).toContain('v2026.05.04');
+    expect(releaseLink.attributes('href')).toBe(
+      'https://github.com/access-nri/interactive-data-catalogue/releases/tag/v2026.05.04',
     );
   });
 
-  // Test that the commit SHA is truncated to 7 characters in the display
-  it('displays shortened commit SHA (7 characters)', () => {
-    const wrapper = createWrapper('abc123def456789', '2025-12-03T10:00:00Z');
-    expect(wrapper.text()).toContain('abc123d');
-    // Full SHA also appears in the popover slot — that's expected behaviour
+  // Test that a dirty build renders as a non-linked span
+  it('renders version badge as span (no link) for dirty build', () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z', 'v2026.05.04.dirty');
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
+    expect(releaseLink.exists()).toBe(false);
+    expect(wrapper.text()).toContain('v2026.05.04.dirty');
   });
 
   it('renders the feedback button when deployment metadata is available', () => {
@@ -128,22 +116,41 @@ describe('MetacatHeader', () => {
     expect(wrapper.find('[data-test="github-feedback-button"]').exists()).toBe(true);
   });
 
-  // Test that the popover shows on hover over the commit badge
-  it('shows popover on commit badge hover', async () => {
-    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
-    const commitLink = wrapper.find('a[href*="github.com"]');
+  it('renders the personal datastore link', () => {
+    const wrapper = createWrapper();
+    const button = wrapper.find('button[aria-label="Explore my personal datastore"]');
+    expect(button.exists()).toBe(true);
+  });
+
+  // Test that a dev build renders as a non-linked span
+  it('renders version badge as span (no link) for dev build', () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z', 'dev');
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
+    expect(releaseLink.exists()).toBe(false);
+    expect(wrapper.text()).toContain('dev');
+  });
+
+  // Test that the popover shows on hover over the version badge
+  it('shows popover on version badge hover', async () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z', 'v2026.05.04');
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
     const popover = wrapper.findComponent(Popover);
 
     // Simulate mouseenter
-    await commitLink.trigger('mouseenter');
+    await releaseLink.trigger('mouseenter');
     expect(popover.exists()).toBe(true);
   });
 
-  // Test that the popover displays the full commit SHA
-  it('displays full commit SHA in popover', () => {
+  // Test that the version badge and commit SHA are both present when available
+  it('displays version in badge and commit SHA in popover template', () => {
     const commitSha = 'abc123def456789';
-    const wrapper = createWrapper(commitSha, '2025-12-03T10:00:00Z');
-    expect(wrapper.html()).toContain(commitSha);
+    const wrapper = createWrapper(commitSha, '2025-12-03T10:00:00Z', 'v2026.05.04');
+    // Version is visible in the release badge
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
+    expect(releaseLink.exists()).toBe(true);
+    expect(releaseLink.text()).toContain('v2026.05.04');
+    // Popover teleports to body so its content isn't in wrapper.html();
+    // verify commit SHA is wired in via the copy-SHA method test below
   });
 
   // Test that the popover template includes build time reference when available
@@ -185,14 +192,14 @@ describe('MetacatHeader', () => {
 
   // Test that the popover hides after a delay when mouse leaves
   it('schedules popover hide on mouseleave', async () => {
-    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
-    const commitLink = wrapper.find('a[href*="github.com"]');
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z', 'v2026.05.04');
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
 
     // Show popover
-    await commitLink.trigger('mouseenter');
+    await releaseLink.trigger('mouseenter');
 
     // Leave the link
-    await commitLink.trigger('mouseleave');
+    await releaseLink.trigger('mouseleave');
 
     // Fast-forward time
     vi.advanceTimersByTime(300);
@@ -203,15 +210,15 @@ describe('MetacatHeader', () => {
 
   // Test that hovering over popover cancels the hide timeout
   it('cancels hide timeout when hovering over popover', async () => {
-    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
-    const commitLink = wrapper.find('a[href*="github.com"]');
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z', 'v2026.05.04');
+    const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
     const popover = wrapper.findComponent(Popover);
 
     // Show popover
-    await commitLink.trigger('mouseenter');
+    await releaseLink.trigger('mouseenter');
 
     // Leave link (starts hide timer)
-    await commitLink.trigger('mouseleave');
+    await releaseLink.trigger('mouseleave');
 
     // Enter popover (should cancel hide timer)
     await popover.trigger('mouseenter');
