@@ -8,8 +8,9 @@
         <MultiSelect
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="getSortedOptions(options, filterValues[column])"
+          :options="getSortedOptions(options, filterValues[column], dynamicFilterOptions[column])"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
+          filterMatchMode="passthrough"
           @filter="(event) => handleFilterChange(column, event.value)"
           @show="handleDropdownShow(column)"
           @hide="emit('dropdown-closed', column)"
@@ -36,6 +37,7 @@ import Button from 'primevue/button';
 import MultiSelect from 'primevue/multiselect';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
+import { useFuzzyFilter } from '../composables/useFuzzyFilter';
 import { usePostHog } from '../composables/usePosthog';
 import type { FilterMap, FilterOptions } from '../types/datastore';
 
@@ -60,6 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 const emit = defineEmits<Emits>();
 
+const { getSortedOptions } = useFuzzyFilter();
 const toast = useToast();
 const { capture } = usePostHog();
 const filterValues = ref<Record<string, string>>({});
@@ -107,46 +110,6 @@ const isOptionDisabled = (column: string, option: string): boolean => {
   if (!availableOptions) return false;
   // Disable if the option is not in the available list
   return !availableOptions.includes(option);
-};
-
-/**
- * Sorts filter options to prioritize matches based on the user's search term.
- * This creates a better UX by showing exact matches first, followed by options that
- * start with the search term, and finally options that contain it anywhere.
- * Without a search term, returns options in their original order.
- * Always uses the full filterOptions list to ensure all options remain visible.
- *
- * @param fallbackOptions - Default options to use if no dynamic options are available
- * @param searchTerm - Optional search term entered by the user in the filter input
- * @returns Sorted array of all options with exact matches first, then starts-with, then contains
- */
-const getSortedOptions = (fallbackOptions: string[], searchTerm?: string) => {
-  // Always use the full list from filterOptions (fallback), not dynamicFilterOptions
-  const options = fallbackOptions;
-
-  if (!searchTerm) {
-    return options;
-  }
-
-  const lowerSearch = searchTerm.toLowerCase();
-
-  // Sort options: exact match first, then starts with, then contains
-  return [...options].sort((a, b) => {
-    const aLower = a.toLowerCase();
-    const bLower = b.toLowerCase();
-
-    const aExact = aLower === lowerSearch;
-    const bExact = bLower === lowerSearch;
-    if (aExact && !bExact) return -1;
-    if (!aExact && bExact) return 1;
-
-    const aStarts = aLower.startsWith(lowerSearch);
-    const bStarts = bLower.startsWith(lowerSearch);
-    if (aStarts && !bStarts) return -1;
-    if (!aStarts && bStarts) return 1;
-
-    return 0;
-  });
 };
 
 const updateFilter = (column: string, value: string[]) => {

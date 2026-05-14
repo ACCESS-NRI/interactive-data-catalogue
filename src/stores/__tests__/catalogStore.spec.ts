@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { useCatalogStore } from '../catalogStore';
+import { useCatalogStore, PERSONAL_DATASTORE_CACHE_KEY, PERSONAL_DATASTORE_ITERABLE_COLUMNS } from '../catalogStore';
+import * as catalogApi from '../../services/catalogApi';
+import * as duckdbClient from '../../services/duckdbClient';
+import * as parquetTransforms from '../../services/parquetTransforms';
+import * as personalDatastoreCsvModule from '../../services/personalDatastoreCsv';
 import type { CatalogRow } from '../../types/catalog';
 import type { DatastoreCache } from '../../types/datastore';
 
@@ -142,41 +146,59 @@ describe('catalogStore', () => {
 
       // Test that fetchCatalogData sets loading to true during execution
       it('sets loading to true during fetch', async () => {
-        // Mock initializeDuckDB to throw an error quickly
-        vi.spyOn(store, 'initializeDuckDB').mockRejectedValue(new Error('Test error'));
+        let releaseFetch: ((value: Uint8Array) => void) | undefined;
+
+        vi.spyOn(catalogApi, 'fetchMetaCatFile').mockImplementation(
+          () =>
+            new Promise<Uint8Array>((resolve) => {
+              releaseFetch = resolve;
+            }),
+        );
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({
+          db: { terminate: vi.fn() },
+          conn: { close: vi.fn() },
+        } as any);
+        vi.spyOn(parquetTransforms, 'queryMetaCatalogPq').mockResolvedValue({
+          data: [],
+          rawDataSample: [],
+        });
+
         const fetchPromise = store.fetchCatalogData();
 
         expect(store.loading).toBe(true);
 
-        await fetchPromise.catch(() => {});
+        releaseFetch?.(new Uint8Array([1, 2, 3]));
+        await fetchPromise;
         expect(store.loading).toBe(false);
       });
 
-      // These fail because I (and Claude) can't work out how to properly mock the
-      // store duckdb initialisation, so we wind up with nonsense. Circle back -
-      // everything seems to work properly anyway (for now...)
+      it('handles fetch errors gracefully', async () => {
+        vi.spyOn(catalogApi, 'fetchMetaCatFile').mockRejectedValue(new Error('Network error'));
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({
+          db: { terminate: vi.fn() },
+          conn: { close: vi.fn() },
+        } as any);
 
-      //      // Test that fetchCatalogData handles fetch errors gracefully
-      //      it('handles fetch errors', async () => {
-      //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('Network error'));
-      //
-      //        await store.fetchCatalogData();
-      //
-      //        expect(store.error).toBe('Network error');
-      //        expect(store.loading).toBe(false);
-      //      });
-      //
-      //      // Test that fetchCatalogData clears error state before fetching
-      //      it('clears previous error before fetching', async () => {
-      //        store.error = 'Previous error';
-      //        store.data = []; // Ensure it tries to fetch
-      //
-      //        store.fetchMetaCatFile = vi.fn().mockRejectedValue(new Error('New error'));
-      //
-      //        await store.fetchCatalogData();
-      //
-      //        expect(store.error).toBe('New error');
-      //      });
+        await store.fetchCatalogData();
+
+        expect(store.error).toBe('Network error');
+        expect(store.loading).toBe(false);
+      });
+
+      it('clears previous error before fetching', async () => {
+        store.error = 'Previous error';
+        store.data = [];
+
+        vi.spyOn(catalogApi, 'fetchMetaCatFile').mockRejectedValue(new Error('New error'));
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({
+          db: { terminate: vi.fn() },
+          conn: { close: vi.fn() },
+        } as any);
+
+        await store.fetchCatalogData();
+
+        expect(store.error).toBe('New error');
+      });
     });
 
     describe('clearDatastoreCache', () => {
@@ -372,6 +394,105 @@ describe('catalogStore', () => {
         }
 
         expect(store.datastoreCache['new-datastore']).toBeDefined();
+      });
+
+      // Test that loadDatastore stores metadata-only for large datastores (>5000 records)
+      it('stores metadata-only for large datastores (>5000 records)', async () => {
+        const mockSidecar = new Uint8Array([1, 2, 3]);
+        const mockDb = {
+          registerFileBuffer: vi.fn().mockResolvedValue(undefined),
+          terminate: vi.fn().mockResolvedValue(undefined),
+        };
+        const mockConn = {
+          close: vi.fn().mockResolvedValue(undefined),
+        };
+
+        vi.spyOn(catalogApi, 'fetchDatastoreSidecarParquet').mockResolvedValue(mockSidecar);
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({ db: mockDb as any, conn: mockConn as any });
+        vi.spyOn(catalogApi, 'getEsmDatastoreProject').mockResolvedValue('test-project');
+        vi.spyOn(parquetTransforms, 'getFilterOptions').mockResolvedValue({ realm: ['atmos'] });
+        vi.spyOn(parquetTransforms, 'getEsmDatastoreSize').mockResolvedValue(10000); // > 5000
+        vi.spyOn(catalogApi, 'queryEsmDatastore').mockResolvedValue([{ name: 'row1' }]);
+
+        const result = await store.loadDatastore('large-datastore');
+
+        expect(result).toBeDefined();
+        expect(result!.totalRecords).toBe(10000);
+        expect(result!.data).toEqual([]); // No data stored for large datastores
+        expect(result!.project).toBe('test-project');
+        expect(result!.loading).toBe(false);
+        expect(result!.error).toBeNull();
+      });
+
+      // Test that loadDatastore loads all data for small datastores (<=5000 records)
+      it('loads full data for small datastores (<=5000 records)', async () => {
+        const mockSidecar = new Uint8Array([1, 2, 3]);
+        const mockParquet = new Uint8Array([4, 5, 6]);
+        const mockRows = [{ name: 'row1', realm: 'atmos' }];
+        const mockDb = {
+          registerFileBuffer: vi.fn().mockResolvedValue(undefined),
+          terminate: vi.fn().mockResolvedValue(undefined),
+        };
+        const mockConn = {
+          close: vi.fn().mockResolvedValue(undefined),
+        };
+
+        vi.spyOn(catalogApi, 'fetchDatastoreSidecarParquet').mockResolvedValue(mockSidecar);
+        vi.spyOn(duckdbClient, 'initializeDuckDB').mockResolvedValue({ db: mockDb as any, conn: mockConn as any });
+        vi.spyOn(catalogApi, 'getEsmDatastoreProject').mockResolvedValue('small-project');
+        vi.spyOn(parquetTransforms, 'getFilterOptions').mockResolvedValue({ realm: ['atmos'] });
+        vi.spyOn(parquetTransforms, 'getEsmDatastoreSize').mockResolvedValue(100); // <= 5000
+        vi.spyOn(catalogApi, 'queryEsmDatastore').mockResolvedValue([{ name: 'row1' }]);
+        vi.spyOn(catalogApi, 'fetchDatastoreParquet').mockResolvedValue(mockParquet);
+        vi.spyOn(parquetTransforms, 'loadEsmDatastore').mockResolvedValue(mockRows as any);
+
+        const result = await store.loadDatastore('small-datastore');
+
+        expect(result).toBeDefined();
+        expect(result!.totalRecords).toBe(100);
+        expect(result!.data).toEqual(mockRows);
+        expect(result!.project).toBe('small-project');
+        expect(result!.loading).toBe(false);
+        expect(result!.error).toBeNull();
+      });
+
+      // Test that loadDatastore stores a non-Error exception message
+      it('stores "Failed to load datastore" for non-Error throws', async () => {
+        vi.spyOn(catalogApi, 'fetchDatastoreSidecarParquet').mockRejectedValue('plain string error');
+
+        await expect(store.loadDatastore('err-datastore')).rejects.toBe('plain string error');
+
+        const cache = store.datastoreCache['err-datastore'];
+        expect(cache?.error).toBe('Failed to load datastore');
+      });
+    });
+  });
+
+  describe('createEmptyCache', () => {
+    it('returns a cache object with error state', () => {
+      // createEmptyCache is called when in-progress load has no cache entry
+      // We test it indirectly by exposing via the store's waitForLoad path
+      // by accessing it through a loading→undefined race condition
+      store.datastoreCache = {
+        'race-datastore': {
+          data: [],
+          totalRecords: 0,
+          columns: [],
+          filterOptions: {},
+          loading: true,
+          error: null,
+          lastFetched: new Date(),
+        },
+      };
+
+      // Remove the cache entry while loading flag is still set to trigger createEmptyCache
+      setTimeout(() => {
+        delete store.datastoreCache['race-datastore'];
+      }, 0);
+
+      return store.loadDatastore('race-datastore').then((result) => {
+        expect(result).toBeDefined();
+        expect(result!.error).toBe('Datastore not found');
       });
     });
   });
@@ -628,6 +749,162 @@ describe('catalogStore', () => {
       };
 
       expect(cache.error).toBe('Failed to load');
+    });
+  });
+
+  describe('Personal Datastore', () => {
+    const mockRows = [
+      { variable: "['tas', 'pr']", realm: 'atmos', frequency: 'mon', path: '/data/file1.nc' },
+      { variable: "['ua']", realm: 'atmos', frequency: 'day', path: '/data/file2.nc' },
+    ];
+    const mockColumns = ['variable', 'realm', 'frequency', 'path'];
+
+    it('exports PERSONAL_DATASTORE_CACHE_KEY', () => {
+      expect(PERSONAL_DATASTORE_CACHE_KEY).toBe('__personal_datastore__');
+    });
+
+    it('exports PERSONAL_DATASTORE_ITERABLE_COLUMNS', () => {
+      expect(PERSONAL_DATASTORE_ITERABLE_COLUMNS).toContain('variable');
+    });
+
+    it('initializes with no personal datastore', () => {
+      expect(store.personalDatastore).toBeNull();
+      expect(store.hasPersonalDatastore).toBe(false);
+    });
+
+    it('registerPersonalDatastoreRows sets personal datastore state', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      expect(store.hasPersonalDatastore).toBe(true);
+      expect(store.personalDatastore?.name).toBe('my-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('catalog.csv');
+      expect(store.personalDatastore?.loadedAt).toBeInstanceOf(Date);
+    });
+
+    it('registerPersonalDatastoreRows populates the cache under PERSONAL_DATASTORE_CACHE_KEY', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache).not.toBeNull();
+      expect(cache!.totalRecords).toBe(2);
+      expect(cache!.loading).toBe(false);
+    });
+
+    it('registerPersonalDatastoreRows coerces iterable columns to arrays', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      const firstRow = cache!.data[0];
+      // variable is an iterable column — must always be an array
+      expect(Array.isArray(firstRow!['variable'])).toBe(true);
+    });
+
+    it('registerPersonalDatastoreRows derives filter options from rows', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache!.filterOptions['realm']).toContain('atmos');
+      expect(cache!.filterOptions['frequency']).toContain('mon');
+    });
+
+    it('registerPersonalDatastoreRows throws on empty rows', () => {
+      expect(() =>
+        store.registerPersonalDatastoreRows([], mockColumns, {
+          name: 'empty',
+          csvFileName: 'empty.csv',
+        }),
+      ).toThrow();
+    });
+
+    it('clearPersonalDatastore removes state and cache entry', () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, {
+        name: 'my-catalog',
+        csvFileName: 'catalog.csv',
+      });
+
+      store.clearPersonalDatastore();
+
+      expect(store.hasPersonalDatastore).toBe(false);
+      expect(store.personalDatastore).toBeNull();
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).toBeNull();
+    });
+
+    it('loadPersonalDatastoreCsv parses the file and registers it', async () => {
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: mockRows,
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable\ntas'], 'catalog.csv', { type: 'text/csv' });
+      await store.loadPersonalDatastoreCsv(file, 'my-catalog');
+
+      expect(store.hasPersonalDatastore).toBe(true);
+      expect(store.personalDatastore?.name).toBe('my-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('catalog.csv');
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache?.totalRecords).toBe(2);
+    });
+
+    it('replacePersonalDatastore clears the old entry and loads the new file', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      const newRows = [{ variable: "['ua']", realm: 'atmos', frequency: 'day', path: '/data/new.nc' }];
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: newRows,
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable\nua'], 'new.csv', { type: 'text/csv' });
+      await store.replacePersonalDatastore(file, 'new-catalog');
+
+      expect(store.personalDatastore?.name).toBe('new-catalog');
+      expect(store.personalDatastore?.csvFileName).toBe('new.csv');
+      const cache = store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY);
+      expect(cache?.totalRecords).toBe(1);
+    });
+
+    it('replacePersonalDatastore preserves the existing datastore when parsing the new file throws', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockRejectedValue(new Error('Not a valid CSV'));
+
+      const file = new File(['bad content'], 'bad.csv', { type: 'text/csv' });
+      await expect(store.replacePersonalDatastore(file, 'new-catalog')).rejects.toThrow('Not a valid CSV');
+
+      // Old datastore must still be intact
+      expect(store.personalDatastore?.name).toBe('old');
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
+    });
+
+    it('replacePersonalDatastore preserves the existing datastore when post-parse validation fails (empty rows)', async () => {
+      store.registerPersonalDatastoreRows(mockRows, mockColumns, { name: 'old', csvFileName: 'old.csv' });
+
+      // Parse succeeds but returns zero data rows (header-only CSV)
+      vi.spyOn(personalDatastoreCsvModule, 'parseCsvFile').mockResolvedValue({
+        rows: [],
+        columns: mockColumns,
+      });
+
+      const file = new File(['variable,realm\n'], 'empty.csv', { type: 'text/csv' });
+      await expect(store.replacePersonalDatastore(file, 'new-catalog')).rejects.toThrow(
+        'Cannot register an empty personal datastore',
+      );
+
+      // Old datastore must still be intact
+      expect(store.personalDatastore?.name).toBe('old');
+      expect(store.getDatastoreFromCache(PERSONAL_DATASTORE_CACHE_KEY)).not.toBeNull();
     });
   });
 });

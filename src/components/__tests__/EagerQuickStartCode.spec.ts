@@ -76,4 +76,19 @@ describe('EagerQuickStartCode', () => {
     expect(wrapper.text()).toContain('Quick Start');
     expect(wrapper.text()).not.toContain('to_dataset_dict()');
   });
+
+  it('hides "Copy Link to Search" button when source is personal', () => {
+    wrapper = mount(EagerQuickStartCode, {
+      props: {
+        datastoreName: 'test-datastore',
+        currentFilters: {},
+        rawData: [],
+        dynamicFilterOptions: {},
+        source: 'personal',
+      },
+      global: globalConfig(),
+    });
+    // v-if="source !== 'personal'" should be false — button should not render
+    expect(wrapper.text()).not.toContain('Copy Link to Search');
+  });
 });

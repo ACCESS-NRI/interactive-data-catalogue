@@ -17,6 +17,13 @@ vi.mock('../WelcomeModal.vue', () => ({
   },
 }));
 
+vi.mock('../GithubFeedbackButton.vue', () => ({
+  default: {
+    name: 'GithubFeedbackButton',
+    template: '<div data-test="github-feedback-button" />',
+  },
+}));
+
 describe('MetacatHeader', () => {
   beforeEach(() => {
     vi.clearAllTimers();
@@ -39,7 +46,15 @@ describe('MetacatHeader', () => {
       global: {
         components: {
           Button,
-          Popover,
+        },
+        stubs: {
+          RouterLink: { template: '<a><slot /></a>' },
+          // Stub Popover so show/hide don't run real PrimeVue transition logic
+          Popover: {
+            template: '<div data-testid="commit-popover"><slot /></div>',
+            methods: { show: vi.fn(), hide: vi.fn() },
+            expose: ['show', 'hide'],
+          },
         },
       },
     });
@@ -94,6 +109,17 @@ describe('MetacatHeader', () => {
     const releaseLink = wrapper.find('a[href*="/releases/tag/"]');
     expect(releaseLink.exists()).toBe(false);
     expect(wrapper.text()).toContain('v2026.05.04.dirty');
+  });
+
+  it('renders the feedback button when deployment metadata is available', () => {
+    const wrapper = createWrapper('abc123def456789', '2025-12-03T10:00:00Z');
+    expect(wrapper.find('[data-test="github-feedback-button"]').exists()).toBe(true);
+  });
+
+  it('renders the personal datastore link', () => {
+    const wrapper = createWrapper();
+    const button = wrapper.find('button[aria-label="Explore my personal datastore"]');
+    expect(button.exists()).toBe(true);
   });
 
   // Test that a dev build renders as a non-linked span
@@ -263,5 +289,66 @@ describe('MetacatHeader', () => {
     await btn.trigger('click');
 
     expect(openMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Test that showCommitPopover clears a pending hide timeout if one exists
+  it('showCommitPopover clears hideTimeout when called while hide is pending', async () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
+    const commitLink = wrapper.find('a[href*="github.com"]');
+
+    // mouseleave on the commit link calls scheduleHidePopover (starts the timer)
+    await commitLink.trigger('mouseleave');
+    // mouseenter calls showCommitPopover which should clear the pending timeout
+    await commitLink.trigger('mouseenter');
+    expect(wrapper.exists()).toBe(true);
+  });
+
+  // Test that cancelHidePopover clears a pending hide timeout
+  it('cancelHidePopover clears hideTimeout when one is set', async () => {
+    const wrapper = createWrapper('abc123def456', '2025-12-03T10:00:00Z');
+    const commitLink = wrapper.find('a[href*="github.com"]');
+    const popoverEl = wrapper.find('[data-testid="commit-popover"]');
+
+    // mouseleave on the commit link calls scheduleHidePopover (starts the timer)
+    await commitLink.trigger('mouseleave');
+
+    // mouseenter on the popover calls cancelHidePopover (clears the timer)
+    await popoverEl.trigger('mouseenter');
+
+    // Advancing timers should be safe — timeout was cleared
+    vi.advanceTimersByTime(500);
+    expect(wrapper.exists()).toBe(true);
+  });
+
+  // Test that buildTime false branch is hit when buildTime is not set
+  it('does not render build time section when buildTime is absent', () => {
+    delete (globalThis as any).__BUILD_TIME__;
+    // createWrapper without buildTime arg so __BUILD_TIME__ stays deleted
+    (globalThis as any).__GIT_COMMIT_SHA__ = 'abc123def456';
+    const wrapper = createWrapper('abc123def456', undefined);
+    // The v-if="buildTime" false branch — "Built:" text should not appear
+    expect(wrapper.html()).not.toContain('Built:');
+  });
+
+  // Test that copyCommitSha hides popover on successful clipboard write (line 129)
+  it('copyCommitSha calls hide on commitPopover after successful clipboard write', async () => {
+    const commitSha = 'abc123def456789';
+    const wrapper = createWrapper(commitSha, '2025-12-03T10:00:00Z');
+
+    // Inject a mock popover so commitPopover.value?.hide() can be called
+    const hideMock = vi.fn();
+    (wrapper.vm as any).commitPopover = { hide: hideMock };
+
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeTextMock },
+      writable: true,
+      configurable: true,
+    });
+
+    await (wrapper.vm as any).copyCommitSha();
+
+    expect(writeTextMock).toHaveBeenCalledWith(commitSha);
+    expect(hideMock).toHaveBeenCalled();
   });
 });

@@ -164,4 +164,35 @@ describe('WelcomeModal', () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).not.toContain('ACCESS-NRI Interactive Data Catalogue');
   });
+
+  it('checkbox fires a change event and dontShowAgain controls localStorage on close', async () => {
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    expect(checkbox.exists()).toBe(true);
+
+    // Fire the native change event to exercise the compiled vModelCheckbox handler
+    const el = checkbox.element as HTMLInputElement;
+    el.checked = true;
+    el.dispatchEvent(new Event('change'));
+    await wrapper.vm.$nextTick();
+
+    // Ensure dontShowAgain is true (covers close() writing to localStorage)
+    (wrapper.vm as any).dontShowAgain = true;
+    (wrapper.vm as any).close();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('true');
+  });
+
+  it('does not persist dismissal when the checkbox is checked then unchecked', async () => {
+    const wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    await checkbox.setValue(true);
+    await checkbox.setValue(false);
+
+    (wrapper.vm as any).close();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
 });

@@ -56,4 +56,29 @@ describe('useFilterUrlSync', () => {
 
     stopFilterWatcher();
   });
+
+  it('uses fallbackRouteName when route.name is null', async () => {
+    const route = {
+      query: {},
+      name: null,
+      params: {},
+    } as any;
+    const router = { replace: vi.fn() } as any;
+    const currentFilters = ref({});
+
+    const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
+      route,
+      router,
+      currentFilters,
+      'DatastoreDetail',
+    );
+    initializeFiltersFromUrl();
+
+    currentFilters.value = { realm: ['atmos'] };
+    await nextTick();
+
+    expect(router.replace).toHaveBeenCalledWith(expect.objectContaining({ name: 'DatastoreDetail' }));
+
+    stopFilterWatcher();
+  });
 });

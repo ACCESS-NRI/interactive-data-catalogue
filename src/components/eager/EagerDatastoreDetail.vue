@@ -8,6 +8,16 @@
             Catalog
           </RouterLink>
         </li>
+        <li v-if="source === 'personal'" class="flex items-center">
+          <i class="pi pi-angle-right mx-2 text-gray-400"></i>
+          <RouterLink
+            :to="{ name: 'PersonalDatastore' }"
+            class="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            <i class="pi pi-upload mr-1"></i>
+            Personal Datastore
+          </RouterLink>
+        </li>
         <li class="flex items-center">
           <i class="pi pi-angle-right mx-2 text-gray-400"></i>
           <i class="pi pi-database mr-1"></i>
@@ -28,10 +38,21 @@
     >
       <div class="flex items-center">
         <i class="pi pi-exclamation-triangle text-red-500 mr-2"></i>
-        <span class="text-red-700 dark:text-red-300 font-medium">Error loading datastore:</span>
+        <span class="text-red-700 dark:text-red-300 font-medium">{{
+          sessionExpired ? 'Session data unavailable' : 'Error loading datastore:'
+        }}</span>
       </div>
       <p class="text-red-600 dark:text-red-400 mt-1">{{ error }}</p>
       <button
+        v-if="sessionExpired"
+        @click="router.push({ name: 'PersonalDatastore' })"
+        class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+      >
+        <i class="pi pi-upload mr-2"></i>
+        Upload a CSV
+      </button>
+      <button
+        v-else
         @click="loadDatastore"
         class="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
       >
@@ -77,6 +98,7 @@
           :raw-data="filteredData"
           :dynamic-filter-options="dynamicFilterOptions"
           :num-datasets="numDatasets"
+          :source="source"
           class="mb-6"
         />
 
@@ -117,17 +139,29 @@ import { useFilterUrlSync } from '../../composables/useFilterUrlSync';
 import { filterRowsBySelectedFilters, useDynamicFilterOptions } from '../../composables/useDynamicFilterOptions';
 import type { DatastoreRow } from '../../types/datastore';
 
+const props = withDefaults(
+  defineProps<{
+    /** Override for the datastore name; when absent falls back to route param. */
+    datastoreName?: string;
+    /** Override for the cache key; when absent falls back to the datastore name. */
+    cacheKey?: string;
+    /** Whether to auto-load on mount (default true). */
+    autoLoad?: boolean;
+    /** Whether this is a user-uploaded personal datastore. */
+    source?: 'builtin' | 'personal';
+  }>(),
+  { autoLoad: true, source: 'builtin' },
+);
+
 const route = useRoute();
 const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
+const sessionExpired = ref(false);
 
-const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
-  route,
-  router,
-  currentFilters,
-  'DatastoreDetail',
-);
+const routeName = props.source === 'personal' ? 'PersonalDatastoreDetail' : 'DatastoreDetail';
+
+const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(route, router, currentFilters, routeName);
 const {
   datastoreName,
   loading,
@@ -145,6 +179,18 @@ const {
   isCacheReady: (cache) => cache.data.length > 0,
   initializeFiltersFromUrl,
   stopFilterWatcher,
+  nameOverride: props.datastoreName,
+  cacheKeyOverride: props.cacheKey,
+  persistCacheOnUnmount: props.source === 'personal',
+  skipRouteWatch: props.source === 'personal',
+  onCacheMissing:
+    props.source === 'personal'
+      ? () => {
+          sessionExpired.value = true;
+          error.value =
+            'Your personal datastore is no longer available — browser sessions are not persisted across page reloads. Please re-upload your CSV to continue.';
+        }
+      : undefined,
 });
 
 const rawData = computed(() => cachedDatastore.value?.data || []);

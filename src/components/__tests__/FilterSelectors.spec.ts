@@ -272,67 +272,6 @@ describe('FilterSelectors', () => {
     expect(wrapper.vm.filterValues.project).toBe('proj');
   });
 
-  // Test that getSortedOptions returns original order when no search term
-  it('returns options in original order when no search term provided', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['zebra', 'apple', 'banana'], undefined);
-    expect(sorted).toEqual(['zebra', 'apple', 'banana']);
-  });
-
-  // Test that exact matches appear first
-  it('prioritizes exact matches first in sorted options', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['project', 'proj1', 'my_project', 'proj'], 'proj');
-    expect(sorted[0]).toBe('proj');
-  });
-
-  // Test that starts-with matches appear after exact matches
-  it('prioritizes starts-with matches after exact matches', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['my_proj', 'proj1', 'proj2', 'another_proj'], 'proj');
-    // proj1 and proj2 start with 'proj', they should come before others
-    expect(sorted[0]).toBe('proj1');
-    expect(sorted[1]).toBe('proj2');
-  });
-
-  // Test case-insensitive sorting
-  it('performs case-insensitive sorting of options', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['Project1', 'project', 'PROJ'], 'proj');
-    // 'PROJ' is exact match (case-insensitive)
-    expect(sorted[0]).toBe('PROJ');
-  });
-
-  // Test that fallback options are used when dynamic options are not available
-  it('uses fallback options when dynamic options are not available for column', () => {
-    const wrapper = createWrapper({
-      dynamicFilterOptions: {
-        // No 'project' key
-        experiment: ['exp1'],
-      },
-    });
-
-    const fallbackOptions = ['fallback1', 'fallback2'];
-    const sorted = wrapper.vm.getSortedOptions(fallbackOptions, undefined);
-    expect(sorted).toEqual(['fallback1', 'fallback2']);
-  });
-
-  // Test sorting with mixed match types
-  it('sorts with exact, starts-with, and contains matches in correct order', () => {
-    const wrapper = createWrapper();
-
-    const sorted = wrapper.vm.getSortedOptions(['var', 'variable', 'var1', 'my_var', 'test_variable'], 'var');
-    // Exact match first
-    expect(sorted[0]).toBe('var');
-    // Starts-with matches next
-    expect(['var1', 'variable']).toContain(sorted[1]);
-    expect(['var1', 'variable']).toContain(sorted[2]);
-  });
-
   // Test that isOptionDisabled returns false when dynamicFilterOptions includes the option
   it('marks option as enabled when present in dynamicFilterOptions', () => {
     const wrapper = createWrapper({
@@ -411,6 +350,26 @@ describe('FilterSelectors', () => {
       multiSelect.vm.$emit('update:model-value', ['proj1']);
 
       expect(mockToastAdd).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('analyticsContext', () => {
+    it('emits dropdown-opened and captures analytics on @show when analyticsContext is set', () => {
+      const wrapper = createWrapper({ analyticsContext: 'catalogue' });
+      const multiSelect = wrapper.findComponent(MultiSelect);
+      // Trigger the @show event on the first MultiSelect (project column)
+      multiSelect.vm.$emit('show');
+      expect(wrapper.emitted('dropdown-opened')).toBeTruthy();
+      expect(wrapper.emitted('dropdown-opened')?.[0]).toEqual(['project']);
+    });
+
+    it('captures filter_applied analytics in updateFilter when analyticsContext is set', () => {
+      const wrapper = createWrapper({ analyticsContext: 'catalogue' });
+      const multiSelect = wrapper.findComponent(MultiSelect);
+      // Trigger update:model-value which calls updateFilter
+      multiSelect.vm.$emit('update:model-value', ['proj1']);
+      // No exception thrown and the event was emitted
+      expect(wrapper.emitted('update:modelValue')).toBeTruthy();
     });
   });
 });

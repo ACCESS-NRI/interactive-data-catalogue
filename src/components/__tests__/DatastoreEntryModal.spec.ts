@@ -277,4 +277,30 @@ describe('DatastoreEntryModal', () => {
     expect(chip?.classes()).toContain('text-sm');
     expect(chip?.classes()).toContain('font-medium');
   });
+
+  // Test that the JSON.stringify catch branch is exercised (formatItem lines 62-63)
+  it('falls back to String(item) when JSON.stringify throws (circular reference)', () => {
+    const circular: any = {};
+    circular.self = circular;
+    const wrapper = createWrapper({
+      modelValue: true,
+      items: [circular],
+    });
+
+    // The catch branch returns String(circular) = '[object Object]'
+    const chip = wrapper.findAll('span').find((span) => span.classes().includes('px-2'));
+    expect(chip).toBeDefined();
+    expect(chip?.attributes('title')).toBe('[object Object]');
+  });
+
+  // Test that null element inside items array is formatted as dash (formatItem line 57)
+  it('formats null element in items array as a dash', () => {
+    const wrapper = createWrapper({
+      modelValue: true,
+      items: [null],
+    });
+
+    const chip = wrapper.findAll('span').find((span) => span.classes().includes('px-2'));
+    expect(chip?.text()).toBe('-');
+  });
 });

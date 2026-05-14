@@ -451,6 +451,32 @@ describe('DatastoreDetail', () => {
     expect(wrapper.vm.selectedColumns[0].field).toBe('variable');
   });
 
+  // Test that the personal datastore breadcrumb is shown when source='personal'
+  it('renders the personal datastore breadcrumb when source is personal', async () => {
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
+
+    wrapper = mount(EagerDatastoreDetail, {
+      props: { datastoreName: 'my-personal-ds', source: 'personal' },
+      global: {
+        plugins: [pinia, router, PrimeVue, ToastService],
+        stubs: {
+          Button: true,
+          DatastoreHeader: true,
+          EagerQuickStartCode: true,
+          EagerDatastoreTable: true,
+          FilterSelectors: true,
+          Toast: true,
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Personal Datastore');
+  });
+
   // Test that refresh event from table triggers data reload
   it('reloads datastore when refresh event is emitted from table', async () => {
     await router.isReady();
@@ -476,5 +502,52 @@ describe('DatastoreDetail', () => {
     await wrapper.vm.loadDatastore();
 
     expect(loadSpy).toHaveBeenCalledWith('test-datastore');
+  });
+
+  it('shows a session-expiry error and "Upload a CSV" button when source is personal and cache is empty', async () => {
+    await router.isReady();
+
+    // No cache entry — simulates a page reload that lost the session data
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(null);
+
+    const personalStubs = {
+      Button: true,
+      DatastoreHeader: true,
+      EagerQuickStartCode: true,
+      EagerDatastoreTable: true,
+      FilterSelectors: true,
+      Toast: true,
+      RouterLink: { template: '<a><slot /></a>' },
+    };
+
+    wrapper = mount(EagerDatastoreDetail, {
+      props: { datastoreName: 'my-ds', cacheKey: '__personal_datastore__', source: 'personal' },
+      global: { plugins: [pinia, router, PrimeVue, ToastService], stubs: personalStubs },
+    });
+    await wrapper.vm.$nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(wrapper.text()).toContain('Session data unavailable');
+    expect(wrapper.text()).toContain('re-upload your CSV');
+
+    const uploadBtn = wrapper.find('button');
+    expect(uploadBtn.text()).toContain('Upload a CSV');
+  });
+
+  it('handleClearFilters clears filters and captures analytics event', async () => {
+    await router.push('/datastore/test-datastore?frequency_filter=daily');
+    await router.isReady();
+
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
+
+    wrapper = createWrapper();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.currentFilters.frequency).toEqual(['daily']);
+
+    wrapper.vm.handleClearFilters();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.currentFilters).toEqual({});
   });
 });

@@ -22,6 +22,16 @@ interface UseDatastoreDetailOptions {
   onCacheReady?: (cache: DatastoreCache) => void;
   /** Optional hook for caller-specific unmount cleanup. */
   onUnmount?: () => void;
+  /** When provided, overrides the route-derived datastore name. */
+  nameOverride?: string;
+  /** When provided, overrides the cache key used for cache lookups/stores. */
+  cacheKeyOverride?: string;
+  /** When true, the cache entry is NOT deleted on unmount. */
+  persistCacheOnUnmount?: boolean;
+  /** When true, the route-param watcher is not registered. */
+  skipRouteWatch?: boolean;
+  /** Optional hook called when `loadDatastore` finds no cache entry and no loader is triggered. */
+  onCacheMissing?: () => void;
 }
 
 /**
@@ -84,18 +94,24 @@ export function useDatastoreDetail({
   stopFilterWatcher,
   onCacheReady,
   onUnmount,
+  nameOverride,
+  cacheKeyOverride,
+  persistCacheOnUnmount = false,
+  skipRouteWatch = false,
+  onCacheMissing,
 }: UseDatastoreDetailOptions): UseDatastoreDetailResult {
   const route = useRoute();
   const catalogStore = useCatalogStore();
 
-  const datastoreName = computed(() => route.params.name as string);
+  const datastoreName = computed(() => nameOverride ?? (route.params.name as string));
+  const cacheKey = computed(() => cacheKeyOverride ?? datastoreName.value);
   const loading = ref(false);
   const tableLoading = ref(false);
   const error = ref<string | null>(null);
   const availableColumns = ref<TableColumn[]>([]);
   const selectedColumns = ref<TableColumn[]>([]);
 
-  const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(datastoreName.value));
+  const cachedDatastore = computed(() => catalogStore.getDatastoreFromCache(cacheKey.value));
   const totalRecords = computed(() => cachedDatastore.value?.totalRecords || 0);
   const columns = computed(() => cachedDatastore.value?.columns || []);
   const filterOptions = computed(() => cachedDatastore.value?.filterOptions || {});
@@ -142,12 +158,18 @@ export function useDatastoreDetail({
    * updates loading/error state around that request.
    */
   const loadDatastore = async () => {
-    const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
+    const existingCache = catalogStore.getDatastoreFromCache(cacheKey.value);
     if (existingCache && isCacheReady(existingCache)) {
       hydrateFromCache(existingCache);
       loading.value = false;
       tableLoading.value = false;
       trackViewed(existingCache);
+      return;
+    }
+
+    // For personal/override datastores that haven't been loaded yet, notify the caller
+    if (cacheKeyOverride) {
+      onCacheMissing?.();
       return;
     }
 
@@ -169,7 +191,7 @@ export function useDatastoreDetail({
 
   onMounted(() => {
     initializeFiltersFromUrl();
-    const existingCache = catalogStore.getDatastoreFromCache(datastoreName.value);
+    const existingCache = catalogStore.getDatastoreFromCache(cacheKey.value);
     if (existingCache && isCacheReady(existingCache)) {
       hydrateFromCache(existingCache);
       loading.value = false;
@@ -179,20 +201,24 @@ export function useDatastoreDetail({
     }
   });
 
-  const stopRouteWatcher = watch(
-    () => route.params.name,
-    (newName, oldName) => {
-      if (oldName && newName !== oldName) catalogStore.clearDatastoreCache(oldName as string);
-      if (newName) {
-        initializeFiltersFromUrl();
-        void loadDatastore();
-      }
-    },
-  );
+  const stopRouteWatcher = skipRouteWatch
+    ? () => {}
+    : watch(
+        () => route.params.name,
+        (newName, oldName) => {
+          if (oldName && newName !== oldName) catalogStore.clearDatastoreCache(oldName as string);
+          if (newName) {
+            initializeFiltersFromUrl();
+            void loadDatastore();
+          }
+        },
+      );
 
   onUnmounted(() => {
     onUnmount?.();
-    catalogStore.clearDatastoreCache(datastoreName.value);
+    if (!persistCacheOnUnmount) {
+      catalogStore.clearDatastoreCache(cacheKey.value);
+    }
     stopRouteWatcher();
     stopFilterWatcher();
   });

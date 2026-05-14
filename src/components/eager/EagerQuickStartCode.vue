@@ -44,6 +44,7 @@
         outlined
         size="small"
         class="text-blue-600 border-blue-600 hover:bg-blue-50 mr-3"
+        v-if="source !== 'personal'"
       />
 
       <Button
@@ -70,6 +71,7 @@
 
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
+
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Toast from 'primevue/toast';
@@ -85,6 +87,8 @@ const props = defineProps<{
   currentFilters: FilterMap;
   rawData: DatastoreRow[];
   dynamicFilterOptions: FilterOptions;
+  /** Whether this is a user-uploaded personal datastore. */
+  source?: 'builtin' | 'personal';
 }>();
 
 /**
@@ -118,6 +122,7 @@ const {
   toRef(props, 'currentFilters'),
   toRef(props, 'dynamicFilterOptions'),
   numDatasets,
+  computed(() => props.source ?? 'builtin'),
 );
 </script>
 

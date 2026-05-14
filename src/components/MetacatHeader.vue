@@ -8,13 +8,21 @@
       <div class="flex items-center gap-5">
         <p class="text-gray-600 dark:text-gray-300">Explore the ACCESS-NRI Interactive Catalogue</p>
         <div class="inline-flex items-center">
+          <RouterLink :to="{ name: 'PersonalDatastore' }" class="inline-flex">
+            <Button
+              icon="pi pi-upload"
+              label="Explore personal datastore"
+              aria-label="Explore my personal datastore"
+              class="p-button-sm text-white px-3 py-2 rounded-md text-sm font-medium transition-colors ml-2"
+            />
+          </RouterLink>
           <div class="inline-flex">
             <Button
               icon="pi pi-info-circle"
               label="About & Privacy"
               aria-label="Reopen welcome guide"
               title="Reopen welcome guide"
-              class="p-button-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
+              class="p-button-sm text-white px-3 py-2 rounded-md text-sm font-medium transition-colors mx-2"
               @click="welcomeModalRef?.open()"
             />
             <!-- Clean tagged release: link to GitHub Releases -->
@@ -59,7 +67,7 @@
                 >{{ appVersion }}</span
               >
             </span>
-            <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="hideCommitPopover">
+            <Popover ref="commitPopover" @mouseenter="cancelHidePopover" @mouseleave="scheduleHidePopover">
               <div class="p-3 max-w-md">
                 <div class="text-sm text-gray-900 dark:text-gray-100 mb-2">
                   <strong>Version:</strong> {{ appVersion }}
@@ -106,32 +114,23 @@
         </a>
       </div>
     </div>
-
-    <!-- Welcome modal (teleports to body) -->
-    <WelcomeModal ref="welcomeModalRef" />
   </div>
+
+  <!-- Welcome modal (teleports to body) -->
+  <WelcomeModal ref="welcomeModalRef" />
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import GithubFeedbackButton from './GithubFeedbackButton.vue';
 import WelcomeModal from './WelcomeModal.vue';
 import { usePostHog } from '../composables/usePosthog';
+import { useBuildInfo } from '../composables/useBuildInfo';
 
-// Deployment information injected at build time
-declare const __GIT_COMMIT_SHA__: string;
-declare const __BUILD_TIME__: string;
-declare const __APP_VERSION__: string;
-
-const commitSha = typeof __GIT_COMMIT_SHA__ !== 'undefined' ? __GIT_COMMIT_SHA__ : null;
-const buildTime = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : null;
-const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
-const isCleanRelease = appVersion !== 'dev' && !appVersion.endsWith('.dirty');
-const releaseUrl = isCleanRelease
-  ? `https://github.com/access-nri/interactive-data-catalogue/releases/tag/${appVersion}`
-  : '';
+const { commitSha, buildTime, appVersion, releaseUrl, isCleanRelease } = useBuildInfo();
 
 // Popover management for commit SHA
 const commitPopover = ref();
@@ -158,10 +157,6 @@ const cancelHidePopover = () => {
     clearTimeout(hideTimeout);
     hideTimeout = null;
   }
-};
-
-const hideCommitPopover = () => {
-  scheduleHidePopover();
 };
 
 const copyCommitSha = async () => {

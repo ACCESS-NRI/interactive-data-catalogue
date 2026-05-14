@@ -261,6 +261,7 @@ import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
 import { useFilterState } from '../composables/useFilterState';
 import { filterRowsBySelectedFilters, useDynamicFilterOptions } from '../composables/useDynamicFilterOptions';
+import { fuzzyMatchesSearch } from '../composables/useFuzzyFilter';
 import type { CatalogRow } from '../types/catalog';
 import type { FilterOptions } from '../types/datastore';
 import type { TableColumn } from '../types/table';
@@ -302,18 +303,18 @@ const { currentFilters, clearFilters } = useFilterState();
 const filteredData = computed(() => {
   let data = catalogStore.data;
 
-  // Apply global search
+  // Apply global search with fuzzy matching
   if (globalSearchValue.value.trim()) {
-    const searchTerm = globalSearchValue.value.toLowerCase();
     data = data.filter((row) => {
-      return (
-        row.name?.toLowerCase().includes(searchTerm) ||
-        row.description?.toLowerCase().includes(searchTerm) ||
-        row.searchableModel?.toLowerCase().includes(searchTerm) ||
-        row.searchableRealm?.toLowerCase().includes(searchTerm) ||
-        row.searchableFrequency?.toLowerCase().includes(searchTerm) ||
-        row.searchableVariable?.toLowerCase().includes(searchTerm)
-      );
+      const haystack = [
+        row.name,
+        row.description,
+        row.searchableModel,
+        row.searchableRealm,
+        row.searchableFrequency,
+        row.searchableVariable,
+      ].filter((v): v is string => !!v);
+      return fuzzyMatchesSearch(haystack, globalSearchValue.value);
     });
   }
 

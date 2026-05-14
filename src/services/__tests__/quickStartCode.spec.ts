@@ -122,4 +122,43 @@ describe('quickStartCode', () => {
       }),
     ).toBe(false);
   });
+
+  it('uses intake.open_esm_datastore opening for personal source', () => {
+    const code = buildQuickStartCode({
+      datastoreName: 'my-datastore',
+      currentFilters: {},
+      numDatasets: 0,
+      isXArrayMode: false,
+      source: 'personal',
+    });
+
+    expect(code).toContain('intake.open_esm_datastore("path/to/your/datastore.json")');
+    expect(code).not.toContain('intake.cat.access_nri');
+  });
+
+  it('includes iterableColumns in the personal datastore opening', () => {
+    const code = buildQuickStartCode({
+      datastoreName: 'my-datastore',
+      currentFilters: {},
+      numDatasets: 0,
+      isXArrayMode: false,
+      source: 'personal',
+      iterableColumns: ['variable', 'realm'],
+    });
+
+    expect(code).toContain("columns_with_iterables=['variable', 'realm']");
+  });
+
+  it('omits columns_with_iterables when iterableColumns is empty for personal source', () => {
+    const code = buildQuickStartCode({
+      datastoreName: 'my-datastore',
+      currentFilters: {},
+      numDatasets: 0,
+      isXArrayMode: false,
+      source: 'personal',
+      iterableColumns: [],
+    });
+
+    expect(code).not.toContain('columns_with_iterables');
+  });
 });

@@ -744,4 +744,25 @@ describe('MetacatTable', () => {
 
     expect(wrapper.findComponent({ name: 'FilterSelectors' }).exists()).toBe(false);
   });
+
+  // Test that filterOptions handles scalar (non-array) field values
+  it('filterOptions handles scalar string values for filterable fields', () => {
+    catalogStore.data = [
+      {
+        name: 'catalog-scalar',
+        // Provide frequency as a plain string instead of an array
+        model: ['modelA'],
+        description: 'Scalar test',
+        realm: 'atmos' as any,
+        frequency: 'monthly' as any,
+        variable: ['tas'],
+      },
+    ];
+    wrapper = createWrapper();
+
+    const opts = wrapper.vm.filterOptions;
+    // scalar values should be coerced to strings and included
+    expect(opts.realm).toContain('atmos');
+    expect(opts.frequency).toContain('monthly');
+  });
 });
