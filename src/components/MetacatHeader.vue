@@ -1,21 +1,26 @@
 <template>
   <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
     <!-- Left side - Title and actions -->
-    <div class="min-w-0 flex-1 pl-[104px] max-[374px]:pr-4 min-[375px]:pl-[136px] md:pl-[164px] lg:pl-[206px]">
-      <div class="mb-2 flex items-center">
+    <div class="min-w-0 flex-1">
+      <div
+        class="mb-2 flex items-center pl-[104px] max-[374px]:pr-4 min-[375px]:pl-[136px] md:pl-[164px] lg:pl-[206px]"
+      >
         <h1
           class="text-[26px] font-bold text-gray-900 dark:text-white max-[374px]:text-2xl md:whitespace-nowrap md:text-[28px] lg:text-3xl"
         >
           ACCESS-NRI Interactive Data Catalogue
         </h1>
       </div>
-      <div class="grid grid-cols-2 items-center gap-2 md:flex md:flex-wrap">
-        <RouterLink :to="{ name: 'PersonalDatastore' }" class="inline-flex h-[74px] w-full md:w-[112px] md:flex-none">
+      <div class="grid grid-cols-2 items-center gap-2 md:flex md:flex-wrap md:pl-[164px] lg:pl-[206px]">
+        <RouterLink
+          :to="{ name: 'PersonalDatastore' }"
+          class="inline-flex h-[60px] w-full md:w-[122px] md:flex-none xl:w-[160px]"
+        >
           <Button
             icon="pi pi-upload"
             label="Explore personal datastore"
             aria-label="Explore my personal datastore"
-            class="p-button-sm h-full w-full text-white px-3 py-2 rounded-md text-sm font-medium transition-colors max-md:flex-col max-md:gap-1 max-md:px-1 max-md:text-xs"
+            class="catalogue-header-button p-button-sm h-full w-full flex-col rounded-md text-center font-medium text-white transition-colors"
           />
         </RouterLink>
         <div class="contents md:flex md:items-center md:gap-2">
@@ -24,7 +29,7 @@
             label="About & Privacy"
             aria-label="Reopen welcome guide"
             title="Reopen welcome guide"
-            class="p-button-sm h-[74px] w-full text-white px-3 py-2 rounded-md text-sm font-medium transition-colors max-md:flex-col max-md:gap-1 max-md:px-1 max-md:text-xs md:w-[100px]"
+            class="catalogue-header-button p-button-sm h-[60px] w-full flex-col rounded-md text-center font-medium text-white transition-colors md:w-[104px] xl:w-[136px]"
             @click="welcomeModalRef?.open()"
           />
           <!-- Clean tagged release: link to GitHub Releases -->
@@ -33,18 +38,18 @@
             :href="releaseUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="flex h-[74px] w-full items-center gap-2 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors text-xs border border-green-300 dark:border-green-700 max-md:flex-col max-md:justify-center max-md:gap-1 max-md:px-1 max-md:text-center md:w-[120px]"
+            class="flex h-[60px] w-full flex-col items-center justify-center gap-1 rounded-md border border-green-300 bg-green-50 px-2 py-1 text-center text-xs leading-tight transition-colors hover:bg-green-100 dark:border-green-700 dark:bg-green-900/20 dark:hover:bg-green-900/30 md:w-[124px] xl:w-[150px]"
             @mouseenter="showCommitPopover"
             @mouseleave="scheduleHidePopover"
           >
             <i class="pi pi-github text-sm text-green-700 dark:text-green-400"></i>
-            <span class="text-green-700 dark:text-green-300 max-md:break-all">{{ appVersion }}</span>
+            <span class="break-all text-green-700 dark:text-green-300">{{ appVersion }}</span>
           </a>
           <!-- Dirty or dev build: non-linked badge -->
           <span
             v-else
             :class="[
-              'flex h-[74px] w-full items-center gap-2 px-2.5 py-1 rounded-md text-xs border max-md:flex-col max-md:justify-center max-md:gap-1 max-md:px-1 max-md:text-center md:w-[120px]',
+              'flex h-[60px] w-full flex-col items-center justify-center gap-1 rounded-md border px-2 py-1 text-center text-xs leading-tight md:w-[124px] xl:w-[150px]',
               appVersion.endsWith('.dirty')
                 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700'
                 : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600',
@@ -61,7 +66,7 @@
               "
             ></i>
             <span
-              class="max-md:break-all"
+              class="break-all"
               :class="
                 appVersion.endsWith('.dirty')
                   ? 'text-amber-700 dark:text-amber-300'
@@ -85,14 +90,14 @@
             </div>
           </Popover>
           <GithubFeedbackButton
-            class="h-[74px] w-full max-md:flex-col max-md:gap-1 max-md:px-1 max-md:text-xs md:w-[110px]"
+            class="catalogue-header-button h-[60px] w-full flex-col text-center md:w-[112px] xl:w-[144px]"
           />
         </div>
       </div>
     </div>
 
     <!-- Vertical divider (hidden on mobile) -->
-    <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
+    <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-3"></div>
 
     <!-- Right side - Documentation links -->
     <div class="flex-shrink-0">
@@ -175,3 +180,12 @@ const copyCommitSha = async () => {
   }
 };
 </script>
+
+<style scoped>
+.catalogue-header-button {
+  gap: 0.25rem !important;
+  padding: 0 0.5rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.1 !important;
+}
+</style>
