@@ -4,6 +4,7 @@ import router from './router';
 import './style.css';
 import App from './App.vue';
 import Aura from '@primeuix/themes/aura';
+import { initializeTheme } from './composables/useTheme';
 
 // PrimeVue imports
 import PrimeVue from 'primevue/config';
@@ -19,6 +20,8 @@ import hljsVuePlugin from '@highlightjs/vue-plugin';
 
 hljs.registerLanguage('python', python);
 
+initializeTheme();
+
 const app = createApp(App);
 const pinia = createPinia();
 
@@ -28,6 +31,7 @@ app.use(router);
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
+    options: { darkModeSelector: '.dark' },
   },
 });
 

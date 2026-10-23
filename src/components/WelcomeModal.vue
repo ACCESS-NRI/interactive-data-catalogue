@@ -343,22 +343,20 @@ dataset`;
   background-color: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :deep(.welcome-accordion .p-accordionpanel) {
-    border-color: #374151;
-  }
+:global(html.dark .welcome-accordion .p-accordionpanel) {
+  border-color: #374151;
+}
 
-  :deep(.welcome-accordion .p-accordionheader) {
-    background-color: #1f2937;
-    color: #f9fafb;
-  }
+:global(html.dark .welcome-accordion .p-accordionheader) {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
 
-  :deep(.welcome-accordion .p-accordionheader:hover) {
-    background-color: #374151;
-  }
+:global(html.dark .welcome-accordion .p-accordionheader:hover) {
+  background-color: #374151;
+}
 
-  :deep(.welcome-accordion .p-accordioncontent-content) {
-    background-color: #111827;
-  }
+:global(html.dark .welcome-accordion .p-accordioncontent-content) {
+  background-color: #111827;
 }
 </style>

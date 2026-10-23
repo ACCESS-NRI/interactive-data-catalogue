@@ -1,6 +1,7 @@
 <template>
   <div class="catalog-table-container">
     <MetacatHeader />
+    <CMIP7QuickLinks />
 
     <!-- Filter Selectors -->
     <FilterSelectors
@@ -257,6 +258,7 @@ import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
 import { storeToRefs } from 'pinia';
 import MetacatHeader from './MetacatHeader.vue';
+import CMIP7QuickLinks from './CMIP7QuickLinks.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
 import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
@@ -526,48 +528,46 @@ const onToggle = (value: any[]) => {
   border-color: #d1d5db;
 }
 
-@media (prefers-color-scheme: dark) {
-  :deep(.catalog-datatable) {
-    border-color: #4b5563;
-  }
+:global(html.dark .catalog-table-container .catalog-datatable) {
+  border-color: #4b5563;
+}
 
-  :deep(.p-datatable-header) {
-    background-color: #374151;
-    border-bottom-color: #4b5563;
-  }
+:global(html.dark .catalog-table-container .p-datatable-header) {
+  background-color: #374151;
+  border-bottom-color: #4b5563;
+}
 
-  :deep(.p-datatable-thead > tr > th) {
-    background-color: #374151;
-    color: #f9fafb;
-    border-bottom-color: #4b5563;
-  }
+:global(html.dark .catalog-table-container .p-datatable-thead > tr > th) {
+  background-color: #374151;
+  color: #f9fafb;
+  border-bottom-color: #4b5563;
+}
 
-  :deep(.p-datatable-tbody > tr) {
-    border-bottom-color: #374151;
-  }
+:global(html.dark .catalog-table-container .p-datatable-tbody > tr) {
+  border-bottom-color: #374151;
+}
 
-  :deep(.p-datatable-tbody > tr:hover) {
-    background-color: #374151;
-  }
+:global(html.dark .catalog-table-container .p-datatable-tbody > tr:hover) {
+  background-color: #374151;
+}
 
-  :deep(.p-datatable-tbody > tr > td) {
-    color: #f9fafb;
-    border-bottom-color: #374151;
-  }
+:global(html.dark .catalog-table-container .p-datatable-tbody > tr > td) {
+  color: #f9fafb;
+  border-bottom-color: #374151;
+}
 
-  :deep(.p-paginator) {
-    background-color: #374151;
-    border-top-color: #4b5563;
-  }
+:global(html.dark .catalog-table-container .p-paginator) {
+  background-color: #374151;
+  border-top-color: #4b5563;
+}
 
-  :deep(.p-inputtext) {
-    background-color: #1f2937;
-    color: #f9fafb;
-  }
+:global(html.dark .catalog-table-container .p-inputtext) {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
 
-  :deep(.p-multiselect) {
-    background-color: #1f2937;
-    border-color: #4b5563;
-  }
+:global(html.dark .catalog-table-container .p-multiselect) {
+  background-color: #1f2937;
+  border-color: #4b5563;
 }
 </style>
