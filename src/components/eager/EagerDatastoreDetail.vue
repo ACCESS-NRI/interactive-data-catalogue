@@ -102,6 +102,11 @@
           class="mb-6"
         />
 
+        <Cmip7EsmvalcoreQuickStart
+          v-if="source !== 'personal' && isCmip7Datastore(datastoreName)"
+          :current-filters="currentFilters"
+        />
+
         <FilterSelectors
           compact
           v-model="currentFilters"
@@ -130,6 +135,8 @@ import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
+import Cmip7EsmvalcoreQuickStart from '../Cmip7EsmvalcoreQuickStart.vue';
+import { isCmip7Datastore } from '../../services/cmip7EsmvalcoreCode';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
