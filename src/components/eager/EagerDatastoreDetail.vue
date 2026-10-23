@@ -110,8 +110,9 @@
           class="mb-6"
         />
 
-        <Cmip7EsmvalcoreQuickStart
-          v-if="source !== 'personal' && isCmip7Datastore(datastoreName)"
+        <CmipEsmvalcoreQuickStart
+          v-if="source !== 'personal' && cmipProject"
+          :project="cmipProject"
           :current-filters="currentFilters"
         />
 
@@ -143,8 +144,8 @@ import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
-import Cmip7EsmvalcoreQuickStart from '../Cmip7EsmvalcoreQuickStart.vue';
-import { isCmip7Datastore } from '../../services/cmip7EsmvalcoreCode';
+import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
+import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
@@ -208,6 +209,8 @@ const {
         }
       : undefined,
 });
+
+const cmipProject = computed(() => getCmipProject(datastoreName.value));
 
 const rawData = computed(() => cachedDatastore.value?.data || []);
 const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));

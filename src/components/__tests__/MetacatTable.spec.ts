@@ -50,7 +50,7 @@ describe('MetacatTable', () => {
           Dialog: true,
           Toast: true,
           MetacatHeader: true,
-          CMIP7QuickLinks: true,
+          CMIPQuickLinks: true,
           MetacatRowDetailModal: true,
         },
       },

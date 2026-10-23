@@ -1,7 +1,7 @@
 <template>
   <div class="catalog-table-container">
     <MetacatHeader />
-    <CMIP7QuickLinks />
+    <CMIPQuickLinks />
 
     <!-- Filter Selectors -->
     <FilterSelectors
@@ -258,7 +258,7 @@ import MultiSelect from 'primevue/multiselect';
 import Dialog from 'primevue/dialog';
 import { storeToRefs } from 'pinia';
 import MetacatHeader from './MetacatHeader.vue';
-import CMIP7QuickLinks from './CMIP7QuickLinks.vue';
+import CMIPQuickLinks from './CMIPQuickLinks.vue';
 import CatalogRowDetailModal from './MetacatRowDetailModal.vue';
 import FilterSelectors from './FilterSelectors.vue';
 import { useCatalogStore } from '../stores/catalogStore';
