@@ -1,6 +1,13 @@
 import type { FilterMap } from '../types/datastore';
 
-const CMIP7_DATASTORES = new Set(['cmip7_australian', 'cmip7_replicated']);
+export type CmipProject = 'CMIP6' | 'CMIP7';
+
+const CMIP_DATASTORES = new Map<string, CmipProject>([
+  ['cmip6_fs38', 'CMIP6'],
+  ['cmip6_oi10', 'CMIP6'],
+  ['cmip7_australian', 'CMIP7'],
+  ['cmip7_replicated', 'CMIP7'],
+]);
 
 /** ESMValCore CMIP7 facets and the corresponding catalogue columns, in code display order. */
 const CMIP7_FACETS = [
@@ -18,33 +25,49 @@ const CMIP7_FACETS = [
   ['region', 'region'],
 ] as const;
 
-const mappedColumns = new Set<string>(CMIP7_FACETS.flatMap(([, column]) => (column ? [column] : [])));
+/** ESMValCore CMIP6 facets and the corresponding catalogue columns. */
+const CMIP6_FACETS = [
+  ['activity', null],
+  ['short_name', 'variable_id'],
+  ['dataset', 'source_id'],
+  ['exp', 'experiment_id'],
+  ['ensemble', 'member_id'],
+  ['institute', 'institution_id'],
+  ['mip', 'table_id'],
+  ['grid', 'grid_label'],
+  ['frequency', 'frequency'],
+  ['realm', 'realm'],
+] as const;
 
-export const isCmip7Datastore = (name: string): boolean => CMIP7_DATASTORES.has(name);
+const facetsFor = (project: CmipProject) => (project === 'CMIP6' ? CMIP6_FACETS : CMIP7_FACETS);
 
-export const getUnmappedCmip7Filters = (filters: FilterMap): string[] =>
-  Object.entries(filters)
+export const getCmipProject = (name: string): CmipProject | null => CMIP_DATASTORES.get(name) ?? null;
+
+export const getUnmappedCmipFilters = (filters: FilterMap, project: CmipProject): string[] => {
+  const mappedColumns = new Set<string>(facetsFor(project).flatMap(([, column]) => (column ? [column] : [])));
+  return Object.entries(filters)
     .filter(([column, values]) => values.length > 0 && !mappedColumns.has(column))
     .map(([column]) => column);
+};
 
 const pythonValue = (values: string[]): string =>
   values.length === 1 ? JSON.stringify(values[0]) : JSON.stringify(values);
 
-/** Create a local CMIP7 facet search using the filters selected in the catalogue. */
-export function buildCmip7EsmvalcoreCode(filters: FilterMap): string {
-  const facetLines = CMIP7_FACETS.map(([facet, column]) => {
+/** Create a local CMIP facet search using the filters selected in the catalogue. */
+export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject): string {
+  const facetLines = facetsFor(project).map(([facet, column]) => {
     const selected = column ? filters[column] : undefined;
     const comment = column ? `  # ${column}` : '';
     return `    ${facet}=${selected?.length ? pythonValue(selected) : '"*"'},${comment}`;
   });
 
-  return `# Run in a Gadi environment with ESMValCore and a local CMIP7 data source configured.
+  return `# Run in a Gadi environment with ESMValCore and a local ${project} data source configured.
 # Select more filters in the catalogue, or replace the '*' wildcards below.
 from itertools import islice
 from esmvalcore.dataset import Dataset
 
 query = Dataset(
-    project="CMIP7",
+    project="${project}",
 ${facetLines.join('\n')}
 )
 
@@ -56,7 +79,7 @@ for match in matches:
 
 # Narrow the facets above if there are many matches, then load one as an Iris cube.
 if not matches:
-    raise FileNotFoundError("No local CMIP7 data matched these facets")
+    raise FileNotFoundError("No local ${project} data matched these facets")
 cube = matches[0].load()
 cube`;
 }

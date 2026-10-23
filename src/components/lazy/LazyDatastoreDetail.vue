@@ -79,7 +79,7 @@
           class="mb-6"
         />
 
-        <Cmip7EsmvalcoreQuickStart v-if="isCmip7Datastore(datastoreName)" :current-filters="currentFilters" />
+        <CmipEsmvalcoreQuickStart v-if="cmipProject" :project="cmipProject" :current-filters="currentFilters" />
 
         <FilterSelectors
           compact
@@ -109,12 +109,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import LazyQuickStartCode from './LazyQuickStartCode.vue';
-import Cmip7EsmvalcoreQuickStart from '../Cmip7EsmvalcoreQuickStart.vue';
-import { isCmip7Datastore } from '../../services/cmip7EsmvalcoreCode';
+import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
+import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
@@ -167,6 +167,8 @@ const {
     resetBufferedDynamicFilterOptions();
   },
 });
+
+const cmipProject = computed(() => getCmipProject(datastoreName.value));
 
 defineExpose({
   openDropdowns: bufferedDynamicFilterOptions.openDropdowns,

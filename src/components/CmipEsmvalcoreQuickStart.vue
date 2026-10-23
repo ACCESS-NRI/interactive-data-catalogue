@@ -6,9 +6,9 @@
     </summary>
     <div class="px-4 pb-4">
       <p class="mb-2 text-sm text-gray-700 dark:text-gray-300">
-        Search locally configured CMIP7 data on Gadi by facets, then load a match as an Iris cube. Selected CMIP7
-        filters below are included in the code. ESMValCore searches your configured local sources, which may include
-        both CMIP7 collections.
+        Search locally configured {{ project }} data on Gadi by facets, then load a match as an Iris cube. Selected
+        {{ project }} filters below are included in the code. ESMValCore searches your configured local sources, which
+        may include both {{ project }} collections.
       </p>
       <p v-if="unmappedFilters.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
         These catalogue filters are not included as ESMValCore facets: {{ unmappedFilters.join(', ') }}.
@@ -20,15 +20,15 @@
           target="_blank"
           rel="noopener noreferrer"
           class="underline hover:text-teal-700 dark:hover:text-teal-200"
-          >CMIP7 local data source</a
+          >{{ project }} local data source</a
         >
         in its configuration. See the
         <a
-          href="https://docs.esmvaltool.org/projects/ESMValCore/en/latest/reference/facets.html#cmip7"
+          :href="`https://docs.esmvaltool.org/projects/ESMValCore/en/latest/reference/facets.html#${project.toLowerCase()}`"
           target="_blank"
           rel="noopener noreferrer"
           class="underline hover:text-teal-700 dark:hover:text-teal-200"
-          >CMIP7 facet mapping</a
+          >{{ project }} facet mapping</a
         >.
       </p>
       <div class="overflow-x-auto rounded">
@@ -55,11 +55,11 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import 'highlight.js/lib/common';
 import type { FilterMap } from '../types/datastore';
-import { buildCmip7EsmvalcoreCode, getUnmappedCmip7Filters } from '../services/cmip7EsmvalcoreCode';
+import { buildCmipEsmvalcoreCode, getUnmappedCmipFilters, type CmipProject } from '../services/cmipEsmvalcoreCode';
 
-const props = defineProps<{ currentFilters: FilterMap }>();
-const code = computed(() => buildCmip7EsmvalcoreCode(props.currentFilters));
-const unmappedFilters = computed(() => getUnmappedCmip7Filters(props.currentFilters));
+const props = defineProps<{ currentFilters: FilterMap; project: CmipProject }>();
+const code = computed(() => buildCmipEsmvalcoreCode(props.currentFilters, props.project));
+const unmappedFilters = computed(() => getUnmappedCmipFilters(props.currentFilters, props.project));
 const copied = ref(false);
 const copyError = ref(false);
 
