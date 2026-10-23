@@ -40,7 +40,7 @@ const datastores = [
     description: 'CMIP7 data submitted by ACCESS.',
   },
   {
-    name: 'cmip7_replicas',
+    name: 'cmip7_replicated',
     label: 'ESGF replicas',
     description: 'CMIP7 data replicated from ESGF.',
   },
