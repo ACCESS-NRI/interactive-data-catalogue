@@ -6,7 +6,7 @@ import CMIP7QuickLinks from '../CMIP7QuickLinks.vue';
 describe('CMIP7QuickLinks', () => {
   it.each([
     ['cmip7_australian', 'ACCESS submissions'],
-    ['cmip7_replicas', 'ESGF replicas'],
+    ['cmip7_replicated', 'ESGF replicas'],
   ])('opens the %s datastore from the landing page', async (name, label) => {
     const router = createRouter({
       history: createMemoryHistory(),

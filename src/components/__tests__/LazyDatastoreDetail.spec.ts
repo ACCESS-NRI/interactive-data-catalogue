@@ -375,6 +375,7 @@ describe('DatastoreDetail', () => {
       realm: ['ocean', 'atmosphere'],
     });
     expect(filters.props('dynamicFilterOptions')).toBeDefined();
+    expect(filters.props('compact')).toBe(true);
 
     // Check DatastoreTable props
     const table = wrapper.findComponent({ name: 'LazyDatastoreTable' });

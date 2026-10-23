@@ -80,6 +80,7 @@
         />
 
         <FilterSelectors
+          compact
           v-model="currentFilters"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
