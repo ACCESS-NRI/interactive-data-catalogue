@@ -108,6 +108,69 @@ describe('FilterSelectors', () => {
     expect(multiSelects.length).toBe(3);
   });
 
+  describe('compact datastore filters', () => {
+    it('starts with no filter fields and adds only the chosen field', async () => {
+      const wrapper = createWrapper({ compact: true });
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(0);
+      expect(wrapper.text()).toContain('Add a filter to narrow this datastore.');
+
+      wrapper.vm.addFilter('experiment');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(1);
+      expect(wrapper.find('label[for="filter-experiment"]').text()).toBe('Experiment');
+      expect(wrapper.find('button[aria-label="Remove Experiment filter"]').exists()).toBe(true);
+      expect(wrapper.vm.availableColumns).toEqual(['project', 'variable']);
+    });
+
+    it('restores selected fields when filters and their options arrive from the URL', async () => {
+      const wrapper = createWrapper({
+        compact: true,
+        filterOptions: {},
+        modelValue: { variable: ['var1'] },
+      });
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(0);
+      await wrapper.setProps({ filterOptions: defaultProps.filterOptions });
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(1);
+      expect(wrapper.find('label[for="filter-variable"]').text()).toBe('Variable');
+      expect(wrapper.findComponent(MultiSelect).props('modelValue')).toEqual(['var1']);
+    });
+
+    it('removes a field and its selected values', async () => {
+      const wrapper = createWrapper({
+        compact: true,
+        modelValue: { project: ['proj1'], variable: ['var1'] },
+      });
+
+      await wrapper.find('button[aria-label="Remove Project filter"]').trigger('click');
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(1);
+      expect(wrapper.find('label[for="filter-variable"]').exists()).toBe(true);
+      expect(wrapper.emitted('update:modelValue')?.[0]?.[0]).toEqual({ variable: ['var1'] });
+    });
+
+    it('clears selected fields with Clear all', async () => {
+      const wrapper = createWrapper({ compact: true, modelValue: { project: ['proj1'] } });
+      const clearButton = wrapper.findAllComponents(Button).find((button) => button.text().includes('Clear all'));
+
+      await clearButton?.trigger('click');
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(0);
+      expect(wrapper.emitted('clear')).toHaveLength(1);
+    });
+
+    it('searches the list of available fields', () => {
+      const wrapper = createWrapper({ compact: true });
+
+      wrapper.vm.columnSearch = 'VAR';
+
+      expect(wrapper.vm.matchingColumns).toEqual(['variable']);
+    });
+  });
+
   // Test that the clear filters button is present and functional
   it('renders clear filters button', () => {
     const wrapper = createWrapper();
