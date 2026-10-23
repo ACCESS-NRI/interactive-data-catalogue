@@ -1,6 +1,6 @@
 <template>
   <div class="datastore-detail-container">
-    <nav class="mb-6" aria-label="breadcrumb">
+    <nav class="mb-6 pl-[104px] min-[375px]:pl-[136px] md:pl-[144px] lg:pl-[184px]" aria-label="breadcrumb">
       <ol class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
         <li class="flex items-center">
           <RouterLink to="/" class="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
@@ -24,7 +24,7 @@
     <!-- Error State -->
     <div
       v-else-if="error"
-      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6"
+      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6 md:pl-[144px] lg:pl-[184px]"
     >
       <div class="flex items-center">
         <i class="pi pi-exclamation-triangle text-red-500 mr-2"></i>

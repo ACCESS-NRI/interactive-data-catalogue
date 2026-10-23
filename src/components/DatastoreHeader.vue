@@ -1,6 +1,6 @@
 <template>
   <div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-    <div class="mb-6">
+    <div class="mb-6 md:pl-[144px] lg:pl-[184px]">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">ESM Datastore: {{ datastoreName }}</h1>
       <p class="text-gray-600 dark:text-gray-300">
         Detailed view of the {{ datastoreName }} ESM datastore containing {{ totalRecords?.toLocaleString() }} records.

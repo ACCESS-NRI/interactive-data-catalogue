@@ -1,10 +1,25 @@
 <script setup lang="ts">
 import { isNavigating } from './router';
 import { isDarkMode, toggleTheme } from './composables/useTheme';
+import accessLogo from './assets/access_logo_rgb.svg';
+import accessLogoDark from './assets/access_logo_rgb_dark.svg';
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <header class="absolute left-2 top-0 z-10 md:left-8">
+      <RouterLink
+        to="/"
+        class="inline-block rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        aria-label="ACCESS-NRI catalogue home"
+      >
+        <img
+          :src="isDarkMode ? accessLogoDark : accessLogo"
+          alt="ACCESS-NRI"
+          class="block h-auto w-24 min-[375px]:w-32 md:w-40 lg:w-[200px]"
+        />
+      </RouterLink>
+    </header>
     <!-- Navigation Loading Overlay -->
     <Transition name="fade">
       <div

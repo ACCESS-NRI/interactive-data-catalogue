@@ -2,7 +2,7 @@
   <div class="personal-datastore-container">
     <!-- Upload Section -->
     <div v-if="!route.params.name">
-      <nav class="mb-6" aria-label="breadcrumb">
+      <nav class="mb-6 pl-[104px] min-[375px]:pl-[136px] md:pl-[144px] lg:pl-[184px]" aria-label="breadcrumb">
         <ol class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
           <li class="flex items-center">
             <RouterLink to="/" class="flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
@@ -17,7 +17,7 @@
           </li>
         </ol>
       </nav>
-      <div class="mb-6">
+      <div class="mb-6 md:pl-[144px] lg:pl-[184px]">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Personal Datastore</h1>
         <p class="text-gray-600 dark:text-gray-300">
           Upload your own intake-esm CSV file to browse it using the same interface as the ACCESS-NRI catalogue. Your
