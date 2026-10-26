@@ -26,7 +26,7 @@ describe('CMIP ESMValCore quick start', () => {
 
     expect(code).toContain('project="CMIP7"');
     expect(code).toMatch(
-      /^"""\nYou will need to run this in an ARE session on Gadi: https:\/\/are\.nci\.org\.au\/pun\/sys\/dashboard\n\nSelect more filters in the catalogue, or replace the '\*' wildcards below\.\n"""\n\nfrom itertools import islice/,
+      /^"""\nYou will need to run this in an ARE session on Gadi: https:\/\/are\.nci\.org\.au\/pun\/sys\/dashboard\n\nA facet search may match many datasets\. Select more filters in the catalogue,\nor replace the '\*' wildcards below, to narrow it down to one dataset to load\.\n"""\n\nfrom itertools import islice/,
     );
     expect(code).toContain('short_name=["tas","pr"],  # variable_id');
     expect(code).toContain('dataset="ACCESS-ESM1-6",  # source_id');
@@ -37,6 +37,8 @@ describe('CMIP ESMValCore quick start', () => {
     expect(code).toContain('drs_specs="*",');
     expect(code).toContain('branding_suffix="*",');
     expect(code).toContain('matches = list(islice(query.from_files(), 5))');
+    expect(code).toContain('if len(matches) > 1:');
+    expect(code).toContain('raise ValueError("Multiple local CMIP7 datasets matched; narrow the facets above")');
     expect(code).toContain('cube = matches[0].load()');
   });
 
