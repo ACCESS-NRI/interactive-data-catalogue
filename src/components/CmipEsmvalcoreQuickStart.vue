@@ -44,6 +44,47 @@
         @confirm="confirmCopyLongUrl"
         @cancel="cancelCopyLongUrl"
       />
+
+      <details class="mt-4 rounded border border-teal-200 bg-white/60 dark:border-teal-800 dark:bg-teal-950/20">
+        <summary class="cursor-pointer px-3 py-2 font-medium text-teal-900 dark:text-teal-100">
+          ESMValTool recipe (.yml)
+        </summary>
+        <div class="px-3 pb-3">
+          <p class="mb-2 text-sm text-teal-900 dark:text-teal-100">
+            Save this recipe as a .yml file and run it with ESMValTool on Gadi. It keeps the preprocessed data; add a
+            diagnostic script for analysis.
+          </p>
+          <p v-if="recipe.missingSelections.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
+            Before running, select {{ recipe.missingSelections.join(', ') }} in the catalogue or replace the marked
+            values in the recipe.
+          </p>
+          <p v-if="recipe.ignoredFilters.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
+            These selected catalogue filters are not included in the recipe: {{ recipe.ignoredFilters.join(', ') }}.
+          </p>
+          <div class="overflow-x-auto rounded">
+            <highlightjs language="yaml" :code="recipe.yaml" class="text-sm" />
+          </div>
+          <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <Button
+              :label="recipeCopied ? 'Recipe copied' : 'Copy recipe (.yml)'"
+              icon="pi pi-copy"
+              outlined
+              size="small"
+              @click="copyRecipe"
+            />
+            <Button
+              label="Copy recipe and open ARE session"
+              icon="pi pi-external-link"
+              outlined
+              size="small"
+              @click="copyRecipeAndOpenARESession"
+            />
+            <span v-if="recipeCopyError" role="status" class="text-sm text-red-700 dark:text-red-300">
+              Could not copy recipe. Please select it manually.
+            </span>
+          </div>
+        </div>
+      </details>
     </div>
   </details>
 </template>
@@ -57,6 +98,7 @@ import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
 import 'highlight.js/lib/common';
 import type { FilterMap } from '../types/datastore';
 import { buildCmipEsmvalcoreCode, getUnmappedCmipFilters, type CmipProject } from '../services/cmipEsmvalcoreCode';
+import { buildCmipEsmvaltoolRecipe } from '../services/cmipEsmvaltoolRecipe';
 
 const props = defineProps<{
   currentFilters: FilterMap;
@@ -65,6 +107,7 @@ const props = defineProps<{
   requiredProjects: string[];
 }>();
 const code = computed(() => buildCmipEsmvalcoreCode(props.currentFilters, props.project));
+const recipe = computed(() => buildCmipEsmvaltoolRecipe(props.currentFilters, props.project));
 const unmappedFilters = computed(() => getUnmappedCmipFilters(props.currentFilters, props.project));
 const router = useRouter();
 const copied = ref(false);
@@ -72,11 +115,18 @@ const linkCopied = ref(false);
 const copyError = ref('');
 const showLongUrlDialog = ref(false);
 const pendingLongUrl = ref('');
+const recipeCopied = ref(false);
+const recipeCopyError = ref(false);
 
 watch(code, () => {
   copied.value = false;
   linkCopied.value = false;
   copyError.value = '';
+});
+
+watch(recipe, () => {
+  recipeCopied.value = false;
+  recipeCopyError.value = false;
 });
 
 const copyCode = async (): Promise<boolean> => {
@@ -132,5 +182,22 @@ const cancelCopyLongUrl = (): void => {
 
 const copyCodeAndOpenARESession = async (): Promise<void> => {
   if (await copyCode()) window.open('https://are.nci.org.au/pun/sys/dashboard', '_blank');
+};
+
+const copyRecipe = async (): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(recipe.value.yaml);
+    recipeCopied.value = true;
+    recipeCopyError.value = false;
+    return true;
+  } catch {
+    recipeCopied.value = false;
+    recipeCopyError.value = true;
+    return false;
+  }
+};
+
+const copyRecipeAndOpenARESession = async (): Promise<void> => {
+  if (await copyRecipe()) window.open('https://are.nci.org.au/pun/sys/dashboard', '_blank');
 };
 </script>

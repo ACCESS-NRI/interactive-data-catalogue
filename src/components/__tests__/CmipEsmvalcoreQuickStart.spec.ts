@@ -2,13 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
+import type { FilterMap } from '../../types/datastore';
 
 describe('CmipEsmvalcoreQuickStart', () => {
   afterEach(() => vi.restoreAllMocks());
 
   const createWrapper = (
     project: 'CMIP6' | 'CMIP7',
-    currentFilters = { variable_id: ['tas'], product: ['model-output'] },
+    currentFilters: FilterMap = { variable_id: ['tas'], product: ['model-output'] },
   ) => {
     const router = createRouter({
       history: createMemoryHistory(),
@@ -116,5 +117,48 @@ describe('CmipEsmvalcoreQuickStart', () => {
     await flushPromises();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('variable_id_filter='));
     expect(dialog.props('visible')).toBe(false);
+  });
+
+  it('updates and copies the CMIP7 YAML recipe as filters change', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const wrapper = createWrapper('CMIP7');
+
+    expect(wrapper.text()).toContain('ESMValTool recipe (.yml)');
+    expect(wrapper.text()).toContain('select one Realm, Branded Variable');
+    expect(wrapper.text()).toContain('not included in the recipe: product');
+    await wrapper.setProps({
+      currentFilters: {
+        variable_id: ['tas'],
+        branded_variable: ['tas_tavg-h2m-hxy-u'],
+        realm: ['atmos'],
+        source_id: ['ACCESS-ESM1-6'],
+      },
+    });
+    expect(wrapper.text()).not.toContain('Before running, select');
+    expect(wrapper.text()).not.toContain('not included in the recipe');
+
+    await wrapper.findAll('button')[3]!.trigger('click');
+    await flushPromises();
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('dataset: "ACCESS-ESM1-6"'));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('branding_suffix: "tavg-h2m-hxy-u"'));
+    expect(wrapper.findAll('button')[3]!.text()).toBe('Recipe copied');
+
+    await wrapper.setProps({ currentFilters: { variable_id: ['pr'] } });
+    expect(wrapper.findAll('button')[3]!.text()).toBe('Copy recipe (.yml)');
+  });
+
+  it('copies the YAML recipe before opening ARE', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const wrapper = createWrapper('CMIP6', { variable_id: ['tas'], table_id: ['Amon'] });
+
+    await wrapper.findAll('button')[4]!.trigger('click');
+    await flushPromises();
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('project: "CMIP6"'));
+    expect(open).toHaveBeenCalledWith('https://are.nci.org.au/pun/sys/dashboard', '_blank');
+    expect(writeText.mock.invocationCallOrder[0]).toBeLessThan(open.mock.invocationCallOrder[0]!);
   });
 });
