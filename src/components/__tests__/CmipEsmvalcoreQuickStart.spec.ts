@@ -8,7 +8,7 @@ describe('CmipEsmvalcoreQuickStart', () => {
   afterEach(() => vi.restoreAllMocks());
 
   const createWrapper = (
-    project: 'CMIP6' | 'CMIP7',
+    project: 'CMIP6' | 'CMIP7' | 'OBSERVATIONS',
     currentFilters: FilterMap = { variable_id: ['tas'], product: ['model-output'] },
   ) => {
     const router = createRouter({
@@ -21,7 +21,8 @@ describe('CmipEsmvalcoreQuickStart', () => {
     return mount(CmipEsmvalcoreQuickStart, {
       props: {
         project,
-        datastoreName: project === 'CMIP7' ? 'cmip7_australian' : 'cmip6_fs38',
+        datastoreName:
+          project === 'OBSERVATIONS' ? 'esmvaltool-obs-ct11' : project === 'CMIP7' ? 'cmip7_australian' : 'cmip6_fs38',
         requiredProjects: ['xp65', 'zz99'],
         currentFilters,
       },
@@ -204,5 +205,26 @@ describe('CmipEsmvalcoreQuickStart', () => {
 
     await tabs[1]!.trigger('keydown', { key: 'ArrowLeft' });
     expect(tabs[0]!.attributes('aria-selected')).toBe('true');
+  });
+
+  it('updates observation Python and YAML examples from the three visible filters', async () => {
+    const wrapper = createWrapper('OBSERVATIONS', {});
+    expect(wrapper.findAll('[role="tabpanel"]')[0]!.text()).toContain('select one Project Id');
+
+    await wrapper.setProps({
+      currentFilters: { project_id: ['OBS6'], source_id: ['ERA-Interim'], variable_id: ['tdps'] },
+    });
+    const corePanel = wrapper.findAll('[role="tabpanel"]')[0]!;
+    expect(corePanel.text()).toContain('project="OBS6"');
+    expect(corePanel.text()).toContain('dataset="ERA-Interim"');
+    expect(corePanel.text()).toContain('short_name="tdps"');
+    expect(corePanel.text()).not.toContain('select one Project Id');
+
+    await wrapper.findAll('[role="tab"]')[1]!.trigger('click');
+    const recipePanel = wrapper.findAll('[role="tabpanel"]')[1]!;
+    expect(recipePanel.text()).toContain('project: "OBS6"');
+    expect(recipePanel.text()).toContain('dataset: "ERA-Interim"');
+    expect(recipePanel.text()).toContain('"tdps":');
+    expect(recipePanel.text()).toContain('one Experiment Id (observation type)');
   });
 });

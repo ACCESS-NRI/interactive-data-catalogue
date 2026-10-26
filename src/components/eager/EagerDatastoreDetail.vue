@@ -111,8 +111,8 @@
         />
 
         <CmipEsmvalcoreQuickStart
-          v-if="source !== 'personal' && cmipProject"
-          :project="cmipProject"
+          v-if="source !== 'personal' && esmvalProject"
+          :project="esmvalProject"
           :datastore-name="datastoreName"
           :required-projects="requiredProjects"
           :current-filters="currentFilters"
@@ -150,6 +150,7 @@ import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
+import { ESMVAL_OBSERVATION_DATASTORE } from '../../services/esmvalObservationExamples';
 import { getDefaultVisibleFilterColumns } from '../../services/datastoreFilterDefaults';
 import { getRequiredProjects } from '../../services/quickStartCode';
 import DatastoreTable from './EagerDatastoreTable.vue';
@@ -216,7 +217,9 @@ const {
       : undefined,
 });
 
-const cmipProject = computed(() => getCmipProject(datastoreName.value));
+const esmvalProject = computed(() =>
+  datastoreName.value === ESMVAL_OBSERVATION_DATASTORE ? 'OBSERVATIONS' : getCmipProject(datastoreName.value),
+);
 const defaultVisibleFilterColumns = computed(() => getDefaultVisibleFilterColumns(datastoreName.value));
 const requiredProjects = computed(() => getRequiredProjects(cachedDatastore.value));
 

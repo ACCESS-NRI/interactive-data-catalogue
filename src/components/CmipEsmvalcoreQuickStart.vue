@@ -46,6 +46,10 @@
         tabindex="0"
       >
         <RequiredProjectsWarning :projects="requiredProjects" :datastore-name="datastoreName" />
+        <p v-if="coreMissingSelections.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
+          Before running, select {{ coreMissingSelections.join(', ') }} in the catalogue or replace the marked values in
+          the code.
+        </p>
         <p v-if="unmappedFilters.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
           These selected catalogue filters are not included in the ESMValCore search: {{ unmappedFilters.join(', ') }}.
         </p>
@@ -145,16 +149,36 @@ import 'highlight.js/lib/common';
 import type { FilterMap } from '../types/datastore';
 import { buildCmipEsmvalcoreCode, getUnmappedCmipFilters, type CmipProject } from '../services/cmipEsmvalcoreCode';
 import { buildCmipEsmvaltoolRecipe } from '../services/cmipEsmvaltoolRecipe';
+import { buildObservationPythonExample, buildObservationRecipeExample } from '../services/esmvalObservationExamples';
 
 const props = defineProps<{
   currentFilters: FilterMap;
-  project: CmipProject;
+  project: CmipProject | 'OBSERVATIONS';
   datastoreName: string;
   requiredProjects: string[];
 }>();
-const code = computed(() => buildCmipEsmvalcoreCode(props.currentFilters, props.project));
-const recipe = computed(() => buildCmipEsmvaltoolRecipe(props.currentFilters, props.project));
-const unmappedFilters = computed(() => getUnmappedCmipFilters(props.currentFilters, props.project));
+const observationCode = computed(() =>
+  props.project === 'OBSERVATIONS' ? buildObservationPythonExample(props.currentFilters) : null,
+);
+const observationRecipe = computed(() =>
+  props.project === 'OBSERVATIONS' ? buildObservationRecipeExample(props.currentFilters) : null,
+);
+const code = computed(() =>
+  props.project === 'OBSERVATIONS'
+    ? observationCode.value!.code
+    : buildCmipEsmvalcoreCode(props.currentFilters, props.project),
+);
+const recipe = computed(() =>
+  props.project === 'OBSERVATIONS'
+    ? observationRecipe.value!
+    : buildCmipEsmvaltoolRecipe(props.currentFilters, props.project),
+);
+const coreMissingSelections = computed(() => observationCode.value?.missingSelections ?? []);
+const unmappedFilters = computed(() =>
+  props.project === 'OBSERVATIONS'
+    ? observationCode.value!.ignoredFilters
+    : getUnmappedCmipFilters(props.currentFilters, props.project),
+);
 type QuickStartTab = 'core' | 'tool';
 const tabsId = useId();
 const activeTab = ref<QuickStartTab>('core');
