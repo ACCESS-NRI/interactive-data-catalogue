@@ -109,6 +109,54 @@ describe('FilterSelectors', () => {
   });
 
   describe('compact datastore filters', () => {
+    it('shows available default fields without selecting values and allows removing one', async () => {
+      const filterOptions = {
+        frequency: ['mon'],
+        variable_id: ['tas'],
+        source_id: ['ACCESS-ESM1-5'],
+        experiment_id: ['historical'],
+        realm: ['atmos'],
+        activity_id: ['CMIP'],
+      };
+      const wrapper = createWrapper({
+        compact: true,
+        filterOptions,
+        dynamicFilterOptions: filterOptions,
+        defaultVisibleColumns: ['frequency', 'variable_id', 'source_id', 'experiment_id', 'realm'],
+      });
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(5);
+      expect(wrapper.findAll('label[for^="filter-"]').map((label) => label.text())).toEqual([
+        'Frequency',
+        'Variable Id',
+        'Source Id',
+        'Experiment Id',
+        'Realm',
+      ]);
+      expect(wrapper.findAllComponents(MultiSelect).every((select) => select.props('modelValue') === undefined)).toBe(
+        true,
+      );
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+      expect(wrapper.vm.availableColumns).toEqual(['activity_id']);
+
+      await wrapper.find('button[aria-label="Remove Realm filter"]').trigger('click');
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(4);
+      expect(wrapper.vm.availableColumns).toContain('realm');
+    });
+
+    it('shows only default fields that exist when options arrive', async () => {
+      const wrapper = createWrapper({
+        compact: true,
+        filterOptions: {},
+        defaultVisibleColumns: ['frequency', 'realm'],
+      });
+
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(0);
+      await wrapper.setProps({ filterOptions: { frequency: ['mon'] } });
+      expect(wrapper.findAllComponents(MultiSelect)).toHaveLength(1);
+      expect(wrapper.find('label[for="filter-frequency"]').exists()).toBe(true);
+    });
+
     it('starts with no filter fields and adds only the chosen field', async () => {
       const wrapper = createWrapper({ compact: true });
 

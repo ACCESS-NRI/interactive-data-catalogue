@@ -12,7 +12,7 @@
         @click="addFilterPopover?.toggle($event)"
       />
       <Button
-        v-if="compact && visibleColumns.length > 0"
+        v-if="compact && displayedColumns.length > 0"
         label="Clear all"
         icon="pi pi-times"
         size="small"
@@ -48,7 +48,7 @@
     </Popover>
 
     <div
-      v-if="!compact || visibleColumns.length > 0"
+      v-if="!compact || displayedColumns.length > 0"
       :class="compact ? 'flex flex-wrap gap-3' : 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'"
     >
       <div
@@ -121,6 +121,7 @@ interface Props {
   toast?: boolean;
   analyticsContext?: 'catalogue' | 'datastore';
   compact?: boolean;
+  defaultVisibleColumns?: string[];
 }
 
 interface Emits {
@@ -134,6 +135,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   toast: false,
   compact: false,
+  defaultVisibleColumns: () => [],
 });
 const emit = defineEmits<Emits>();
 
@@ -169,13 +171,28 @@ const displayedColumns = computed(() =>
     : Object.keys(props.filterOptions),
 );
 
+// Presets choose which controls are shown, without selecting any values.
+watch(
+  () => props.defaultVisibleColumns,
+  (columns) => {
+    const activeColumns = Object.keys(props.modelValue).filter(
+      (column) => props.modelValue[column]?.length && column in props.filterOptions,
+    );
+    visibleColumns.value = [...new Set([...columns, ...activeColumns])];
+  },
+  { immediate: true },
+);
+
 // Restore active filters when opening a bookmarked or shared datastore URL.
 watch(
   [() => props.modelValue, () => props.filterOptions],
   ([filters, options]) => {
     const activeColumns = Object.keys(filters).filter((column) => filters[column]?.length && column in options);
     visibleColumns.value = [
-      ...new Set([...visibleColumns.value.filter((column) => column in options), ...activeColumns]),
+      ...new Set([
+        ...visibleColumns.value.filter((column) => column in options || props.defaultVisibleColumns.includes(column)),
+        ...activeColumns,
+      ]),
     ];
   },
   { immediate: true, deep: true },

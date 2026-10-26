@@ -78,6 +78,7 @@ describe('DatastoreDetail', () => {
           LazyQuickStartCode: true,
           LazyDatastoreTable: true,
           FilterSelectors: true,
+          CmipEsmvalcoreQuickStart: true,
           RouterLink: {
             template: '<a><slot /></a>',
           },
@@ -85,6 +86,28 @@ describe('DatastoreDetail', () => {
       },
     });
   };
+
+  it.each(['cmip7_australian', 'cmip7_replicated'])(
+    'passes the CMIP7 filter fields and NCI requirements for %s',
+    async (name) => {
+      await router.push(`/datastore/${name}`);
+      await router.isReady();
+      vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ project: 'zz99' }));
+
+      wrapper = createWrapper();
+      expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('defaultVisibleColumns')).toEqual([
+        'frequency',
+        'variable_id',
+        'source_id',
+        'experiment_id',
+        'realm',
+      ]);
+      expect(wrapper.findComponent({ name: 'CmipEsmvalcoreQuickStart' }).props('requiredProjects')).toEqual([
+        'xp65',
+        'zz99',
+      ]);
+    },
+  );
 
   // Test that the component displays the breadcrumb with datastore name
   it('renders breadcrumb with datastore name', async () => {
@@ -370,6 +393,7 @@ describe('DatastoreDetail', () => {
 
     // Check FilterSelectors props
     const filters = wrapper.findComponent({ name: 'FilterSelectors' });
+    expect(filters.props('defaultVisibleColumns')).toEqual([]);
     expect(filters.props('filterOptions')).toEqual({
       frequency: ['daily', 'monthly'],
       realm: ['ocean', 'atmosphere'],

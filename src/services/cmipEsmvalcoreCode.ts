@@ -61,8 +61,16 @@ export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject
     return `    ${facet}=${selected?.length ? pythonValue(selected) : '"*"'},${comment}`;
   });
 
-  return `# Run in a Gadi environment with ESMValCore and a local ${project} data source configured.
-# Select more filters in the catalogue, or replace the '*' wildcards below.
+  return `"""
+You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
+
+ESMValCore calls its search fields "facets". Comments beside some fields show
+the matching catalogue filter (for example, short_name maps to variable_id).
+
+A search may find many datasets. Add more catalogue filters, or replace '*'
+values below, until only the dataset you want matches.
+"""
+
 from itertools import islice
 from esmvalcore.dataset import Dataset
 
@@ -71,15 +79,16 @@ query = Dataset(
 ${facetLines.join('\n')}
 )
 
-# Inspect a few matches before choosing one to load.
+# Show up to five matches to see whether the search needs narrowing.
 matches = list(islice(query.from_files(), 5))
-print(f"Found {len(matches)} matching datasets (showing at most 5)")
+print(f"Showing {len(matches)} matching datasets (up to 5)")
 for match in matches:
     print(match.facets)
 
-# Narrow the facets above if there are many matches, then load one as an Iris cube.
 if not matches:
-    raise FileNotFoundError("No local ${project} data matched these facets")
+    raise FileNotFoundError("No local ${project} data matched this search")
+if len(matches) > 1:
+    raise ValueError("Multiple local ${project} datasets matched; make the search above more specific")
 cube = matches[0].load()
 cube`;
 }
