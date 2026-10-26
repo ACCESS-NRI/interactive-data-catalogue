@@ -4,7 +4,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import CMIPQuickLinks from '../CMIPQuickLinks.vue';
 
 describe('CMIPQuickLinks', () => {
-  it.each(['cmip7_australian', 'cmip7_replicated', 'cmip6_fs38', 'cmip6_oi10'])(
+  it.each(['cmip7_australian', 'cmip7_replicated', 'cmip6_fs38', 'cmip6_oi10', 'esmvaltool-obs-ct11'])(
     'opens the %s datastore from the landing page',
     async (name) => {
       const router = createRouter({
@@ -27,4 +27,19 @@ describe('CMIPQuickLinks', () => {
       expect(router.currentRoute.value.params.name).toBe(name);
     },
   );
+
+  it('distinguishes the curated observation shortcut', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', name: 'Home', component: { template: '<div />' } },
+        { path: '/datastore/:name', name: 'DatastoreDetail', component: { template: '<div />' } },
+      ],
+    });
+    const wrapper = mount(CMIPQuickLinks, { global: { plugins: [router] } });
+    const link = wrapper.findAll('a').find((item) => item.text().includes('esmvaltool-obs-ct11'));
+
+    expect(link?.text()).toContain('CMIP curated observation product');
+    expect(link?.classes()).toContain('bg-violet-50');
+  });
 });

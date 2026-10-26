@@ -110,6 +110,23 @@ describe('DatastoreDetail', () => {
     },
   );
 
+  it('shows the three observation filters and its ESMVal examples', async () => {
+    await router.push('/datastore/esmvaltool-obs-ct11');
+    await router.isReady();
+    vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache({ project: 'ct11' }));
+
+    wrapper = createWrapper();
+    expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('defaultVisibleColumns')).toEqual([
+      'source_id',
+      'project_id',
+      'variable_id',
+    ]);
+    expect(wrapper.findComponent({ name: 'CmipEsmvalcoreQuickStart' }).props()).toMatchObject({
+      project: 'OBSERVATIONS',
+      requiredProjects: ['ct11', 'xp65'],
+    });
+  });
+
   // Test that the component displays the breadcrumb with datastore name
   it('renders breadcrumb with datastore name', async () => {
     await router.isReady();
