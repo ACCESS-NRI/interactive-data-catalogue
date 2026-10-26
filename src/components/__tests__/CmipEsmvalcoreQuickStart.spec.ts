@@ -99,6 +99,17 @@ describe('CmipEsmvalcoreQuickStart', () => {
     expect(wrapper.findAll('button').find((button) => button.text() === 'Link copied')).toBeDefined();
   });
 
+  it('uses Branded Variable in the ESMValCore search without an ignored-filter warning', () => {
+    const wrapper = createWrapper('CMIP7', {
+      variable_id: ['tas'],
+      branded_variable: ['tas_tavg-h2m-hxy-u'],
+    });
+
+    const corePanel = wrapper.findAll('[role="tabpanel"]')[0]!;
+    expect(corePanel.text()).toContain('branding_suffix="tavg-h2m-hxy-u"');
+    expect(corePanel.text()).not.toContain('not included in the ESMValCore search');
+  });
+
   it('copies the ESMValCore code before opening ARE', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
