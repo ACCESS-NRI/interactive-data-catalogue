@@ -25,11 +25,9 @@ describe('CMIP ESMValCore quick start', () => {
     );
 
     expect(code).toContain('project="CMIP7"');
-    expect(
-      code.startsWith(
-        '# You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard',
-      ),
-    ).toBe(true);
+    expect(code).toMatch(
+      /^"""\nYou will need to run this in an ARE session on Gadi: https:\/\/are\.nci\.org\.au\/pun\/sys\/dashboard\n\nSelect more filters in the catalogue, or replace the '\*' wildcards below\.\n"""\n\nfrom itertools import islice/,
+    );
     expect(code).toContain('short_name=["tas","pr"],  # variable_id');
     expect(code).toContain('dataset="ACCESS-ESM1-6",  # source_id');
     expect(code).toContain('exp="historical",  # experiment_id');
@@ -56,11 +54,7 @@ describe('CMIP ESMValCore quick start', () => {
     );
 
     expect(code).toContain('project="CMIP6"');
-    expect(
-      code.startsWith(
-        '# You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard',
-      ),
-    ).toBe(true);
+    expect(code.startsWith('"""\nYou will need to run this in an ARE session on Gadi:')).toBe(true);
     expect(code).toContain('short_name="tas",  # variable_id');
     expect(code).toContain('dataset="ACCESS-ESM1-5",  # source_id');
     expect(code).toContain('ensemble="r1i1p1f1",  # member_id');
