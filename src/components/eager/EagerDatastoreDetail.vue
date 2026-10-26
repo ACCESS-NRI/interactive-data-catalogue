@@ -117,8 +117,10 @@
         />
 
         <FilterSelectors
+          :key="datastoreName"
           compact
           v-model="currentFilters"
+          :default-visible-columns="defaultVisibleFilterColumns"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
           @clear="handleClearFilters"
@@ -146,6 +148,7 @@ import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
+import { getDefaultVisibleFilterColumns } from '../../services/datastoreFilterDefaults';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
@@ -211,6 +214,7 @@ const {
 });
 
 const cmipProject = computed(() => getCmipProject(datastoreName.value));
+const defaultVisibleFilterColumns = computed(() => getDefaultVisibleFilterColumns(datastoreName.value));
 
 const rawData = computed(() => cachedDatastore.value?.data || []);
 const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));

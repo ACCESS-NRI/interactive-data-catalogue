@@ -82,8 +82,10 @@
         <CmipEsmvalcoreQuickStart v-if="cmipProject" :project="cmipProject" :current-filters="currentFilters" />
 
         <FilterSelectors
+          :key="datastoreName"
           compact
           v-model="currentFilters"
+          :default-visible-columns="defaultVisibleFilterColumns"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
           @clear="handleClearFilters"
@@ -115,6 +117,7 @@ import DatastoreHeader from '../DatastoreHeader.vue';
 import LazyQuickStartCode from './LazyQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
+import { getDefaultVisibleFilterColumns } from '../../services/datastoreFilterDefaults';
 import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
@@ -169,6 +172,7 @@ const {
 });
 
 const cmipProject = computed(() => getCmipProject(datastoreName.value));
+const defaultVisibleFilterColumns = computed(() => getDefaultVisibleFilterColumns(datastoreName.value));
 
 defineExpose({
   openDropdowns: bufferedDynamicFilterOptions.openDropdowns,
