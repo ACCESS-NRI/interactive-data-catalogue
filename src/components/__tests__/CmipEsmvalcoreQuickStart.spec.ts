@@ -39,11 +39,11 @@ describe('CmipEsmvalcoreQuickStart', () => {
       expect(wrapper.text()).toContain(
         'You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard',
       );
-      expect(wrapper.text()).toContain('not included as ESMValCore facets: product');
+      expect(wrapper.text()).toContain('not included in the ESMValCore search: product');
 
       await wrapper.setProps({ currentFilters: { variable_id: ['pr'] } });
       expect(wrapper.text()).toContain('short_name="pr"');
-      expect(wrapper.text()).not.toContain('not included as ESMValCore facets');
+      expect(wrapper.text()).not.toContain('not included in the ESMValCore search');
 
       await wrapper.find('button').trigger('click');
       await flushPromises();

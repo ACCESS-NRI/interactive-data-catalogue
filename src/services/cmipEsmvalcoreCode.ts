@@ -64,8 +64,11 @@ export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject
   return `"""
 You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
 
-A facet search may match many datasets. Select more filters in the catalogue,
-or replace the '*' wildcards below, to narrow it down to one dataset to load.
+ESMValCore calls its search fields "facets". Comments beside some fields show
+the matching catalogue filter (for example, short_name maps to variable_id).
+
+A search may find many datasets. Add more catalogue filters, or replace '*'
+values below, until only the dataset you want matches.
 """
 
 from itertools import islice
@@ -76,16 +79,16 @@ query = Dataset(
 ${facetLines.join('\n')}
 )
 
-# Preview up to five matches to see which facets need narrowing.
+# Show up to five matches to see whether the search needs narrowing.
 matches = list(islice(query.from_files(), 5))
 print(f"Showing {len(matches)} matching datasets (up to 5)")
 for match in matches:
     print(match.facets)
 
 if not matches:
-    raise FileNotFoundError("No local ${project} data matched these facets")
+    raise FileNotFoundError("No local ${project} data matched this search")
 if len(matches) > 1:
-    raise ValueError("Multiple local ${project} datasets matched; narrow the facets above")
+    raise ValueError("Multiple local ${project} datasets matched; make the search above more specific")
 cube = matches[0].load()
 cube`;
 }

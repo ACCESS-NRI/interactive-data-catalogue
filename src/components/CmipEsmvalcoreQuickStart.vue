@@ -7,7 +7,7 @@
     <div class="px-4 pb-4">
       <RequiredProjectsWarning :projects="requiredProjects" :datastore-name="datastoreName" />
       <p v-if="unmappedFilters.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
-        These catalogue filters are not included as ESMValCore facets: {{ unmappedFilters.join(', ') }}.
+        These selected catalogue filters are not included in the ESMValCore search: {{ unmappedFilters.join(', ') }}.
       </p>
       <div class="overflow-x-auto rounded">
         <highlightjs language="python" :code="code" class="text-sm" />
