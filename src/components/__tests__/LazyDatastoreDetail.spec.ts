@@ -98,6 +98,7 @@ describe('DatastoreDetail', () => {
       expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('defaultVisibleColumns')).toEqual([
         'frequency',
         'variable_id',
+        'branded_variable',
         'source_id',
         'experiment_id',
         'realm',

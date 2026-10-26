@@ -48,7 +48,11 @@ describe('CmipEsmvalcoreQuickStart', () => {
 
       const wrapper = createWrapper(project);
 
-      expect(wrapper.text()).toContain('Alternative quick start: ESMValCore');
+      expect(wrapper.text()).toContain('Alternative quick start: ESMValCore / ESMValTool');
+      expect(wrapper.findAll('[role="tab"]')).toHaveLength(2);
+      expect(wrapper.findAll('[role="tab"]')[0]!.attributes('aria-selected')).toBe('true');
+      expect(wrapper.findAll('[role="tabpanel"]')[0]!.attributes('style') ?? '').not.toContain('display: none');
+      expect(wrapper.findAll('[role="tabpanel"]')[1]!.attributes('style')).toContain('display: none');
       expect(wrapper.findComponent({ name: 'RequiredProjectsWarning' }).props()).toMatchObject({
         projects: ['xp65', 'zz99'],
         datastoreName: project === 'CMIP7' ? 'cmip7_australian' : 'cmip6_fs38',
@@ -68,10 +72,13 @@ describe('CmipEsmvalcoreQuickStart', () => {
       expect(wrapper.text()).toContain('Copy Link to Search');
       expect(wrapper.text()).toContain('Copy Code and Open ARE Session');
 
-      await wrapper.findAll('button')[0]!.trigger('click');
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Copy ESMValCore code')!
+        .trigger('click');
       await flushPromises();
       expect(writeText).toHaveBeenCalledWith(expect.stringContaining('short_name="pr"'));
-      expect(wrapper.findAll('button')[0]!.text()).toBe('Copied');
+      expect(wrapper.findAll('button').find((button) => button.text() === 'Copied')).toBeDefined();
     },
   );
 
@@ -80,13 +87,16 @@ describe('CmipEsmvalcoreQuickStart', () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     const wrapper = createWrapper('CMIP7');
 
-    await wrapper.findAll('button')[1]!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Copy Link to Search')!
+      .trigger('click');
     await flushPromises();
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/datastore/cmip7_australian?'));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('variable_id_filter=tas'));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('product_filter=model-output'));
-    expect(wrapper.findAll('button')[1]!.text()).toBe('Link copied');
+    expect(wrapper.findAll('button').find((button) => button.text() === 'Link copied')).toBeDefined();
   });
 
   it('copies the ESMValCore code before opening ARE', async () => {
@@ -95,7 +105,10 @@ describe('CmipEsmvalcoreQuickStart', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const wrapper = createWrapper('CMIP6');
 
-    await wrapper.findAll('button')[2]!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Copy Code and Open ARE Session')!
+      .trigger('click');
     await flushPromises();
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('project="CMIP6"'));
@@ -108,7 +121,10 @@ describe('CmipEsmvalcoreQuickStart', () => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     const wrapper = createWrapper('CMIP7', { variable_id: ['x'.repeat(2200)], product: [] });
 
-    await wrapper.findAll('button')[1]!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Copy Link to Search')!
+      .trigger('click');
     const dialog = wrapper.findComponent({ name: 'LongUrlConfirmDialog' });
     expect(dialog.props('visible')).toBe(true);
     expect(writeText).not.toHaveBeenCalled();
@@ -125,6 +141,10 @@ describe('CmipEsmvalcoreQuickStart', () => {
     const wrapper = createWrapper('CMIP7');
 
     expect(wrapper.text()).toContain('ESMValTool recipe (.yml)');
+    await wrapper.findAll('[role="tab"]')[1]!.trigger('click');
+    expect(wrapper.findAll('[role="tab"]')[1]!.attributes('aria-selected')).toBe('true');
+    expect(wrapper.findAll('[role="tabpanel"]')[0]!.attributes('style')).toContain('display: none');
+    expect(wrapper.findAll('[role="tabpanel"]')[1]!.attributes('style') ?? '').not.toContain('display: none');
     expect(wrapper.text()).toContain('select one Realm, Branded Variable');
     expect(wrapper.text()).toContain('not included in the recipe: product');
     await wrapper.setProps({
@@ -138,14 +158,17 @@ describe('CmipEsmvalcoreQuickStart', () => {
     expect(wrapper.text()).not.toContain('Before running, select');
     expect(wrapper.text()).not.toContain('not included in the recipe');
 
-    await wrapper.findAll('button')[3]!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Copy recipe (.yml)')!
+      .trigger('click');
     await flushPromises();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('dataset: "ACCESS-ESM1-6"'));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('branding_suffix: "tavg-h2m-hxy-u"'));
-    expect(wrapper.findAll('button')[3]!.text()).toBe('Recipe copied');
+    expect(wrapper.findAll('button').find((button) => button.text() === 'Recipe copied')).toBeDefined();
 
     await wrapper.setProps({ currentFilters: { variable_id: ['pr'] } });
-    expect(wrapper.findAll('button')[3]!.text()).toBe('Copy recipe (.yml)');
+    expect(wrapper.findAll('button').find((button) => button.text() === 'Copy recipe (.yml)')).toBeDefined();
   });
 
   it('copies the YAML recipe before opening ARE', async () => {
@@ -154,11 +177,27 @@ describe('CmipEsmvalcoreQuickStart', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const wrapper = createWrapper('CMIP6', { variable_id: ['tas'], table_id: ['Amon'] });
 
-    await wrapper.findAll('button')[4]!.trigger('click');
+    await wrapper.findAll('[role="tab"]')[1]!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Copy recipe and open ARE session')!
+      .trigger('click');
     await flushPromises();
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('project: "CMIP6"'));
     expect(open).toHaveBeenCalledWith('https://are.nci.org.au/pun/sys/dashboard', '_blank');
     expect(writeText.mock.invocationCallOrder[0]).toBeLessThan(open.mock.invocationCallOrder[0]!);
+  });
+
+  it('switches quick start tabs with the arrow keys', async () => {
+    const wrapper = createWrapper('CMIP7');
+    const tabs = wrapper.findAll('[role="tab"]');
+
+    await tabs[0]!.trigger('keydown', { key: 'ArrowRight' });
+    expect(tabs[1]!.attributes('aria-selected')).toBe('true');
+    expect(wrapper.findAll('[role="tabpanel"]')[1]!.attributes('style') ?? '').not.toContain('display: none');
+
+    await tabs[1]!.trigger('keydown', { key: 'ArrowLeft' });
+    expect(tabs[0]!.attributes('aria-selected')).toBe('true');
   });
 });
