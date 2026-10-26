@@ -61,7 +61,7 @@ export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject
     return `    ${facet}=${selected?.length ? pythonValue(selected) : '"*"'},${comment}`;
   });
 
-  return `# Run in a Gadi environment with ESMValCore and a local ${project} data source configured.
+  return `# You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
 # Select more filters in the catalogue, or replace the '*' wildcards below.
 from itertools import islice
 from esmvalcore.dataset import Dataset

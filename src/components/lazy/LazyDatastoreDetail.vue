@@ -79,7 +79,13 @@
           class="mb-6"
         />
 
-        <CmipEsmvalcoreQuickStart v-if="cmipProject" :project="cmipProject" :current-filters="currentFilters" />
+        <CmipEsmvalcoreQuickStart
+          v-if="cmipProject"
+          :project="cmipProject"
+          :datastore-name="datastoreName"
+          :required-projects="requiredProjects"
+          :current-filters="currentFilters"
+        />
 
         <FilterSelectors
           :key="datastoreName"
@@ -118,6 +124,7 @@ import LazyQuickStartCode from './LazyQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import { getDefaultVisibleFilterColumns } from '../../services/datastoreFilterDefaults';
+import { getRequiredProjects } from '../../services/quickStartCode';
 import LazyDatastoreTable from './LazyDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
@@ -154,6 +161,7 @@ const {
   error,
   availableColumns,
   selectedColumns,
+  cachedDatastore,
   totalRecords,
   columns,
   filterOptions,
@@ -173,6 +181,7 @@ const {
 
 const cmipProject = computed(() => getCmipProject(datastoreName.value));
 const defaultVisibleFilterColumns = computed(() => getDefaultVisibleFilterColumns(datastoreName.value));
+const requiredProjects = computed(() => getRequiredProjects(cachedDatastore.value));
 
 defineExpose({
   openDropdowns: bufferedDynamicFilterOptions.openDropdowns,

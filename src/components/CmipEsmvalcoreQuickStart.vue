@@ -5,31 +5,9 @@
       Alternative quick start: ESMValCore
     </summary>
     <div class="px-4 pb-4">
-      <p class="mb-2 text-sm text-gray-700 dark:text-gray-300">
-        Search locally configured {{ project }} data on Gadi by facets, then load a match as an Iris cube. Selected
-        {{ project }} filters below are included in the code. ESMValCore searches your configured local sources, which
-        may include both {{ project }} collections.
-      </p>
+      <RequiredProjectsWarning :projects="requiredProjects" :datastore-name="datastoreName" />
       <p v-if="unmappedFilters.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
         These catalogue filters are not included as ESMValCore facets: {{ unmappedFilters.join(', ') }}.
-      </p>
-      <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">
-        ESMValCore needs a
-        <a
-          href="https://docs.esmvaltool.org/projects/ESMValCore/en/latest/api/esmvalcore.io.local.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline hover:text-teal-700 dark:hover:text-teal-200"
-          >{{ project }} local data source</a
-        >
-        in its configuration. See the
-        <a
-          :href="`https://docs.esmvaltool.org/projects/ESMValCore/en/latest/reference/facets.html#${project.toLowerCase()}`"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline hover:text-teal-700 dark:hover:text-teal-200"
-          >{{ project }} facet mapping</a
-        >.
       </p>
       <div class="overflow-x-auto rounded">
         <highlightjs language="python" :code="code" class="text-sm" />
@@ -53,11 +31,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
 import 'highlight.js/lib/common';
 import type { FilterMap } from '../types/datastore';
 import { buildCmipEsmvalcoreCode, getUnmappedCmipFilters, type CmipProject } from '../services/cmipEsmvalcoreCode';
 
-const props = defineProps<{ currentFilters: FilterMap; project: CmipProject }>();
+const props = defineProps<{
+  currentFilters: FilterMap;
+  project: CmipProject;
+  datastoreName: string;
+  requiredProjects: string[];
+}>();
 const code = computed(() => buildCmipEsmvalcoreCode(props.currentFilters, props.project));
 const unmappedFilters = computed(() => getUnmappedCmipFilters(props.currentFilters, props.project));
 const copied = ref(false);

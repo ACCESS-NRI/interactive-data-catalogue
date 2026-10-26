@@ -13,18 +13,32 @@ describe('CmipEsmvalcoreQuickStart', () => {
       });
 
       const wrapper = mount(CmipEsmvalcoreQuickStart, {
-        props: { project, currentFilters: { variable_id: ['tas'], product: ['model-output'] } },
+        props: {
+          project,
+          datastoreName: project === 'CMIP7' ? 'cmip7_australian' : 'cmip6_fs38',
+          requiredProjects: ['xp65', 'zz99'],
+          currentFilters: { variable_id: ['tas'], product: ['model-output'] },
+        },
         global: {
           stubs: {
             Button: { template: '<button @click="$emit(\'click\')">{{ label }}</button>', props: ['label'] },
+            RequiredProjectsWarning: true,
             highlightjs: { template: '<pre>{{ code }}</pre>', props: ['code'] },
           },
         },
       });
 
       expect(wrapper.text()).toContain('Alternative quick start: ESMValCore');
-      expect(wrapper.text()).toContain(`${project} facet mapping`);
+      expect(wrapper.findComponent({ name: 'RequiredProjectsWarning' }).props()).toMatchObject({
+        projects: ['xp65', 'zz99'],
+        datastoreName: project === 'CMIP7' ? 'cmip7_australian' : 'cmip6_fs38',
+      });
+      expect(wrapper.text()).not.toContain('Search locally configured');
+      expect(wrapper.text()).not.toContain('local data source');
       expect(wrapper.text()).toContain('short_name="tas"');
+      expect(wrapper.text()).toContain(
+        'You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard',
+      );
       expect(wrapper.text()).toContain('not included as ESMValCore facets: product');
 
       await wrapper.setProps({ currentFilters: { variable_id: ['pr'] } });

@@ -113,6 +113,8 @@
         <CmipEsmvalcoreQuickStart
           v-if="source !== 'personal' && cmipProject"
           :project="cmipProject"
+          :datastore-name="datastoreName"
+          :required-projects="requiredProjects"
           :current-filters="currentFilters"
         />
 
@@ -149,6 +151,7 @@ import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import { getDefaultVisibleFilterColumns } from '../../services/datastoreFilterDefaults';
+import { getRequiredProjects } from '../../services/quickStartCode';
 import DatastoreTable from './EagerDatastoreTable.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import GithubFeedbackButton from '../GithubFeedbackButton.vue';
@@ -215,6 +218,7 @@ const {
 
 const cmipProject = computed(() => getCmipProject(datastoreName.value));
 const defaultVisibleFilterColumns = computed(() => getDefaultVisibleFilterColumns(datastoreName.value));
+const requiredProjects = computed(() => getRequiredProjects(cachedDatastore.value));
 
 const rawData = computed(() => cachedDatastore.value?.data || []);
 const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));
