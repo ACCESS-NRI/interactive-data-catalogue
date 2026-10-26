@@ -171,22 +171,16 @@ describe('CmipEsmvalcoreQuickStart', () => {
     expect(wrapper.findAll('button').find((button) => button.text() === 'Copy recipe (.yml)')).toBeDefined();
   });
 
-  it('copies the YAML recipe before opening ARE', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
-    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+  it('does not offer an ARE action for the YAML recipe', async () => {
     const wrapper = createWrapper('CMIP6', { variable_id: ['tas'], table_id: ['Amon'] });
 
     await wrapper.findAll('[role="tab"]')[1]!.trigger('click');
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Copy recipe and open ARE session')!
-      .trigger('click');
-    await flushPromises();
-
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('project: "CMIP6"'));
-    expect(open).toHaveBeenCalledWith('https://are.nci.org.au/pun/sys/dashboard', '_blank');
-    expect(writeText.mock.invocationCallOrder[0]).toBeLessThan(open.mock.invocationCallOrder[0]!);
+    const recipePanel = wrapper.findAll('[role="tabpanel"]')[1]!;
+    expect(recipePanel.text()).toContain('Copy recipe (.yml)');
+    expect(recipePanel.text()).not.toContain('Open ARE');
+    expect(wrapper.findAllComponents({ name: 'RequiredProjectsWarning' })[1]!.props('showCondaEnvironment')).toBe(
+      false,
+    );
   });
 
   it('switches quick start tabs with the arrow keys', async () => {

@@ -29,10 +29,10 @@
       </div>
 
       <!-- Vertical divider (hidden on mobile) -->
-      <div class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
+      <div v-if="showCondaEnvironment" class="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600 mx-6"></div>
 
       <!-- Right side - Conda Environment -->
-      <div class="flex-shrink-0">
+      <div v-if="showCondaEnvironment" class="flex-shrink-0">
         <div class="flex items-center mb-2">
           <i class="pi pi-info-circle text-yellow-600 mr-2"></i>
           <strong class="text-yellow-800 dark:text-yellow-200 text-sm">Required Conda Environment:</strong>
@@ -69,9 +69,10 @@ interface Props {
    */
   projects: string[];
   datastoreName?: string;
+  showCondaEnvironment?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { showCondaEnvironment: true });
 const { capture } = usePostHog();
 
 /**
