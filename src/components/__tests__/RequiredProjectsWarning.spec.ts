@@ -34,6 +34,15 @@ describe('RequiredProjectsWarning', () => {
     expect(wrapper.text()).toBe('');
   });
 
+  it('shows project access without ARE setup guidance for a recipe', () => {
+    const wrapper = createWrapper({ projects: ['xp65'], showCondaEnvironment: false });
+
+    expect(wrapper.text()).toContain('Required Project Access:');
+    expect(wrapper.text()).toContain('xp65');
+    expect(wrapper.text()).not.toContain('ARE setup instructions');
+    expect(wrapper.text()).not.toContain('conda/analysis3');
+  });
+
   // Test that all project codes are displayed as clickable badges
   it('renders all project codes', () => {
     const wrapper = createWrapper({

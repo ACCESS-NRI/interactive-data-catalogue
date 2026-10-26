@@ -35,7 +35,7 @@ describe('CMIP ESMValCore quick start', () => {
     expect(code).toContain('grid="g115",  # grid_label');
     expect(code).toContain('frequency="mon",  # frequency');
     expect(code).toContain('drs_specs="*",');
-    expect(code).toContain('branding_suffix="*",');
+    expect(code).toContain('branding_suffix="*",  # branded_variable');
     expect(code).toContain('matches = list(islice(query.from_files(), 5))');
     expect(code).toContain('if len(matches) > 1:');
     expect(code).toContain(
@@ -67,6 +67,26 @@ describe('CMIP ESMValCore quick start', () => {
     expect(code).toContain('cube = matches[0].load()');
   });
 
+  it('derives CMIP7 branding suffixes from selected Branded Variable values', () => {
+    const filters = {
+      variable_id: ['tas'],
+      branded_variable: ['tas_tavg-h2m-hxy-u', 'tas_tinst-h2m-hxy-u'],
+    };
+    const code = buildCmipEsmvalcoreCode(filters, 'CMIP7');
+
+    expect(code).toContain('branding_suffix=["tavg-h2m-hxy-u","tinst-h2m-hxy-u"],  # branded_variable');
+    expect(getUnmappedCmipFilters(filters, 'CMIP7')).toEqual([]);
+  });
+
+  it('also derives the short name when Branded Variable is selected alone', () => {
+    const filters = { branded_variable: ['tas_tavg-h2m-hxy-u'] };
+    const code = buildCmipEsmvalcoreCode(filters, 'CMIP7');
+
+    expect(code).toContain('short_name="tas",  # branded_variable');
+    expect(code).toContain('branding_suffix="tavg-h2m-hxy-u",  # branded_variable');
+    expect(getUnmappedCmipFilters(filters, 'CMIP7')).toEqual([]);
+  });
+
   it('uses wildcard facets where no filter is selected and safely quotes selected values', () => {
     const code = buildCmipEsmvalcoreCode({ source_id: ['ACCESS "ESM" \\test'] }, 'CMIP7');
 
@@ -86,6 +106,10 @@ describe('CMIP ESMValCore quick start', () => {
         'CMIP7',
       ),
     ).toEqual(['branded_variable', 'project']);
+
+    expect(
+      buildCmipEsmvalcoreCode({ variable_id: ['tas'], branded_variable: ['pr_tavg-h2m-hxy-u'] }, 'CMIP7'),
+    ).toContain('branding_suffix="*",  # branded_variable');
 
     expect(
       getUnmappedCmipFilters({ member_id: ['r1i1p1f1'], table_id: ['Amon'], time_range: ['185001-201412'] }, 'CMIP6'),

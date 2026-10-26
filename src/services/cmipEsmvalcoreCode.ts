@@ -13,7 +13,7 @@ const CMIP_DATASTORES = new Map<string, CmipProject>([
 const CMIP7_FACETS = [
   ['drs_specs', null],
   ['short_name', 'variable_id'],
-  ['branding_suffix', null],
+  ['branding_suffix', 'branded_variable'],
   ['dataset', 'source_id'],
   ['exp', 'experiment_id'],
   ['ensemble', 'variant_label'],
@@ -41,10 +41,32 @@ const CMIP6_FACETS = [
 
 const facetsFor = (project: CmipProject) => (project === 'CMIP6' ? CMIP6_FACETS : CMIP7_FACETS);
 
+/** Split CMIP7 Branded Variable values into their short names and branding suffixes. */
+const getBrandedVariableFacets = (filters: FilterMap): { shortNames: string[]; suffixes: string[] } | null => {
+  const brandedVariables = filters.branded_variable?.filter(Boolean) ?? [];
+  const variableIds = filters.variable_id?.filter(Boolean) ?? [];
+  const shortNames: string[] = [];
+  const suffixes: string[] = [];
+
+  for (const branded of brandedVariables) {
+    const variableId = variableIds.length
+      ? variableIds.filter((variable) => branded.startsWith(`${variable}_`)).sort((a, b) => b.length - a.length)[0]
+      : branded.slice(0, branded.indexOf('_'));
+    if (!variableId) return null;
+    const suffix = branded.slice(variableId.length + 1);
+    if (!suffix) return null;
+    if (!shortNames.includes(variableId)) shortNames.push(variableId);
+    if (!suffixes.includes(suffix)) suffixes.push(suffix);
+  }
+
+  return { shortNames, suffixes };
+};
+
 export const getCmipProject = (name: string): CmipProject | null => CMIP_DATASTORES.get(name) ?? null;
 
 export const getUnmappedCmipFilters = (filters: FilterMap, project: CmipProject): string[] => {
   const mappedColumns = new Set<string>(facetsFor(project).flatMap(([, column]) => (column ? [column] : [])));
+  if (project === 'CMIP7' && getBrandedVariableFacets(filters) === null) mappedColumns.delete('branded_variable');
   return Object.entries(filters)
     .filter(([column, values]) => values.length > 0 && !mappedColumns.has(column))
     .map(([column]) => column);
@@ -55,9 +77,15 @@ const pythonValue = (values: string[]): string =>
 
 /** Create a local CMIP facet search using the filters selected in the catalogue. */
 export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject): string {
+  const brandedFacets = project === 'CMIP7' ? getBrandedVariableFacets(filters) : null;
   const facetLines = facetsFor(project).map(([facet, column]) => {
-    const selected = column ? filters[column] : undefined;
-    const comment = column ? `  # ${column}` : '';
+    let selected = column ? filters[column] : undefined;
+    let comment = column ? `  # ${column}` : '';
+    if (project === 'CMIP7' && facet === 'branding_suffix') selected = brandedFacets?.suffixes;
+    if (project === 'CMIP7' && facet === 'short_name' && !selected?.length && brandedFacets?.shortNames.length) {
+      selected = brandedFacets.shortNames;
+      comment = '  # branded_variable';
+    }
     return `    ${facet}=${selected?.length ? pythonValue(selected) : '"*"'},${comment}`;
   });
 
