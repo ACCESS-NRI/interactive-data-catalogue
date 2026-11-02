@@ -118,6 +118,13 @@
           :current-filters="currentFilters"
         />
 
+        <DatastoreFilePaths
+          :datastore-name="datastoreName"
+          :current-filters="currentFilters"
+          :rows="filteredData"
+          :source="source"
+        />
+
         <FilterSelectors
           :key="datastoreName"
           compact
@@ -149,6 +156,7 @@ import { useRoute, useRouter } from 'vue-router';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
+import DatastoreFilePaths from '../DatastoreFilePaths.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import { ESMVAL_OBSERVATION_DATASTORE } from '../../services/esmvalObservationExamples';
 import { getDefaultVisibleFilterColumns } from '../../services/datastoreFilterDefaults';

@@ -86,7 +86,7 @@ export async function loadEsmDatastore(conn: duckdb.AsyncDuckDBConnection, fileN
 
   const schemaData = schemaResult.toArray() as Array<{ column_name: string }>;
   console.log('📊 ESM Datastore schema:', schemaData);
-  const columns = schemaData.map((row) => row.column_name).filter((col) => col !== 'filename' && col !== 'path');
+  const columns = schemaData.map((row) => row.column_name).filter((col) => col !== 'filename');
   console.log('📋 Available columns:', columns);
 
   const queryResult = await conn.query(`SELECT * FROM read_parquet('${fileName}')`);

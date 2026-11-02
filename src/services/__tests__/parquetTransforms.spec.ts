@@ -249,9 +249,19 @@ describe('queryMetaCatalogPq', () => {
 
 describe('loadEsmDatastore', () => {
   it('queries schema and data and returns transformed rows', async () => {
-    const schemaRows = [{ column_name: 'realm' }, { column_name: 'frequency' }, { column_name: 'filename' }];
+    const schemaRows = [
+      { column_name: 'realm' },
+      { column_name: 'frequency' },
+      { column_name: 'filename' },
+      { column_name: 'path' },
+    ];
     const dataRows = [
-      { realm: { toArray: () => ['atmos'] }, frequency: { toArray: () => ['mon'] }, filename: 'f.parquet' },
+      {
+        realm: { toArray: () => ['atmos'] },
+        frequency: { toArray: () => ['mon'] },
+        filename: 'tas.nc',
+        path: '/g/data/test/tas.nc',
+      },
     ];
 
     const mockConn = {
@@ -263,10 +273,11 @@ describe('loadEsmDatastore', () => {
 
     const result = await loadEsmDatastore(mockConn as any, 'test.parquet');
 
-    // filename column is filtered out; realm and frequency remain
+    // Keep the full path for the file path panel, without exposing the filename column.
     expect(result).toHaveLength(1);
     expect(result[0]).toHaveProperty('realm');
     expect(result[0]).toHaveProperty('frequency');
+    expect(result[0]).toHaveProperty('path', '/g/data/test/tas.nc');
     expect(result[0]).not.toHaveProperty('filename');
   });
 
