@@ -32,3 +32,6 @@ npm run format
 # Build for production
 npm run build
 ```
+
+The development server proxies catalogue API requests to the hosted reporting service, so a local backend is not required.
+To use a local backend instead, run `TRACKING_SERVICES_TARGET=http://127.0.0.1:8000 npm run dev`.

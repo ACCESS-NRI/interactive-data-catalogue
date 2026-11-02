@@ -40,6 +40,14 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(getAppVersion()),
   },
   server: {
+    proxy: {
+      '/api': {
+        target: process.env.TRACKING_SERVICES_TARGET || 'https://reporting.access-nri-store.cloud.edu.au',
+        changeOrigin: true,
+        followRedirects: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
