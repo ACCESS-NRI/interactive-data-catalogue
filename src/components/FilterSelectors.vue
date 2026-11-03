@@ -4,14 +4,6 @@
     <div class="flex flex-wrap items-center gap-3" :class="compact ? 'mb-4' : ''">
       <h6 class="font-semibold" :class="compact ? '' : 'mb-4'">Filters</h6>
       <Button
-        v-if="compact"
-        label="Add filter"
-        icon="pi pi-plus"
-        size="small"
-        :disabled="availableColumns.length === 0"
-        @click="addFilterPopover?.toggle($event)"
-      />
-      <Button
         v-if="compact && displayedColumns.length > 0"
         label="Clear all"
         icon="pi pi-times"
@@ -21,7 +13,14 @@
       />
     </div>
 
-    <Popover v-if="compact" ref="addFilterPopover">
+    <Popover
+      v-if="compact"
+      :id="addFilterPopoverId"
+      ref="addFilterPopover"
+      aria-label="Add a filter"
+      @show="addFilterPickerOpen = true"
+      @hide="addFilterPickerOpen = false"
+    >
       <div class="w-64 max-w-[calc(100vw-4rem)]">
         <label for="filter-column-search" class="mb-2 block text-sm font-medium">Find a filter</label>
         <InputText
@@ -29,6 +28,7 @@
           v-model="columnSearch"
           placeholder="Search fields..."
           class="mb-2 w-full"
+          autofocus
         />
         <div class="max-h-64 overflow-y-auto" aria-label="Available filters">
           <button
@@ -48,7 +48,7 @@
     </Popover>
 
     <div
-      v-if="!compact || displayedColumns.length > 0"
+      v-if="!compact || displayedColumns.length > 0 || availableColumns.length > 0"
       :class="compact ? 'flex flex-wrap gap-3' : 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'"
     >
       <div
@@ -61,7 +61,14 @@
         "
       >
         <div class="mb-1 flex items-center justify-between gap-2">
-          <label :for="`filter-${column}`" class="block text-sm font-medium">{{ formatColumnName(column) }}</label>
+          <div class="flex items-center gap-1">
+            <label :for="`filter-${column}`" class="block text-sm font-medium">{{ formatColumnName(column) }}</label>
+            <VariableFilterHelp
+              v-if="['variable', 'variable_id', 'variable_name', 'branded_variable'].includes(column)"
+              :field-label="formatColumnName(column)"
+              :branded="column === 'branded_variable'"
+            />
+          </div>
           <button
             v-if="compact"
             type="button"
@@ -94,8 +101,25 @@
           :virtualScrollerOptions="(filterOptions[column]?.length ?? 0) > 100 ? { itemSize: 50 } : undefined"
         />
       </div>
+      <button
+        v-if="compact && availableColumns.length > 0"
+        type="button"
+        aria-haspopup="dialog"
+        :aria-controls="addFilterPopoverId"
+        :aria-expanded="addFilterPickerOpen"
+        class="flex min-h-24 w-full flex-col items-start justify-center gap-2 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/50 p-3 text-left text-blue-700 transition-colors hover:border-blue-500 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:w-64 dark:border-blue-500 dark:bg-blue-950/20 dark:text-blue-200 dark:hover:border-blue-300 dark:hover:bg-blue-950/40"
+        @click="addFilterPopover?.toggle($event)"
+      >
+        <span class="flex items-center gap-2 text-sm font-medium">
+          <i class="pi pi-plus" aria-hidden="true"></i>
+          Add another filter here
+        </span>
+        <span class="text-xs text-gray-600 dark:text-gray-300">Choose a field to narrow the results</span>
+      </button>
     </div>
-    <p v-else class="text-sm text-gray-500 dark:text-gray-400">Add a filter to narrow this datastore.</p>
+    <p v-if="compact && displayedColumns.length === 0" class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+      {{ availableColumns.length > 0 ? 'Add a filter to narrow this datastore.' : 'No filters available.' }}
+    </p>
     <div v-if="!compact" class="mt-4">
       <Button label="Clear Filters" icon="pi pi-times" @click="handleClear" size="small" />
     </div>
@@ -103,13 +127,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
 import Popover from 'primevue/popover';
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
+import VariableFilterHelp from './VariableFilterHelp.vue';
 import { useFuzzyFilter } from '../composables/useFuzzyFilter';
 import { usePostHog } from '../composables/usePosthog';
 import type { FilterMap, FilterOptions } from '../types/datastore';
@@ -146,6 +171,8 @@ const filterValues = ref<Record<string, string>>({});
 const visibleColumns = ref<string[]>([]);
 const columnSearch = ref('');
 const addFilterPopover = ref();
+const addFilterPopoverId = useId();
+const addFilterPickerOpen = ref(false);
 
 const formatColumnName = (c: string) =>
   c
