@@ -101,6 +101,7 @@
         </div>
 
         <EagerQuickStartCode
+          v-show="showNciResults"
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
           :raw-data="filteredData"
@@ -111,6 +112,7 @@
         />
 
         <CmipEsmvalcoreQuickStart
+          v-show="showNciResults"
           v-if="source !== 'personal' && esmvalProject"
           :project="esmvalProject"
           :datastore-name="datastoreName"
@@ -119,6 +121,7 @@
         />
 
         <DatastoreFilePaths
+          v-show="showNciResults"
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
           :rows="filteredData"
@@ -132,19 +135,47 @@
           :default-visible-columns="defaultVisibleFilterColumns"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
+          :esgf-project="includeEsgf && resultSource !== 'nci' ? replicaProject : null"
           @clear="handleClearFilters"
           :toast="true"
           analytics-context="datastore"
         />
 
-        <DatastoreTable
-          :filtered-data="filteredData"
-          :table-loading="tableLoading"
-          v-model:selectedColumns="selectedColumns"
-          :available-columns="availableColumns"
-          :columns="columns"
-          :datastore-name="datastoreName"
+        <CmipEsgfSearch
+          v-if="replicaProject"
+          v-model="includeEsgf"
+          v-model:view="resultSource"
+          :project="replicaProject"
+          :filters="currentFilters"
         />
+
+        <section
+          v-show="showNciResults"
+          :aria-label="replicaProject ? 'NCI results' : undefined"
+          :class="
+            replicaProject
+              ? 'rounded-xl border border-sky-200 border-t-4 border-t-sky-600 bg-sky-50/50 p-4 dark:border-sky-800 dark:border-t-sky-400 dark:bg-sky-950/20'
+              : ''
+          "
+        >
+          <div v-if="replicaProject" class="mb-4 flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-white"
+              ><i class="pi pi-database text-xl" aria-hidden="true"></i
+            ></span>
+            <div>
+              <h2 class="text-lg font-bold text-sky-950 dark:text-sky-100">NCI · Local files on Gadi</h2>
+              <p class="text-sm text-sky-800 dark:text-sky-200">Data listed in the {{ datastoreName }} catalogue.</p>
+            </div>
+          </div>
+          <DatastoreTable
+            :filtered-data="filteredData"
+            :table-loading="tableLoading"
+            v-model:selectedColumns="selectedColumns"
+            :available-columns="availableColumns"
+            :columns="columns"
+            :datastore-name="datastoreName"
+          />
+        </section>
       </div>
     </div>
   </div>
@@ -156,6 +187,8 @@ import { useRoute, useRouter } from 'vue-router';
 import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
+import CmipEsgfSearch from '../CmipEsgfSearch.vue';
+import { getReplicaProject, type CmipResultSource } from '../../services/esgfSearch';
 import DatastoreFilePaths from '../DatastoreFilePaths.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import { ESMVAL_OBSERVATION_DATASTORE } from '../../services/esmvalObservationExamples';
@@ -189,6 +222,9 @@ const route = useRoute();
 const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
+const includeEsgf = ref(false);
+const resultSource = ref<CmipResultSource>('both');
+const showNciResults = computed(() => !includeEsgf.value || resultSource.value !== 'esgf');
 const sessionExpired = ref(false);
 
 const routeName = props.source === 'personal' ? 'PersonalDatastoreDetail' : 'DatastoreDetail';
@@ -230,6 +266,7 @@ const esmvalProject = computed(() =>
 );
 const defaultVisibleFilterColumns = computed(() => getDefaultVisibleFilterColumns(datastoreName.value));
 const requiredProjects = computed(() => getRequiredProjects(cachedDatastore.value));
+const replicaProject = computed(() => (props.source === 'personal' ? null : getReplicaProject(datastoreName.value)));
 
 const rawData = computed(() => cachedDatastore.value?.data || []);
 const filteredData = computed(() => filterRowsBySelectedFilters(rawData.value as DatastoreRow[], currentFilters.value));

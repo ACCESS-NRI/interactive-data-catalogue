@@ -79,6 +79,7 @@ describe('DatastoreDetail', () => {
           LazyDatastoreTable: true,
           FilterSelectors: true,
           CmipEsmvalcoreQuickStart: true,
+          CmipEsgfSearch: true,
           RouterLink: {
             template: '<a><slot /></a>',
           },
@@ -107,6 +108,40 @@ describe('DatastoreDetail', () => {
         'xp65',
         'zz99',
       ]);
+    },
+  );
+
+  it.each(['cmip6_oi10', 'cmip7_replicated', 'cmip6_fs38', 'cmip7_australian'])(
+    'offers optional ESGF discovery only in replica collections: %s',
+    async (name) => {
+      await router.push(`/datastore/${name}`);
+      await router.isReady();
+      vi.spyOn(catalogStore, 'getDatastoreFromCache').mockReturnValue(createMockDatastoreCache());
+      wrapper = createWrapper();
+      const esgf = wrapper.findComponent({ name: 'CmipEsgfSearch' });
+      const isReplica = ['cmip6_oi10', 'cmip7_replicated'].includes(name);
+      expect(esgf.exists()).toBe(isReplica);
+      if (isReplica) {
+        expect(esgf.props('modelValue')).toBe(false);
+        esgf.vm.$emit('update:modelValue', true);
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('esgfProject')).toBe(
+          name === 'cmip6_oi10' ? 'CMIP6' : 'CMIP7',
+        );
+        esgf.vm.$emit('update:view', 'esgf');
+        await wrapper.vm.$nextTick();
+        expect(esgf.props('view')).toBe('esgf');
+        expect(wrapper.get('[aria-label="NCI results"]').attributes('style')).toContain('display: none');
+        expect(wrapper.findComponent({ name: 'LazyDatastoreTable' }).exists()).toBe(true);
+        esgf.vm.$emit('update:view', 'both');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.get('[aria-label="NCI results"]').attributes('style') || '').not.toContain('display: none');
+        esgf.vm.$emit('update:view', 'nci');
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('esgfProject')).toBeNull();
+        expect(wrapper.get('[aria-label="NCI results"]').attributes('style') || '').not.toContain('display: none');
+      }
+      wrapper.unmount();
     },
   );
 

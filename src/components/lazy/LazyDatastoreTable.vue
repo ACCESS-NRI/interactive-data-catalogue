@@ -190,6 +190,16 @@ watch(numDatasets, (newVal) => {
 watch(dynamicFilterOptions, (newVal) => {
   emit('setDynamicFilterOptions', newVal);
 });
+
+// A narrower search may have fewer pages, including no local matches when ESGF
+// filters contain values not held at NCI.
+watch(
+  () => props.filters,
+  () => {
+    page.value = 0;
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped></style>
