@@ -19,31 +19,8 @@
       </span>
     </label>
 
-    <fieldset v-if="enabled" class="mt-5 border-t border-gray-200 pt-4 dark:border-gray-700">
-      <legend class="px-1 text-sm font-semibold text-gray-800 dark:text-gray-100">Show results from</legend>
-      <div class="inline-flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-900">
-        <label
-          v-for="option in sourceOptions"
-          :key="option.value"
-          class="flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-within:ring-2 focus-within:ring-violet-500"
-          :class="
-            view === option.value
-              ? 'bg-white text-violet-800 shadow-sm dark:bg-gray-700 dark:text-violet-200'
-              : 'text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800'
-          "
-        >
-          <input v-model="view" type="radio" :name="sourceGroupId" :value="option.value" class="sr-only" />
-          <i :class="option.icon" aria-hidden="true"></i>
-          {{ option.label }}
-        </label>
-      </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-        NCI shows local files on Gadi. ESGF shows international datasets, with an NCI availability check.
-      </p>
-    </fieldset>
-
     <div
-      v-if="searchEnabled"
+      v-if="enabled"
       class="mt-5 overflow-hidden rounded-xl border border-violet-300 border-t-4 border-t-violet-600 bg-violet-50/70 p-4 dark:border-violet-700 dark:border-t-violet-400 dark:bg-violet-950/30"
       aria-label="ESGF results"
     >
@@ -98,9 +75,7 @@
           role="alert"
           class="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200"
         >
-          ESGF search could not finish. {{ error }} Your NCI results are still available{{
-            view === 'esgf' ? ' under NCI only or Both' : ' below'
-          }}.
+          ESGF search could not finish. {{ error }} Your NCI results are still available below.
           <button type="button" class="ml-2 underline" @click="loadMore">Retry search</button>
         </div>
         <div v-if="datasets.length" class="overflow-x-auto">
@@ -212,29 +187,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef, useId, watch } from 'vue';
+import { toRef } from 'vue';
 import type { FilterMap } from '../types/datastore';
 import type { CmipProject } from '../services/cmipEsmvalcoreCode';
-import type { CmipResultSource, EsgfDataset, NciStatus } from '../services/esgfSearch';
+import type { EsgfDataset, NciStatus } from '../services/esgfSearch';
 import { useEsgfSearch } from '../composables/useEsgfSearch';
 
 const props = defineProps<{ project: CmipProject; filters: FilterMap }>();
 const enabled = defineModel<boolean>({ default: false });
-const view = defineModel<CmipResultSource>('view', { default: 'both' });
-const sourceGroupId = useId();
-const sourceOptions = [
-  { value: 'nci', label: 'NCI only', icon: 'pi pi-database' },
-  { value: 'esgf', label: 'ESGF only', icon: 'pi pi-globe' },
-  { value: 'both', label: 'Both', icon: 'pi pi-clone' },
-] as const;
-const searchEnabled = computed(() => enabled.value && view.value !== 'nci');
-watch(enabled, (value) => {
-  if (value) view.value = 'both';
-});
 const { datasets, availability, errata, total, next, loading, error, unsupported, loadMore, retry } = useEsgfSearch(
   toRef(props, 'project'),
   toRef(props, 'filters'),
-  searchEnabled,
+  enabled,
 );
 const status = (dataset: EsgfDataset) =>
   availability.value[dataset.id] || { status: 'checking' as const, collections: [] };

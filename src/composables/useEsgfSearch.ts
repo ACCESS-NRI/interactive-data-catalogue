@@ -1,7 +1,7 @@
 import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue';
 import type { FilterMap } from '../types/datastore';
 import type { CmipProject } from '../services/cmipEsmvalcoreCode';
-import { checkEsgfErrata, type EsgfErrata } from '../services/esgfErrata';
+import { checkEsgfErrata, type EsgfErrata, type ErrataRequestCache } from '../services/esgfErrata';
 import {
   checkNciAvailability,
   mergeEsgfDatasets,
@@ -25,6 +25,7 @@ export function useEsgfSearch(project: Ref<CmipProject>, filters: Ref<FilterMap>
   let generation = 0;
   const cache = new Map<string, NciAvailability>();
   const errataCache = new Map<string, EsgfErrata>();
+  const errataRequests: ErrataRequestCache = new Map();
 
   async function checkAvailability(dataset: EsgfDataset, signal: AbortSignal, current: number) {
     if (cache.has(dataset.id)) return;
@@ -39,7 +40,7 @@ export function useEsgfSearch(project: Ref<CmipProject>, filters: Ref<FilterMap>
 
   async function checkErrata(dataset: EsgfDataset, signal: AbortSignal, current: number) {
     if (errataCache.has(dataset.id)) return;
-    const result = await checkEsgfErrata(dataset, signal);
+    const result = await checkEsgfErrata(dataset, signal, errataRequests);
     if (current !== generation || signal.aborted) return;
     errata.value[dataset.id] = result;
     // Failed lookups remain retryable; Refresh clears successful checks too.
@@ -89,6 +90,8 @@ export function useEsgfSearch(project: Ref<CmipProject>, filters: Ref<FilterMap>
     generation++;
     clearTimeout(timer);
     controller?.abort();
+    // Shared requests belong to one search generation and its abort signal.
+    errataRequests.clear();
     controller = new AbortController();
     datasets.value = [];
     availability.value = {};

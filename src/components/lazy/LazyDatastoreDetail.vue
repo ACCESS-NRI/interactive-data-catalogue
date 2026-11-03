@@ -72,7 +72,6 @@
         </div>
 
         <LazyQuickStartCode
-          v-show="showNciResults"
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
           :dynamic-filter-options="dynamicFilterOptions"
@@ -81,7 +80,6 @@
         />
 
         <CmipEsmvalcoreQuickStart
-          v-show="showNciResults"
           v-if="esmvalProject"
           :project="esmvalProject"
           :datastore-name="datastoreName"
@@ -89,7 +87,7 @@
           :current-filters="currentFilters"
         />
 
-        <DatastoreFilePaths v-show="showNciResults" :datastore-name="datastoreName" :current-filters="currentFilters" />
+        <DatastoreFilePaths :datastore-name="datastoreName" :current-filters="currentFilters" />
 
         <FilterSelectors
           :key="datastoreName"
@@ -98,7 +96,7 @@
           :default-visible-columns="defaultVisibleFilterColumns"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
-          :esgf-project="includeEsgf && resultSource !== 'nci' ? replicaProject : null"
+          :esgf-project="includeEsgf ? replicaProject : null"
           @clear="handleClearFilters"
           @dropdown-opened="handleDropdownOpened"
           @dropdown-closed="handleDropdownClosed"
@@ -109,13 +107,11 @@
         <CmipEsgfSearch
           v-if="replicaProject"
           v-model="includeEsgf"
-          v-model:view="resultSource"
           :project="replicaProject"
           :filters="currentFilters"
         />
 
         <section
-          v-show="showNciResults"
           :aria-label="replicaProject ? 'NCI results' : undefined"
           :class="
             replicaProject
@@ -155,7 +151,7 @@ import DatastoreHeader from '../DatastoreHeader.vue';
 import LazyQuickStartCode from './LazyQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import CmipEsgfSearch from '../CmipEsgfSearch.vue';
-import { getReplicaProject, type CmipResultSource } from '../../services/esgfSearch';
+import { getReplicaProject } from '../../services/esgfSearch';
 import DatastoreFilePaths from '../DatastoreFilePaths.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import { ESMVAL_OBSERVATION_DATASTORE } from '../../services/esmvalObservationExamples';
@@ -175,8 +171,6 @@ const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 const includeEsgf = ref(false);
-const resultSource = ref<CmipResultSource>('both');
-const showNciResults = computed(() => !includeEsgf.value || resultSource.value !== 'esgf');
 
 const { initializeFiltersFromUrl, stopFilterWatcher } = useFilterUrlSync(
   route,

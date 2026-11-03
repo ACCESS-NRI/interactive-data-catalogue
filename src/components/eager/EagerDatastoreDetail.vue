@@ -101,7 +101,6 @@
         </div>
 
         <EagerQuickStartCode
-          v-show="showNciResults"
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
           :raw-data="filteredData"
@@ -112,7 +111,6 @@
         />
 
         <CmipEsmvalcoreQuickStart
-          v-show="showNciResults"
           v-if="source !== 'personal' && esmvalProject"
           :project="esmvalProject"
           :datastore-name="datastoreName"
@@ -121,7 +119,6 @@
         />
 
         <DatastoreFilePaths
-          v-show="showNciResults"
           :datastore-name="datastoreName"
           :current-filters="currentFilters"
           :rows="filteredData"
@@ -135,7 +132,7 @@
           :default-visible-columns="defaultVisibleFilterColumns"
           :filter-options="filterOptions"
           :dynamic-filter-options="dynamicFilterOptions"
-          :esgf-project="includeEsgf && resultSource !== 'nci' ? replicaProject : null"
+          :esgf-project="includeEsgf ? replicaProject : null"
           @clear="handleClearFilters"
           :toast="true"
           analytics-context="datastore"
@@ -144,13 +141,11 @@
         <CmipEsgfSearch
           v-if="replicaProject"
           v-model="includeEsgf"
-          v-model:view="resultSource"
           :project="replicaProject"
           :filters="currentFilters"
         />
 
         <section
-          v-show="showNciResults"
           :aria-label="replicaProject ? 'NCI results' : undefined"
           :class="
             replicaProject
@@ -188,7 +183,7 @@ import DatastoreHeader from '../DatastoreHeader.vue';
 import EagerQuickStartCode from './EagerQuickStartCode.vue';
 import CmipEsmvalcoreQuickStart from '../CmipEsmvalcoreQuickStart.vue';
 import CmipEsgfSearch from '../CmipEsgfSearch.vue';
-import { getReplicaProject, type CmipResultSource } from '../../services/esgfSearch';
+import { getReplicaProject } from '../../services/esgfSearch';
 import DatastoreFilePaths from '../DatastoreFilePaths.vue';
 import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
 import { ESMVAL_OBSERVATION_DATASTORE } from '../../services/esmvalObservationExamples';
@@ -223,8 +218,6 @@ const router = useRouter();
 const { currentFilters, clearFilters } = useFilterState();
 const numDatasets = ref(0);
 const includeEsgf = ref(false);
-const resultSource = ref<CmipResultSource>('both');
-const showNciResults = computed(() => !includeEsgf.value || resultSource.value !== 'esgf');
 const sessionExpired = ref(false);
 
 const routeName = props.source === 'personal' ? 'PersonalDatastoreDetail' : 'DatastoreDetail';

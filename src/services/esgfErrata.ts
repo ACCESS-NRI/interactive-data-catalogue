@@ -1,6 +1,8 @@
 import { fetchEsgfJson, type EsgfDataset } from './esgfSearch';
 
 const endpoint = import.meta.env.VITE_ESGF_ERRATA_URL || 'https://errata.esgf.io/1/resolve/simple-pid';
+const catalogueEndpoint = import.meta.env.VITE_ESGF_ERRATA_CATALOGUE_URL || 'https://errata.esgf.io/2/';
+export type ErrataRequestCache = Map<string, Promise<unknown>>;
 export interface EsgfErrata {
   status: 'checking' | 'reported' | 'none' | 'unknown';
   issueUrls: string[];
@@ -22,7 +24,7 @@ function issueUrls(value: unknown): string[] {
 }
 
 /** Check only the displayed version, without inheriting errata from its history. */
-export async function checkEsgfErrata(
+async function resolvePidErrata(
   dataset: Pick<EsgfDataset, 'id' | 'version'>,
   signal: AbortSignal,
 ): Promise<EsgfErrata> {
@@ -52,6 +54,81 @@ export async function checkEsgfErrata(
     return unknown();
   } catch {
     // Errata outages must not hide search results or imply an unaffected dataset.
+    return unknown();
+  }
+}
+
+async function cachedJson(url: URL, signal: AbortSignal, cache: ErrataRequestCache): Promise<unknown> {
+  const key = url.toString();
+  let pending = cache.get(key);
+  if (!pending) {
+    pending = fetchEsgfJson(key, signal);
+    if (cache.size >= 200) cache.delete(cache.keys().next().value!);
+    cache.set(key, pending);
+  }
+  try {
+    return await pending;
+  } catch (cause) {
+    if (cache.get(key) === pending) cache.delete(key);
+    throw cause;
+  }
+}
+
+/** PID records can omit published errata. Check the issue catalogue before
+ * accepting a negative, matching its affected dataset list to the exact version. */
+export async function checkEsgfErrata(
+  dataset: Pick<EsgfDataset, 'id' | 'version'>,
+  signal: AbortSignal,
+  cache: ErrataRequestCache = new Map(),
+): Promise<EsgfErrata> {
+  const match = /^([\w.-]+)\.v(\d{8})$/.exec(dataset.id);
+  if (!match || (dataset.version && dataset.version.replace(/^v/, '') !== match[2])) return unknown();
+  const pid = await resolvePidErrata(dataset, signal);
+  if (pid.status === 'reported' || signal.aborted) return pid;
+  const parts = match[1]!.replace(/^MIP-DRS7\./, '').split('.');
+  if (!['CMIP6', 'CMIP7'].includes(parts[0]!) || parts.length < 9) return unknown();
+  try {
+    const base = new URL(catalogueEndpoint.replace(/\/?$/, '/'), window.location.origin);
+    const url = new URL('search/errata', base);
+    url.searchParams.set('project', parts[0]!.toLowerCase());
+    url.searchParams.set('source_id', parts[3]!.toLowerCase());
+    url.searchParams.set('experiment_id', parts[4]!.toLowerCase());
+    if (parts[0] === 'CMIP6') url.searchParams.set('table_id', parts[6]!.toLowerCase());
+    // Do not filter on variable_id: published issues may omit that facet even
+    // when their affected dataset lists explicitly contain the variable.
+    const search = object(await cachedJson(url, signal, cache));
+    if (!Array.isArray(search.results) || search.count !== search.results.length) return unknown();
+    const links: string[] = [];
+    let complete = true;
+    for (const raw of search.results) {
+      if (signal.aborted) return unknown();
+      const uid = object(raw).uid;
+      if (typeof uid !== 'string' || !/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(uid)) {
+        complete = false;
+        continue;
+      }
+      try {
+        const detailUrl = new URL('publication/retrieve', base);
+        detailUrl.searchParams.set('uid', uid);
+        const issue = object(object(await cachedJson(detailUrl, signal, cache)).issue);
+        if (
+          issue.uid !== uid ||
+          !Array.isArray(issue.datasets) ||
+          !issue.datasets.every((id) => typeof id === 'string')
+        ) {
+          complete = false;
+          continue;
+        }
+        if (issue.datasets.some((id: string) => id.replace(/#(\d{8})$/, '.v$1') === dataset.id)) {
+          links.push(...issueUrls(uid));
+        }
+      } catch {
+        complete = false;
+      }
+    }
+    if (links.length) return { status: 'reported', issueUrls: [...new Set(links)] };
+    return complete ? pid : unknown();
+  } catch {
     return unknown();
   }
 }

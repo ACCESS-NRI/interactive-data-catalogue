@@ -44,9 +44,10 @@ describe('ESGF version-specific errata', () => {
       'fetch',
       vi
         .fn()
-        .mockResolvedValue(
+        .mockResolvedValueOnce(
           json({ old: entry, current: { ...entry, version: '20200101', has_errata: false, errata_ids: [] } }),
-        ),
+        )
+        .mockResolvedValue(json({ count: 0, results: [] })),
     );
     expect(await checkEsgfErrata({ id: `${drs}.v20200101`, version: 'v20200101' }, signal())).toEqual({
       status: 'none',
