@@ -128,15 +128,9 @@ describe('DatastoreDetail', () => {
         expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('esgfProject')).toBe(
           name === 'cmip6_oi10' ? 'CMIP6' : 'CMIP7',
         );
-        esgf.vm.$emit('update:view', 'esgf');
-        await wrapper.vm.$nextTick();
-        expect(esgf.props('view')).toBe('esgf');
-        expect(wrapper.get('[aria-label="NCI results"]').attributes('style')).toContain('display: none');
-        expect(wrapper.findComponent({ name: 'LazyDatastoreTable' }).exists()).toBe(true);
-        esgf.vm.$emit('update:view', 'both');
-        await wrapper.vm.$nextTick();
         expect(wrapper.get('[aria-label="NCI results"]').attributes('style') || '').not.toContain('display: none');
-        esgf.vm.$emit('update:view', 'nci');
+        expect(wrapper.findComponent({ name: 'LazyDatastoreTable' }).exists()).toBe(true);
+        esgf.vm.$emit('update:modelValue', false);
         await wrapper.vm.$nextTick();
         expect(wrapper.findComponent({ name: 'FilterSelectors' }).props('esgfProject')).toBeNull();
         expect(wrapper.get('[aria-label="NCI results"]').attributes('style') || '').not.toContain('display: none');

@@ -7,7 +7,6 @@ import type { CmipProject } from './cmipEsmvalcoreCode';
 const solrEndpoint = import.meta.env.VITE_ESGF_CMIP6_SEARCH_URL || 'https://esgf.ceda.ac.uk/esg-search/search';
 const stacEndpoint = import.meta.env.VITE_ESGF_CMIP7_SEARCH_URL || 'https://search.east.esgf.io/search';
 export const ESGF_PAGE_SIZE = 10;
-export type CmipResultSource = 'nci' | 'esgf' | 'both';
 
 const sharedFacets = [
   'institution_id',

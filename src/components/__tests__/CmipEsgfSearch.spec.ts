@@ -64,27 +64,6 @@ describe('opt-in ESGF results', () => {
     },
   );
 
-  it('switches between NCI only, ESGF only and Both, suspending external searches in NCI-only mode', async () => {
-    await wrapper.get('input[type=checkbox]').setValue(true);
-    await tick();
-    expect(wrapper.get('input[value=both]').element).toHaveProperty('checked', true);
-    expect(wrapper.get('[aria-label="ESGF results"]').text()).toContain('ESGF · International datasets');
-    const oldSignal = vi.mocked(searchEsgf).mock.calls[0]![2];
-    await wrapper.get('input[value=nci]').setValue(true);
-    await tick();
-    expect(wrapper.find('[aria-label="ESGF results"]').exists()).toBe(false);
-    expect(oldSignal.aborted).toBe(true);
-    expect(searchEsgf).toHaveBeenCalledTimes(1);
-    expect(wrapper.emitted('update:view')?.slice(-1)[0]).toEqual(['nci']);
-    await wrapper.get('input[value=esgf]').setValue(true);
-    await tick();
-    expect(wrapper.get('[aria-label="ESGF results"]').text()).toContain('CMIP6.test.v20250101');
-    expect(wrapper.emitted('update:view')?.slice(-1)[0]).toEqual(['esgf']);
-    await wrapper.get('input[value=both]').setValue(true);
-    await tick();
-    expect(wrapper.emitted('update:view')?.slice(-1)[0]).toEqual(['both']);
-  });
-
   it('makes no network calls until checked and shows a message instead of a replication action', async () => {
     await tick();
     expect(searchEsgf).not.toHaveBeenCalled();
@@ -195,10 +174,10 @@ describe('errata flags', () => {
     expect(wrapper.get('tbody tr').text()).toContain('Errata unverified');
     expect(wrapper.text()).not.toContain('No errata reported');
     expect(wrapper.find('[role=alert]').exists()).toBe(false);
-    await wrapper.get('input[value=nci]').setValue(true);
+    await wrapper.get('input[type=checkbox]').setValue(false);
     await tick();
     expect(checkEsgfErrata).toHaveBeenCalledTimes(1);
-    await wrapper.get('input[value=both]').setValue(true);
+    await wrapper.get('input[type=checkbox]').setValue(true);
     await tick();
     expect(checkEsgfErrata).toHaveBeenCalledTimes(2);
     expect(wrapper.get('tbody tr').text()).toContain('No errata reported for this version');
