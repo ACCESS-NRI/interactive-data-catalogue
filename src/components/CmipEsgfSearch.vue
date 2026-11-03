@@ -76,7 +76,7 @@
             <span v-if="total !== null">
               · {{ total.toLocaleString() }} index records · {{ datasets.length }} unique datasets loaded</span
             >
-            <span v-if="loading"> · Searching and checking NCI…</span>
+            <span v-if="loading"> · Searching and checking NCI and errata…</span>
           </div>
           <button
             type="button"
@@ -90,7 +90,8 @@
         <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
           {{ filters.version?.length ? 'Selected versions.' : 'Latest published versions.' }} Replicas of the same
           version are grouped. NCI checks cover the replicas and Australian submissions catalogues; file completeness
-          and the replication queue are not checked.
+          and the replication queue are not checked. Errata checks apply to the displayed version; an unverified lookup
+          does not mean there are no issues.
         </p>
         <div
           v-if="error"
@@ -124,6 +125,37 @@
                     {{ (dataset.facets.branded_variable || dataset.facets.variable_id)?.join(', ') }}
                   </div>
                   <div class="break-all font-mono text-xs text-gray-600 dark:text-gray-400">{{ dataset.id }}</div>
+                  <div class="mt-2 text-xs" aria-live="polite">
+                    <template v-if="errataStatus(dataset).status === 'reported'">
+                      <span
+                        class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 font-semibold text-amber-950 dark:bg-amber-900 dark:text-amber-100"
+                      >
+                        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                        Errata reported
+                      </span>
+                      <a
+                        v-for="(url, index) in errataStatus(dataset).issueUrls"
+                        :key="url"
+                        :href="url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="ml-2 inline-block text-blue-700 underline dark:text-blue-300"
+                        >{{
+                          errataStatus(dataset).issueUrls.length === 1 ? 'View errata' : `Errata issue ${index + 1}`
+                        }}
+                        ↗</a
+                      >
+                    </template>
+                    <span v-else class="text-gray-500 dark:text-gray-400">
+                      {{
+                        errataStatus(dataset).status === 'checking'
+                          ? 'Checking errata…'
+                          : errataStatus(dataset).status === 'none'
+                            ? 'No errata reported for this version'
+                            : 'Errata unverified'
+                      }}
+                    </span>
+                  </div>
                 </td>
                 <td class="min-w-32 p-3">
                   <div>{{ dataset.fileCount ?? 'Unknown' }} files</div>
@@ -199,13 +231,15 @@ const searchEnabled = computed(() => enabled.value && view.value !== 'nci');
 watch(enabled, (value) => {
   if (value) view.value = 'both';
 });
-const { datasets, availability, total, next, loading, error, unsupported, loadMore, retry } = useEsgfSearch(
+const { datasets, availability, errata, total, next, loading, error, unsupported, loadMore, retry } = useEsgfSearch(
   toRef(props, 'project'),
   toRef(props, 'filters'),
   searchEnabled,
 );
 const status = (dataset: EsgfDataset) =>
   availability.value[dataset.id] || { status: 'checking' as const, collections: [] };
+const errataStatus = (dataset: EsgfDataset) =>
+  errata.value[dataset.id] || { status: 'checking' as const, issueUrls: [] };
 const statusLabel = (value: NciStatus) =>
   ({
     checking: 'Checking NCI…',

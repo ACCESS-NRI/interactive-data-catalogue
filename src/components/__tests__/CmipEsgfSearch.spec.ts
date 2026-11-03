@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import CmipEsgfSearch from '../CmipEsgfSearch.vue';
 import { checkNciAvailability, searchEsgf, type EsgfPage } from '../../services/esgfSearch';
+import { checkEsgfErrata, type EsgfErrata } from '../../services/esgfErrata';
+
+vi.mock('../../services/esgfErrata', () => ({ checkEsgfErrata: vi.fn() }));
 
 vi.mock('../../services/esgfSearch', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/esgfSearch')>()),
@@ -34,6 +37,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(searchEsgf).mockResolvedValue(page);
   vi.mocked(checkNciAvailability).mockResolvedValue({ status: 'missing', collections: [] });
+  vi.mocked(checkEsgfErrata).mockResolvedValue({ status: 'none', issueUrls: [] });
   wrapper = mount(CmipEsgfSearch, {
     props: { project: 'CMIP6', filters: {} },
   });
@@ -84,6 +88,7 @@ describe('opt-in ESGF results', () => {
   it('makes no network calls until checked and shows a message instead of a replication action', async () => {
     await tick();
     expect(searchEsgf).not.toHaveBeenCalled();
+    expect(checkEsgfErrata).not.toHaveBeenCalled();
     await wrapper.get('input[type=checkbox]').setValue(true);
     await tick();
     expect(wrapper.text()).toContain('Not found in NCI catalogue');
@@ -165,5 +170,91 @@ describe('opt-in ESGF results', () => {
     expect(vi.mocked(searchEsgf).mock.calls[1]![3]).toBe('10');
     expect(wrapper.findAll('tbody tr')).toHaveLength(1);
     expect(wrapper.text()).toContain('test.example.org, replica.example.org');
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('errata flags', () => {
+  it('flags an affected dataset and links its issue even when the version is listed at NCI', async () => {
+    const url = 'https://errata.esgf.io/static/view.html?uid=37a3c47a-3bf9-fb67-861c-6b49fcecae4c';
+    vi.mocked(checkEsgfErrata).mockResolvedValue({ status: 'reported', issueUrls: [url] });
+    vi.mocked(checkNciAvailability).mockResolvedValue({ status: 'listed', collections: ['cmip6_oi10'] });
+    await wrapper.get('input[type=checkbox]').setValue(true);
+    await tick();
+    expect(wrapper.get('tbody tr').text()).toContain('Errata reported');
+    expect(wrapper.get('tbody tr').text()).toContain('Version listed at NCI');
+    expect(wrapper.get(`a[href="${url}"]`).text()).toBe('View errata ↗');
+    expect(wrapper.get(`a[href="${url}"]`).attributes('rel')).toBe('noopener noreferrer');
+    expect(wrapper.text()).not.toContain('Replication requests are not available yet.');
+  });
+
+  it('shows a confirmed negative separately from an unavailable lookup, and retries unknown results', async () => {
+    vi.mocked(checkEsgfErrata).mockResolvedValueOnce({ status: 'unknown', issueUrls: [] });
+    await wrapper.get('input[type=checkbox]').setValue(true);
+    await tick();
+    expect(wrapper.get('tbody tr').text()).toContain('Errata unverified');
+    expect(wrapper.text()).not.toContain('No errata reported');
+    expect(wrapper.find('[role=alert]').exists()).toBe(false);
+    await wrapper.get('input[value=nci]').setValue(true);
+    await tick();
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(1);
+    await wrapper.get('input[value=both]').setValue(true);
+    await tick();
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(2);
+    expect(wrapper.get('tbody tr').text()).toContain('No errata reported for this version');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Refresh ESGF results')!
+      .trigger('click');
+    await tick();
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows checking while pending and discards stale errata after a filter change', async () => {
+    let resolve!: (value: EsgfErrata) => void;
+    vi.mocked(checkEsgfErrata).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    await wrapper.get('input[type=checkbox]').setValue(true);
+    await tick();
+    expect(wrapper.get('tbody tr').text()).toContain('Checking errata…');
+    expect(wrapper.text()).not.toContain('No errata reported');
+    const oldSignal = vi.mocked(checkEsgfErrata).mock.calls[0]![1];
+    await wrapper.setProps({ filters: { source_id: ['DifferentModel'] } });
+    await tick();
+    resolve({ status: 'reported', issueUrls: [] });
+    await flushPromises();
+    expect(oldSignal.aborted).toBe(true);
+    expect(wrapper.get('tbody tr').text()).toContain('No errata reported for this version');
+    expect(wrapper.text()).not.toContain('Errata reported');
+  });
+
+  it('limits concurrent errata lookups and cancels the queue when disabled', async () => {
+    const resolvers: ((value: EsgfErrata) => void)[] = [];
+    vi.mocked(searchEsgf).mockResolvedValue({
+      ...page,
+      datasets: Array.from({ length: 5 }, (_, i) => ({ ...page.datasets[0]!, id: `CMIP6.test${i}.v20250101` })),
+    });
+    vi.mocked(checkEsgfErrata).mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolvers.push(done);
+        }),
+    );
+    await wrapper.get('input[type=checkbox]').setValue(true);
+    await tick();
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(2);
+    resolvers[0]!({ status: 'none', issueUrls: [] });
+    await flushPromises();
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(3);
+    await wrapper.get('input[type=checkbox]').setValue(false);
+    resolvers[1]!({ status: 'none', issueUrls: [] });
+    resolvers[2]!({ status: 'none', issueUrls: [] });
+    await tick();
+    expect(checkEsgfErrata).toHaveBeenCalledTimes(3);
+    expect(wrapper.find('tbody tr').exists()).toBe(false);
   });
 });
