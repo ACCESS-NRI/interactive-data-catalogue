@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import FilterSelectors from '../FilterSelectors.vue';
 import type { FilterMap } from '../../types/datastore';
 import MultiSelect from 'primevue/multiselect';
@@ -7,6 +7,12 @@ import Button from 'primevue/button';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import Aura from '@primeuix/themes/aura';
+import { fetchEsgfFilterOptions } from '../../services/esgfSearch';
+
+vi.mock('../../services/esgfSearch', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/esgfSearch')>()),
+  fetchEsgfFilterOptions: vi.fn(),
+}));
 
 // Hoist the mock add function so it can be referenced in tests
 const { mockToastAdd } = vi.hoisted(() => ({
@@ -21,6 +27,9 @@ vi.mock('primevue/usetoast', () => ({
 }));
 
 describe('FilterSelectors', () => {
+  beforeEach(() => {
+    vi.mocked(fetchEsgfFilterOptions).mockReset().mockResolvedValue({});
+  });
   const defaultProps = {
     filterOptions: {
       project: ['proj1', 'proj2', 'proj3'],
@@ -57,6 +66,89 @@ describe('FilterSelectors', () => {
   };
 
   // Test that all filter columns are rendered with their formatted labels
+  it('adds deduplicated ESGF choices to existing dropdowns only after opt-in, preserving selections on opt-out', async () => {
+    vi.mocked(fetchEsgfFilterOptions).mockResolvedValue({ project: ['proj1', 'RemoteProject', 'RemoteProject'] });
+    const wrapper = createWrapper();
+    const select = wrapper
+      .findAllComponents(MultiSelect)
+      .find((select) => select.props('inputId') === 'filter-project')!;
+    expect(fetchEsgfFilterOptions).not.toHaveBeenCalled();
+    expect(select.props('options')).not.toContain('RemoteProject');
+    await wrapper.setProps({ esgfProject: 'CMIP6', dynamicFilterOptions: { project: [] } });
+    await flushPromises();
+    expect(select.props('options')).toEqual(['proj1', 'RemoteProject', 'proj2', 'proj3']);
+    expect((select.props('optionDisabled') as (value: string) => boolean)('RemoteProject')).toBe(false);
+    expect((select.props('optionDisabled') as (value: string) => boolean)('proj2')).toBe(true);
+    expect(wrapper.find('form').exists()).toBe(false);
+    select.vm.$emit('update:modelValue', ['RemoteProject']);
+    expect(wrapper.emitted('update:modelValue')?.slice(-1)[0]).toEqual([{ project: ['RemoteProject'] }]);
+    await wrapper.setProps({ modelValue: { project: ['RemoteProject'] }, esgfProject: null });
+    await flushPromises();
+    expect(select.props('options')).toContain('RemoteProject');
+    expect((select.props('optionDisabled') as (value: string) => boolean)('RemoteProject')).toBe(false);
+    await wrapper.setProps({ modelValue: {} });
+    expect(select.props('options')).not.toContain('RemoteProject');
+    await wrapper.setProps({ esgfProject: 'CMIP6' });
+    await flushPromises();
+    expect(select.props('options')).toContain('RemoteProject');
+    expect(fetchEsgfFilterOptions).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it('labels only remote-only options and retains fuzzy search', async () => {
+    vi.mocked(fetchEsgfFilterOptions).mockResolvedValue({ project: ['proj1', 'RemoteProject'] });
+    const wrapper = createWrapper({ esgfProject: 'CMIP6' });
+    await flushPromises();
+    const select = wrapper.findComponent(MultiSelect);
+    await select.trigger('click');
+    expect(select.find('[role=option][aria-label="RemoteProject"]').text()).toContain('ESGF');
+    expect(select.find('[role=option][aria-label="proj1"]').text()).not.toContain('ESGF');
+    select.vm.$emit('filter', { value: 'Remote' });
+    await wrapper.vm.$nextTick();
+    expect(select.props('options')).toEqual(['RemoteProject']);
+    wrapper.unmount();
+  });
+
+  it('keeps NCI choices after facet failure and supports retry', async () => {
+    vi.mocked(fetchEsgfFilterOptions).mockRejectedValueOnce(new Error('offline'));
+    const wrapper = createWrapper({ esgfProject: 'CMIP7' });
+    await flushPromises();
+    expect(wrapper.text()).toContain('NCI options remain available');
+    expect(wrapper.findComponent(MultiSelect).props('options')).toEqual(defaultProps.filterOptions.project);
+    vi.mocked(fetchEsgfFilterOptions).mockResolvedValue({ project: ['RemoteProject'] });
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Retry ESGF filter options')!
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('could not be loaded');
+    expect(wrapper.findComponent(MultiSelect).props('options')).toContain('RemoteProject');
+    wrapper.unmount();
+  });
+
+  it('aborts facet requests and discards stale responses on opt-out and collection changes', async () => {
+    let resolve!: (value: FilterMap) => void;
+    vi.mocked(fetchEsgfFilterOptions).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const wrapper = createWrapper({ esgfProject: 'CMIP6' });
+    const oldSignal = vi.mocked(fetchEsgfFilterOptions).mock.calls[0]![1];
+    await wrapper.setProps({ esgfProject: null });
+    expect(oldSignal.aborted).toBe(true);
+    vi.mocked(fetchEsgfFilterOptions).mockResolvedValueOnce({ project: ['CMIP7Model'] });
+    await wrapper.setProps({ esgfProject: 'CMIP7' });
+    resolve({ project: ['StaleCMIP6Model'] });
+    await flushPromises();
+    expect(wrapper.findComponent(MultiSelect).props('options')).toContain('CMIP7Model');
+    expect(wrapper.findComponent(MultiSelect).props('options')).not.toContain('StaleCMIP6Model');
+    const currentSignal = vi.mocked(fetchEsgfFilterOptions).mock.calls[1]![1];
+    wrapper.unmount();
+    expect(currentSignal.aborted).toBe(true);
+  });
+
   it('renders all filter columns with proper labels', () => {
     const wrapper = createWrapper();
 

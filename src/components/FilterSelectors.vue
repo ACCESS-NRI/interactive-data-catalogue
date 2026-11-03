@@ -13,6 +13,20 @@
       />
     </div>
 
+    <p v-if="esgfProject" role="status" class="mb-4 text-xs text-gray-600 dark:text-gray-300">
+      <template v-if="esgfOptionsLoading">Loading ESGF filter options…</template>
+      <template v-else-if="esgfOptionsError">
+        ESGF filter options could not be loaded. NCI options remain available.
+        <button type="button" class="ml-1 text-blue-700 underline dark:text-blue-300" @click="retryEsgfOptions">
+          Retry ESGF filter options
+        </button>
+      </template>
+      <template v-else>
+        Dropdowns include ESGF values across {{ esgfProject }}. Values absent from this NCI collection are labelled
+        ESGF.
+      </template>
+    </p>
+
     <Popover
       v-if="compact"
       :id="addFilterPopoverId"
@@ -83,7 +97,7 @@
           :input-id="`filter-${column}`"
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="getSortedOptions(filterOptions[column] ?? [], filterValues[column], dynamicFilterOptions[column])"
+          :options="getSortedOptions(combinedOptions[column] ?? [], filterValues[column], availableOptions(column))"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
           filterMatchMode="passthrough"
           @filter="(event) => handleFilterChange(column, event.value)"
@@ -98,8 +112,17 @@
           autoFilterFocus
           appendTo="self"
           :placeholder="compact ? 'Choose values' : 'No filters applied'"
-          :virtualScrollerOptions="(filterOptions[column]?.length ?? 0) > 100 ? { itemSize: 50 } : undefined"
-        />
+          :virtualScrollerOptions="(combinedOptions[column]?.length ?? 0) > 100 ? { itemSize: 50 } : undefined"
+        >
+          <template #option="{ option }">
+            <span>{{ option }}</span>
+            <span
+              v-if="esgfOptionSets[column]?.has(option) && !filterOptions[column]?.includes(option)"
+              class="ml-2 rounded bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900 dark:text-violet-200"
+              >ESGF</span
+            >
+          </template>
+        </MultiSelect>
       </div>
       <button
         v-if="compact && availableColumns.length > 0"
@@ -127,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId, watch } from 'vue';
+import { computed, ref, toRef, useId, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import MultiSelect from 'primevue/multiselect';
@@ -136,6 +159,8 @@ import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import VariableFilterHelp from './VariableFilterHelp.vue';
 import { useFuzzyFilter } from '../composables/useFuzzyFilter';
+import { useEsgfFilterOptions } from '../composables/useEsgfFilterOptions';
+import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 import { usePostHog } from '../composables/usePosthog';
 import type { FilterMap, FilterOptions } from '../types/datastore';
 
@@ -147,6 +172,7 @@ interface Props {
   analyticsContext?: 'catalogue' | 'datastore';
   compact?: boolean;
   defaultVisibleColumns?: string[];
+  esgfProject?: CmipProject | null;
 }
 
 interface Emits {
@@ -161,6 +187,7 @@ const props = withDefaults(defineProps<Props>(), {
   toast: false,
   compact: false,
   defaultVisibleColumns: () => [],
+  esgfProject: null,
 });
 const emit = defineEmits<Emits>();
 
@@ -168,6 +195,28 @@ const { getSortedOptions } = useFuzzyFilter();
 const toast = useToast();
 const { capture } = usePostHog();
 const filterValues = ref<Record<string, string>>({});
+const {
+  options: esgfOptions,
+  loading: esgfOptionsLoading,
+  error: esgfOptionsError,
+  retry: retryEsgfOptions,
+} = useEsgfFilterOptions(toRef(props, 'esgfProject'));
+// Some facets (for example CMIP6 members) have thousands of values.
+const esgfOptionSets = computed(() =>
+  Object.fromEntries(Object.entries(esgfOptions.value).map(([column, values]) => [column, new Set(values)])),
+);
+const combinedOptions = computed(() =>
+  Object.fromEntries(
+    Object.entries(props.filterOptions).map(([column, values]) => [
+      column,
+      [...new Set([...values, ...(esgfOptions.value[column] ?? []), ...(props.modelValue[column] ?? [])])],
+    ]),
+  ),
+);
+const availableOptions = (column: string) => {
+  const local = props.dynamicFilterOptions[column];
+  return local ? [...new Set([...local, ...(esgfOptions.value[column] ?? [])])] : undefined;
+};
 const visibleColumns = ref<string[]>([]);
 const columnSearch = ref('');
 const addFilterPopover = ref();
@@ -269,6 +318,7 @@ const handleDropdownShow = (column: string) => {
  * @returns true if the option should be disabled, false otherwise
  */
 const isOptionDisabled = (column: string, option: string): boolean => {
+  if (esgfOptionSets.value[column]?.has(option) || props.modelValue[column]?.includes(option)) return false;
   const availableOptions = props.dynamicFilterOptions[column];
   // If no dynamic options exist yet, don't disable anything
   if (!availableOptions) return false;
