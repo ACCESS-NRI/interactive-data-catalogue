@@ -24,22 +24,25 @@ const tab = (label: string) => wrapper.findAll('[role=tab]').find((item) => item
 
 describe('shared CMIP access panel', () => {
   it('copies intake code using both collections and selected filters, and explains local scope', async () => {
-    expect(wrapper.text()).toContain('Data found only on ESGF must be downloaded separately');
-    await button('Copy Intake Python code').trigger('click');
+    expect(wrapper.text()).toContain('Your search is on ESGF.');
+    await button('Copy Intake + Xarray code').trigger('click');
     await flushPromises();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('["cmip6_fs38","cmip6_oi10"]'));
     expect(writeText.mock.lastCall![0]).toContain('"tas"');
+    expect(writeText.mock.lastCall![0]).toContain('Storage: gdata/xp65+gdata/fs38+gdata/oi10');
+    expect(writeText.mock.lastCall![0]).toContain('Modules: conda/analysis3');
     expect(button('Code copied').exists()).toBe(true);
     await wrapper.setProps({ project: 'CMIP7', filters: { branded_variable: ['tas_tavg-h2m-hxy-u'] }, nciOnly: true });
-    expect(wrapper.text()).not.toContain('Data found only on ESGF must be downloaded separately');
-    await button('Copy Intake Python code').trigger('click');
+    expect(wrapper.text()).not.toContain('Your search is on ESGF.');
+    expect(wrapper.text()).toContain('Use your current CMIP7 search filters');
+    await button('Copy Intake + Xarray code').trigger('click');
     await flushPromises();
     expect(writeText.mock.lastCall![0]).toContain('["cmip7_australian","cmip7_replicated"]');
     expect(writeText.mock.lastCall![0]).not.toContain('cmip6_fs38');
   });
 
   it('switches code tabs by keyboard and copies both-location ESMValCore code', async () => {
-    await tab('Intake Python').trigger('keydown', { key: 'ArrowRight' });
+    await tab('Intake + Xarray').trigger('keydown', { key: 'ArrowRight' });
     expect(tab('ESMValCore').attributes('aria-selected')).toBe('true');
     await button('Copy ESMValCore code').trigger('click');
     await flushPromises();
@@ -75,10 +78,10 @@ describe('shared CMIP access panel', () => {
 
   it('reports clipboard failures and allows another attempt', async () => {
     writeText.mockRejectedValueOnce(new Error('Clipboard unavailable'));
-    await button('Copy Intake Python code').trigger('click');
+    await button('Copy Intake + Xarray code').trigger('click');
     await flushPromises();
     expect(wrapper.get('[role=alert]').text()).toContain('Could not copy');
-    await button('Copy Intake Python code').trigger('click');
+    await button('Copy Intake + Xarray code').trigger('click');
     await flushPromises();
     expect(wrapper.find('[role=alert]').exists()).toBe(false);
   });

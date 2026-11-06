@@ -78,9 +78,7 @@
         >
           ESGF search could not finish. {{ error }}
           {{
-            standalone
-              ? 'Switch on Only data at NCI to search local files.'
-              : 'Your NCI results are still available below.'
+            standalone ? 'Choose Search on NCI to search local files.' : 'Your NCI results are still available below.'
           }}
           <button type="button" class="ml-2 underline" @click="loadMore">Retry search</button>
         </div>

@@ -10,7 +10,9 @@
     </nav>
     <header class="mb-6">
       <h1 class="text-3xl font-bold">CMIP data</h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-300">Search data held at NCI and international data on ESGF.</p>
+      <p class="mt-2 text-gray-600 dark:text-gray-300">
+        Find CMIP data at NCI or across the international ESGF federation.
+      </p>
     </header>
 
     <section
@@ -42,51 +44,88 @@
         </fieldset>
       </div>
       <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-        Start with all ESGF data, or narrow your search with either switch. Changing era resets the filters.
+        Choose one place to search. Changing era resets the filters.
       </p>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2">
-        <label
-          v-for="scope in scopes"
-          :key="scope.key"
-          class="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-800"
-        >
-          <span>
-            <span class="block font-semibold">{{ scope.label }}</span>
-            <span :id="`${scope.key}-help`" class="mt-1 block text-sm text-gray-600 dark:text-gray-300">{{
-              scope.description
-            }}</span>
-          </span>
-          <span class="relative inline-flex shrink-0">
+      <fieldset class="mt-4">
+        <legend class="mb-2 text-sm font-semibold">Where to search</legend>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label v-for="location in locations" :key="location.nci ? 'nci' : 'esgf'" class="cursor-pointer">
             <input
-              type="checkbox"
-              role="switch"
-              :checked="scope.key === 'nci' ? nciOnly : accessOnly"
-              :aria-label="scope.label"
-              :aria-describedby="`${scope.key}-help`"
+              type="radio"
+              name="cmip-location"
+              :value="location.nci ? 'nci' : 'esgf'"
+              :checked="nciOnly === location.nci"
+              :aria-label="location.label"
+              :aria-describedby="`${location.nci ? 'nci' : 'esgf'}-help`"
               class="peer sr-only"
-              @change="setScope(scope.key, ($event.target as HTMLInputElement).checked)"
+              @change="setLocation(location.nci)"
             />
             <span
-              aria-hidden="true"
-              class="h-6 w-11 rounded-full bg-gray-300 transition-colors peer-checked:bg-blue-600 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-600 peer-focus-visible:ring-offset-2 dark:bg-gray-600"
-            ></span>
-            <span
-              aria-hidden="true"
-              class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"
-            ></span>
-          </span>
-        </label>
-      </div>
+              class="flex h-full items-center gap-3 rounded-lg border-2 border-gray-200 bg-white p-4 peer-checked:border-blue-600 peer-checked:bg-blue-100 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-600 dark:border-gray-600 dark:bg-gray-800 dark:peer-checked:border-blue-400 dark:peer-checked:bg-blue-950"
+            >
+              <span
+                aria-hidden="true"
+                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2"
+                :class="nciOnly === location.nci ? 'border-blue-600 dark:border-blue-400' : 'border-gray-400'"
+              >
+                <span
+                  v-if="nciOnly === location.nci"
+                  class="h-2.5 w-2.5 rounded-full bg-blue-600 dark:bg-blue-400"
+                ></span>
+              </span>
+              <span>
+                <span class="block font-semibold">{{ location.label }}</span>
+                <span
+                  :id="`${location.nci ? 'nci' : 'esgf'}-help`"
+                  class="mt-1 block text-sm text-gray-600 dark:text-gray-300"
+                  >{{ location.description }}</span
+                >
+              </span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+      <label class="mt-4 flex w-fit cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          :checked="accessOnly"
+          aria-label="Only ACCESS data"
+          aria-describedby="access-help"
+          class="mt-1 h-4 w-4 rounded border-gray-400 text-blue-600 focus:ring-blue-600"
+          @change="setAccessOnly(($event.target as HTMLInputElement).checked)"
+        />
+        <span>
+          <span class="block text-sm font-semibold">Only ACCESS data</span>
+          <span id="access-help" class="block text-sm text-gray-600 dark:text-gray-300"
+            >Limit the selected search to ACCESS models.</span
+          >
+        </span>
+      </label>
       <p aria-live="polite" class="mt-4 text-sm font-medium text-blue-900 dark:text-blue-200">
         {{
           nciOnly
             ? accessOnly
               ? `Searching ${project} ACCESS data held at NCI`
-              : `Searching all ${project} data held at NCI`
+              : `Searching ${project} data held at NCI`
             : accessOnly
               ? `Searching ${project} ACCESS data across ESGF`
-              : `Searching all ${project} data across ESGF`
+              : `Searching ${project} data across ESGF`
         }}
+      </p>
+      <p
+        v-if="!nciOnly"
+        class="mt-3 rounded-lg border border-blue-200 bg-white p-3 text-sm text-gray-700 dark:border-blue-800 dark:bg-gray-800 dark:text-gray-300"
+      >
+        ESGF searches the international data federation. Files not already held at NCI need to be downloaded before use.
+        Working on Gadi?
+        <button
+          type="button"
+          class="font-semibold text-blue-700 underline dark:text-blue-300"
+          @click="setLocation(true)"
+        >
+          Search on NCI
+        </button>
+        first to use local files and avoid duplicate downloads.
       </p>
     </section>
 
@@ -114,13 +153,26 @@
       @clear="currentFilters = {}"
     />
 
-    <p
+    <div
       v-if="accessOnly && !optionsLoading && !optionsError && !effectiveFilters"
       role="status"
       class="rounded-xl bg-white p-5 dark:bg-gray-800"
     >
-      No ACCESS models match the selected filters. Remove the model filter or switch off Only ACCESS data.
-    </p>
+      <p>
+        No ACCESS models match the selected filters in {{ nciOnly ? 'the NCI catalogue' : 'ESGF' }}. Remove the model
+        filter or untick Only ACCESS data.
+      </p>
+      <p v-if="nciOnly" class="mt-2">
+        Can't find it on NCI?
+        <button
+          type="button"
+          class="font-semibold text-blue-700 underline dark:text-blue-300"
+          @click="setLocation(false)"
+        >
+          Try searching ESGF
+        </button>
+      </p>
+    </div>
     <template v-else-if="effectiveFilters && (!accessOnly || (!optionsLoading && !optionsError))">
       <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" />
       <section
@@ -135,7 +187,7 @@
           Searches Australian submissions and ESGF replicas held at NCI. Open a collection for file paths and access
           code.
         </p>
-        <CmipNciResults :project="project" :filters="effectiveFilters" />
+        <CmipNciResults :project="project" :filters="effectiveFilters" @search-esgf="setLocation(false)" />
       </section>
       <CmipEsgfSearch v-else standalone :model-value="true" :project="project" :filters="effectiveFilters" />
     </template>
@@ -166,14 +218,17 @@ function setProject(value: CmipProject) {
   const query = Object.fromEntries(Object.entries(route.query).filter(([key]) => !key.endsWith('_filter')));
   router.replace({ query: { ...query, project: value } });
 }
-const nciOnly = computed(() => route.query.nci === 'true');
+const nciOnly = computed(() => route.query.nci !== 'false');
 const accessOnly = computed(() => route.query.access === 'true');
-const scopes = [
-  { key: 'nci', label: 'Only data at NCI', description: 'Files held locally on Gadi' },
-  { key: 'access', label: 'Only ACCESS data', description: 'Data from ACCESS models' },
+const locations = [
+  { nci: true, label: 'Search on NCI', description: 'Files already on Gadi, ready to use locally' },
+  { nci: false, label: 'Search ESGF', description: 'International datasets, including data not held at NCI' },
 ] as const;
-function setScope(key: 'nci' | 'access', enabled: boolean) {
-  router.replace({ query: { ...route.query, [key]: enabled ? 'true' : undefined } });
+function setLocation(nci: boolean) {
+  router.replace({ query: { ...route.query, nci: String(nci) } });
+}
+function setAccessOnly(enabled: boolean) {
+  router.replace({ query: { ...route.query, access: enabled ? 'true' : undefined } });
 }
 const currentFilters = computed<FilterMap>({
   get: () => parseFiltersFromQuery(route.query),

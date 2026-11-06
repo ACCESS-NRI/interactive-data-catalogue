@@ -55,9 +55,20 @@
         </tbody>
       </table>
     </div>
-    <p v-else-if="!loading && !hasErrors" role="status" class="p-4 text-sm text-gray-600 dark:text-gray-300">
-      No local files match these filters.
-    </p>
+    <div v-else-if="!loading && !hasErrors" role="status" class="p-4 text-sm text-gray-600 dark:text-gray-300">
+      <p>No files in the NCI catalogue match these filters.</p>
+      <p class="mt-2">
+        Can't find it on NCI?
+        <button
+          type="button"
+          class="font-semibold text-blue-700 underline dark:text-blue-300"
+          @click="emit('search-esgf')"
+        >
+          Try searching ESGF
+        </button>
+        with the same filters.
+      </p>
+    </div>
     <p v-if="hasErrors" role="status" class="px-4 pb-3 text-sm text-amber-900 dark:text-amber-200">
       Results are incomplete. Retry the unavailable collection to continue paging.
     </p>
@@ -99,6 +110,7 @@ import type { DatastoreCellValue, DatastoreRow, FilterMap } from '../types/datas
 import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
 const props = defineProps<{ project: CmipProject; filters: FilterMap }>();
+const emit = defineEmits<{ 'search-esgf': [] }>();
 interface CollectionPage {
   name: string;
   label: string;

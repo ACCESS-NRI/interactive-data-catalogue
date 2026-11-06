@@ -101,7 +101,7 @@ describe('combined CMIP discovery', () => {
   });
 
   it('restores CMIP6 ESGF search and uses CMIP6 facets in the shared code', async () => {
-    await render('/cmip?project=CMIP6&table_id_filter=Amon&member_id_filter=r1i1p1f1');
+    await render('/cmip?project=CMIP6&nci=false&table_id_filter=Amon&member_id_filter=r1i1p1f1');
     const filters = { table_id: ['Amon'], member_id: ['r1i1p1f1'] };
     expect(searchEsgf).toHaveBeenCalledWith('CMIP6', filters, expect.any(AbortSignal), undefined);
     expect(fetchEsgfFilterOptions).toHaveBeenCalledWith('CMIP6', expect.any(AbortSignal));
@@ -111,23 +111,30 @@ describe('combined CMIP discovery', () => {
     expect(vi.mocked(searchEsgf).mock.lastCall?.slice(0, 2)).toEqual(['CMIP7', {}]);
   });
 
-  it('searches all ESGF immediately with both switches off', async () => {
+  it('defaults to NCI with mutually exclusive location choices and an unchecked ACCESS checkbox', async () => {
     await render();
-    expect(searchEsgf).toHaveBeenCalledWith('CMIP7', {}, expect.any(AbortSignal), undefined);
+    expect(searchEsgf).not.toHaveBeenCalled();
+    expect(fetchEsgfFilterOptions).not.toHaveBeenCalled();
     expect(wrapper.get('input[name="cmip-era"]:checked').attributes('value')).toBe('CMIP7');
-    expect(wrapper.findAll('input[role=switch]:checked')).toHaveLength(0);
-    expect(wrapper.text()).not.toContain('Also search ESGF');
-    expect(fetchCmipNciOptions).not.toHaveBeenCalled();
-    expect(fetchCmipNciPage).not.toHaveBeenCalled();
+    expect(wrapper.findAll('input[name="cmip-location"]:checked')).toHaveLength(1);
+    expect(wrapper.get('input[name="cmip-location"]:checked').attributes('value')).toBe('nci');
+    expect(wrapper.findAll('input[type=checkbox]:checked')).toHaveLength(0);
+    expect(fetchCmipNciOptions).toHaveBeenCalledWith('CMIP7', expect.any(AbortSignal));
+    expect(fetchCmipNciPage).toHaveBeenCalledWith('cmip7_australian', {}, expect.any(AbortSignal), 0, 10);
+    expect(fetchCmipNciPage).toHaveBeenCalledWith('cmip7_replicated', {}, expect.any(AbortSignal), 0, 10);
   });
 
-  it('combines both switches, preserves filters, and restores the full search when switched off', async () => {
-    await render('/cmip?variable_id_filter=tas');
+  it('applies ACCESS to either location, preserves filters, and cancels the previous search', async () => {
+    await render('/cmip?nci=false&variable_id_filter=tas');
+    expect(wrapper.get('input[name="cmip-location"]:checked').attributes('value')).toBe('esgf');
+    expect(wrapper.text()).toContain('avoid duplicate downloads');
     const firstSignal = vi.mocked(searchEsgf).mock.calls[0]![2];
     await toggle('Only ACCESS data', true);
     expect(firstSignal.aborted).toBe(true);
     expect(vi.mocked(searchEsgf).mock.lastCall?.[1]).toEqual({ variable_id: ['tas'], source_id: ['ACCESS-ESM1-6'] });
-    await toggle('Only data at NCI', true);
+    await toggle('Search on NCI', true);
+    expect(wrapper.findAll('input[name="cmip-location"]:checked')).toHaveLength(1);
+    expect(wrapper.text()).not.toContain('avoid duplicate downloads');
     expect(wrapper.find('[aria-label="ESGF results"]').exists()).toBe(false);
     expect(fetchCmipNciPage).toHaveBeenCalledWith(
       'cmip7_australian',
@@ -147,15 +154,16 @@ describe('combined CMIP discovery', () => {
     await toggle('Only ACCESS data', false);
     expect(vi.mocked(fetchCmipNciPage).mock.lastCall?.[1]).toEqual({ variable_id: ['tas'] });
     const localSignal = vi.mocked(fetchCmipNciPage).mock.lastCall![2];
-    await toggle('Only data at NCI', false);
+    await toggle('Search ESGF', true);
     expect(localSignal.aborted).toBe(true);
     expect(vi.mocked(searchEsgf).mock.lastCall?.[1]).toEqual({ variable_id: ['tas'] });
-    expect(router.currentRoute.value.query).toEqual({ variable_id_filter: 'tas' });
+    expect(router.currentRoute.value.query).toEqual({ nci: 'false', variable_id_filter: 'tas' });
   });
 
   it('restores shared scope and filters, and keeps scope when filters are cleared', async () => {
     await render('/cmip?nci=true&access=true&variable_id_filter=tas');
-    expect(wrapper.findAll('input[role=switch]:checked')).toHaveLength(2);
+    expect(wrapper.get('input[name="cmip-location"]:checked').attributes('value')).toBe('nci');
+    expect(wrapper.findAll('input[type=checkbox]:checked')).toHaveLength(1);
     expect(searchEsgf).not.toHaveBeenCalled();
     wrapper.findComponent(FilterSelectors).vm.$emit('clear');
     await tick();
@@ -163,15 +171,16 @@ describe('combined CMIP discovery', () => {
     expect(vi.mocked(fetchCmipNciPage).mock.lastCall?.[1]).toEqual({ source_id: ['ACCESS-ESM1-6'] });
     await router.push('/cmip');
     await tick();
-    expect(wrapper.findAll('input[role=switch]:checked')).toHaveLength(0);
-    expect(vi.mocked(searchEsgf).mock.lastCall?.[1]).toEqual({});
+    expect(wrapper.findAll('input[type=checkbox]:checked')).toHaveLength(0);
+    expect(vi.mocked(fetchCmipNciPage).mock.lastCall?.[1]).toEqual({});
+    expect(searchEsgf).not.toHaveBeenCalled();
   });
 
   it('does not broaden conflicting ACCESS and model filters', async () => {
-    await render('/cmip?access=true&source_id_filter=CanESM6-0-MR');
+    await render('/cmip?nci=false&access=true&source_id_filter=CanESM6-0-MR');
     expect(searchEsgf).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain('No ACCESS models match');
-    await toggle('Only data at NCI', true);
+    await toggle('Search on NCI', true);
     expect(fetchCmipNciPage).not.toHaveBeenCalled();
     await toggle('Only ACCESS data', false);
     expect(vi.mocked(fetchCmipNciPage).mock.lastCall?.[1]).toEqual({ source_id: ['CanESM6-0-MR'] });
@@ -179,7 +188,7 @@ describe('combined CMIP discovery', () => {
 
   it('waits for complete facets before searching ACCESS and supports retry on failure', async () => {
     vi.mocked(fetchEsgfFilterOptions).mockRejectedValueOnce(new Error('ESGF unavailable'));
-    await render('/cmip?access=true');
+    await render('/cmip?nci=false&access=true');
     expect(searchEsgf).not.toHaveBeenCalled();
     expect(wrapper.get('[role=alert]').text()).toContain('ESGF unavailable');
     await wrapper.get('[role=alert] button').trigger('click');
@@ -194,6 +203,77 @@ describe('combined CMIP discovery', () => {
     await wrapper.get('[role=alert] button').trigger('click');
     await tick();
     expect(vi.mocked(fetchCmipNciPage).mock.lastCall?.[1]).toEqual({ source_id: ['ACCESS-ESM1-6'] });
+  });
+
+  it.each(['CMIP6', 'CMIP7'])(
+    'carries an empty %s NCI search to ESGF without changing its filters',
+    async (project) => {
+      const model = project === 'CMIP6' ? 'ACCESS-CM2' : 'ACCESS-ESM1-6';
+      vi.mocked(fetchCmipNciOptions).mockResolvedValue({ source_id: [model] });
+      vi.mocked(fetchEsgfFilterOptions).mockResolvedValue({ source_id: [model] });
+      vi.mocked(fetchCmipNciPage).mockResolvedValue({ total: 0, records: [] });
+      await render(`/cmip?project=${project}&access=true&variable_id_filter=tas`);
+      expect(wrapper.text()).toContain("Can't find it on NCI?");
+      expect(searchEsgf).not.toHaveBeenCalled();
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Try searching ESGF')!
+        .trigger('click');
+      await tick();
+      expect(router.currentRoute.value.query).toEqual({
+        project,
+        nci: 'false',
+        access: 'true',
+        variable_id_filter: 'tas',
+      });
+      expect(vi.mocked(searchEsgf).mock.lastCall?.slice(0, 2)).toEqual([
+        project,
+        { variable_id: ['tas'], source_id: [model] },
+      ]);
+      expect(wrapper.find('[aria-label="NCI results"]').exists()).toBe(false);
+      expect(wrapper.get('input[name="cmip-location"]:checked').attributes('value')).toBe('esgf');
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'Search on NCI')!
+        .trigger('click');
+      await tick();
+      expect(router.currentRoute.value.query).toEqual({
+        project,
+        nci: 'true',
+        access: 'true',
+        variable_id_filter: 'tas',
+      });
+    },
+  );
+
+  it('does not offer the empty-result fallback before both NCI collections finish successfully', async () => {
+    let reject!: (cause: Error) => void;
+    vi.mocked(fetchCmipNciPage).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, fail) => {
+          reject = fail;
+        }),
+    );
+    vi.mocked(fetchCmipNciPage).mockResolvedValueOnce({ total: 0, records: [] });
+    await render();
+    expect(wrapper.text()).not.toContain('Try searching ESGF');
+    reject(new Error('NCI unavailable'));
+    await tick();
+    expect(wrapper.text()).toContain('NCI unavailable');
+    expect(wrapper.text()).not.toContain('Try searching ESGF');
+  });
+
+  it('offers ESGF when the NCI facets contain no ACCESS models', async () => {
+    vi.mocked(fetchCmipNciOptions).mockResolvedValue({ source_id: ['CanESM6-0-MR'] });
+    await render('/cmip?access=true');
+    expect(fetchCmipNciPage).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('No ACCESS models match');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Try searching ESGF')!
+      .trigger('click');
+    await tick();
+    expect(vi.mocked(searchEsgf).mock.lastCall?.[1]).toEqual({ source_id: ['ACCESS-ESM1-6'] });
   });
 
   it('combines both collections in one table, pages them together and resets when filters change', async () => {
@@ -279,7 +359,7 @@ describe('combined CMIP discovery', () => {
     await tick();
     expect(wrapper.find('[role=alert]').exists()).toBe(false);
     const firstSignal = vi.mocked(fetchCmipNciPage).mock.calls[0]![2];
-    await toggle('Only data at NCI', false);
+    await toggle('Search ESGF', true);
     resolve(localPage);
     await tick();
     expect(firstSignal.aborted).toBe(true);

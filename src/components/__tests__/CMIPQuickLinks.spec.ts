@@ -57,7 +57,7 @@ describe('CMIPQuickLinks', () => {
     expect(wrapper.findAll('a')).toHaveLength(2);
     expect(links).toHaveLength(1);
     expect(links[0]!.text()).toContain('CMIP6 and CMIP7');
-    expect(links[0]!.text()).toContain('Search data held at NCI and international data on ESGF');
+    expect(links[0]!.text()).toContain('Search data held at NCI or international data on ESGF');
     await links[0]!.trigger('click');
     await flushPromises();
     expect(router.currentRoute.value.path).toBe('/cmip');
