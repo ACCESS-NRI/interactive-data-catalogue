@@ -84,9 +84,9 @@ const strings = (value: unknown): string[] =>
 const first = (value: unknown) => strings(value)[0] || '';
 const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null);
 
-export async function fetchEsgfJson(url: string, signal: AbortSignal): Promise<unknown> {
+export async function fetchEsgfJson(url: string, signal: AbortSignal, timeoutMs = 20_000): Promise<unknown> {
   const timeout = new AbortController();
-  const timer = setTimeout(() => timeout.abort(), 20_000);
+  const timer = setTimeout(() => timeout.abort(), timeoutMs);
   try {
     const response = await fetch(url, {
       signal: AbortSignal.any([signal, timeout.signal]),
@@ -95,6 +95,10 @@ export async function fetchEsgfJson(url: string, signal: AbortSignal): Promise<u
     });
     if (!response.ok) throw new Error(`Search service returned HTTP ${response.status}.`);
     return await response.json();
+  } catch (cause) {
+    if (timeout.signal.aborted && !signal.aborted)
+      throw new Error('Search timed out. Try again or narrow your filters.');
+    throw cause;
   } finally {
     clearTimeout(timer);
   }

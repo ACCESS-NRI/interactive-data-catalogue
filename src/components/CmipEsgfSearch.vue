@@ -3,7 +3,7 @@
     class="mb-6 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
     aria-label="ESGF search"
   >
-    <label class="flex cursor-pointer items-start gap-3">
+    <label v-if="!standalone" class="flex cursor-pointer items-start gap-3">
       <input
         v-model="enabled"
         type="checkbox"
@@ -21,7 +21,8 @@
 
     <div
       v-if="enabled"
-      class="mt-5 overflow-hidden rounded-xl border border-violet-300 border-t-4 border-t-violet-600 bg-violet-50/70 p-4 dark:border-violet-700 dark:border-t-violet-400 dark:bg-violet-950/30"
+      class="overflow-hidden rounded-xl border border-violet-300 border-t-4 border-t-violet-600 bg-violet-50/70 p-4 dark:border-violet-700 dark:border-t-violet-400 dark:bg-violet-950/30"
+      :class="standalone ? '' : 'mt-5'"
       aria-label="ESGF results"
     >
       <div class="mb-4 flex items-center gap-3">
@@ -35,7 +36,7 @@
           </p>
         </div>
       </div>
-      <p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+      <p v-if="!standalone" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
         The filter dropdowns now include ESGF values, including models and variables absent from NCI. ESGF results
         describe whole datasets; NCI results list local files.
       </p>
@@ -75,7 +76,12 @@
           role="alert"
           class="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200"
         >
-          ESGF search could not finish. {{ error }} Your NCI results are still available below.
+          ESGF search could not finish. {{ error }}
+          {{
+            standalone
+              ? 'Switch on Only data at NCI to search local files.'
+              : 'Your NCI results are still available below.'
+          }}
           <button type="button" class="ml-2 underline" @click="loadMore">Retry search</button>
         </div>
         <div v-if="datasets.length" class="overflow-x-auto">
@@ -193,7 +199,7 @@ import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 import type { EsgfDataset, NciStatus } from '../services/esgfSearch';
 import { useEsgfSearch } from '../composables/useEsgfSearch';
 
-const props = defineProps<{ project: CmipProject; filters: FilterMap }>();
+const props = defineProps<{ project: CmipProject; filters: FilterMap; standalone?: boolean }>();
 const enabled = defineModel<boolean>({ default: false });
 const { datasets, availability, errata, total, next, loading, error, unsupported, loadMore, retry } = useEsgfSearch(
   toRef(props, 'project'),

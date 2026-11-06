@@ -27,7 +27,7 @@ const CMIP7_FACETS = [
 
 /** ESMValCore CMIP6 facets and the corresponding catalogue columns. */
 const CMIP6_FACETS = [
-  ['activity', null],
+  ['activity', 'project_id'],
   ['short_name', 'variable_id'],
   ['dataset', 'source_id'],
   ['exp', 'experiment_id'],
@@ -75,8 +75,28 @@ export const getUnmappedCmipFilters = (filters: FilterMap, project: CmipProject)
 const pythonValue = (values: string[]): string =>
   values.length === 1 ? JSON.stringify(values[0]) : JSON.stringify(values);
 
+/** Scalar choices for a multi-dataset search. Branded names stay paired with their suffixes. */
+export function cmipFacetChoices(filters: FilterMap, project: CmipProject) {
+  const facets: Record<string, string[]> = Object.fromEntries(
+    facetsFor(project).map(([facet, column]) => [facet, column && filters[column]?.length ? filters[column] : ['*']]),
+  );
+  let variables: Record<string, string>[] = [{}];
+  if (project === 'CMIP7') {
+    facets.branding_suffix = ['*'];
+    if (filters.branded_variable?.length && getBrandedVariableFacets(filters)) {
+      variables = [...new Set(filters.branded_variable)].map((branded) => {
+        const pair = getBrandedVariableFacets({ ...filters, branded_variable: [branded] })!;
+        return { short_name: pair.shortNames[0]!, branding_suffix: pair.suffixes[0]! };
+      });
+      delete facets.short_name;
+      delete facets.branding_suffix;
+    }
+  }
+  return { facets, variables };
+}
+
 /** Create a local CMIP facet search using the filters selected in the catalogue. */
-export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject): string {
+export function buildCmipEsmvalcoreQuery(filters: FilterMap, project: CmipProject): string {
   const brandedFacets = project === 'CMIP7' ? getBrandedVariableFacets(filters) : null;
   const facetLines = facetsFor(project).map(([facet, column]) => {
     let selected = column ? filters[column] : undefined;
@@ -89,6 +109,13 @@ export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject
     return `    ${facet}=${selected?.length ? pythonValue(selected) : '"*"'},${comment}`;
   });
 
+  return `query = Dataset(
+    project="${project}",
+${facetLines.join('\n')}
+)`;
+}
+
+export function buildCmipEsmvalcoreCode(filters: FilterMap, project: CmipProject): string {
   return `"""
 You will need to run this in an ARE session on Gadi: https://are.nci.org.au/pun/sys/dashboard
 
@@ -102,10 +129,7 @@ values below, until only the dataset you want matches.
 from itertools import islice
 from esmvalcore.dataset import Dataset
 
-query = Dataset(
-    project="${project}",
-${facetLines.join('\n')}
-)
+${buildCmipEsmvalcoreQuery(filters, project)}
 
 # Show up to five matches to see whether the search needs narrowing.
 matches = list(islice(query.from_files(), 5))

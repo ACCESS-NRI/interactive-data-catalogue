@@ -12,7 +12,8 @@ https://access-nri.github.io/interactive-data-catalogue/
 - **Prefetching & Caching**: Intelligent data prefetching and caching for performance
 - **Quick Start Code**: Generate Python code snippets for accessing datasets via intake
 - **Dark Mode Support**: Toggle between light and dark themes
-- **Opt-in ESGF discovery**: CMIP6 and CMIP7 replica collections can search ESGF alongside local results, compare dataset identities with the NCI catalogue, and identify datasets not found at NCI.
+- **CMIP discovery**: One homepage card offers CMIP6 and CMIP7, searching all ESGF data by default, with independent switches for NCI holdings and ACCESS models and shared access code across collections. Dataset results include NCI availability and errata checks.
+- **Opt-in ESGF discovery in individual collections**: CMIP6 and CMIP7 replica collections can also search ESGF alongside local results.
 
 ## Limitations
 
@@ -38,6 +39,19 @@ The development server proxies catalogue API requests to the hosted reporting se
 To use a local backend instead, run `TRACKING_SERVICES_TARGET=http://127.0.0.1:8000 npm run dev`.
 
 ## ESGF discovery
+
+The **Explore CMIP6 and CMIP7** homepage card opens `/cmip`, defaulting to CMIP7. The **CMIP era** toggle offers CMIP6 and CMIP7. It searches ESGF immediately. Changing era keeps the scope switches and clears filters because model names and facets differ. Old `/cmip7` and `/cmip6` links redirect with their filters and scopes intact. **Only data at NCI** switches to the Australian submissions and ESGF replicas catalogues, with one table interleaving up to ten local file records from each collection per page, shared pagination, and links to each collection's access code. Counts describe file records per collection, not unique datasets; a dataset can span several files or be present in both collections. A failed collection remains visibly incomplete and blocks forward paging until retried. **Only ACCESS data** restricts the current search to ACCESS models; both switches can be combined. Model names come from collection-wide facets, not the loaded result page. Existing model selections are intersected with ACCESS models; a selection with no ACCESS models shows no matches rather than broadening the search. A failed facet lookup blocks ACCESS-only searches until retried. The version, both switches, and filter selections are preserved in the URL, and changing scope cancels outstanding searches.
+
+The **Access data across collections** panel has visible **Intake Python**, **ESMValCore**, and **ESMValTool** tabs, lists both included collections, and generates code from the effective filters, including the ACCESS switch, for both NCI collections of the selected version:
+
+- CMIP6: `cmip6_fs38` and `cmip6_oi10`.
+- CMIP7: `cmip7_australian` and `cmip7_replicated`.
+
+Intake searches each catalogue with exact values, retains its aggregation rules, and prefixes dataset keys with the collection name to avoid overwrites. ESMValCore expands selected facets into scalar queries and loads the matching datasets as separate Iris cubes. CMIP7 short names stay paired with their branding suffixes. ESMValTool provides a preprocessing recipe, a `cmip-config/data.yml` configuration, and the command to run them. Its recipe requires a selected variable and one CMIP6 table or CMIP7 realm (plus branded variable); missing values are marked for editing. Unsupported ESMVal filters are flagged and code copying is disabled until they are removed.
+
+Both ESMVal examples configure the publication and replica roots using the current [ESMValCore data-source format](https://docs.esmvaltool.org/projects/ESMValCore/en/latest/quickstart/configure.html) and `search_data: complete`, so a match in one collection does not stop the other being searched. They require a current environment with support for the chosen CMIP version. All three examples run against files on Gadi; they do not download ESGF-only results. The panel lists the required NCI storage projects. Generated Python is exercised with API doubles in tests; actual data loading requires the relevant Gadi environment and memberships.
+
+Individual datastore links remain available for existing bookmarks and access code:
 
 In `cmip6_oi10` or `cmip7_replicated`, tick **Also search ESGF** below the filters. This uses the current filters and adds ESGF values to the existing searchable dropdowns. Values absent from the local collection carry an **ESGF** label. Choices come from collection-wide facet queries, independently of the loaded results page, and are cached for the current view. CMIP6 uses Solr facets; CMIP7 uses STAC aggregations. No ESGF request is made until opted in. Switching it off cancels pending requests and removes the extra choices while preserving selected filters. Failed facet lookups leave NCI choices available with a retry option. Changing filters cancels pending dataset searches and discards stale results.
 
