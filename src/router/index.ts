@@ -13,6 +13,27 @@ const routes = [
     },
   },
   {
+    path: '/cmip',
+    name: 'CmipSearch',
+    component: () => import('../components/CmipSearch.vue'),
+    meta: { title: 'CMIP data | ACCESS-NRI Data Catalogue' },
+  },
+  {
+    path: '/cmip7',
+    name: 'Cmip7Search',
+    redirect: (to: { query: Record<string, unknown> }) => ({
+      name: 'CmipSearch',
+      query: { ...to.query, project: 'CMIP7' },
+    }),
+  },
+  {
+    path: '/cmip6',
+    redirect: (to: { query: Record<string, unknown> }) => ({
+      name: 'CmipSearch',
+      query: { ...to.query, project: 'CMIP6' },
+    }),
+  },
+  {
     path: '/datastore/:name',
     name: 'DatastoreDetail',
     component: () => import('../components/DatastoreDetail.vue'),

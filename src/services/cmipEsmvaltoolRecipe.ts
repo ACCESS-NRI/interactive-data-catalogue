@@ -12,7 +12,7 @@ const DATASET_FIELDS = [
   ['ensemble', 'variant_label', 'member_id'],
   ['grid', 'grid_label'],
   ['institute', 'institution_id'],
-  ['activity', 'activity_id'],
+  ['activity', 'activity_id', 'project_id'],
   ['frequency', 'frequency'],
   ['region', 'region'],
 ] as const;
@@ -30,7 +30,7 @@ export function buildCmipEsmvaltoolRecipe(filters: FilterMap, project: CmipProje
     project === 'CMIP7' ? 'variant_label' : 'member_id',
     'grid_label',
     'institution_id',
-    'activity_id',
+    project === 'CMIP7' ? 'activity_id' : 'project_id',
     'frequency',
     'realm',
     'variable_id',

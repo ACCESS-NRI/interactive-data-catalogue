@@ -15,6 +15,18 @@ describe('router', () => {
     expect(resolved.path).toBe('/personal-datastore');
   });
 
+  it.each(['CMIP6', 'CMIP7'])('redirects legacy %s links while keeping scopes and filters', async (project) => {
+    await router.push(`/${project.toLowerCase()}?nci=true&access=true&variable_id_filter=tas`);
+    expect(router.currentRoute.value.name).toBe('CmipSearch');
+    expect(router.currentRoute.value.path).toBe('/cmip');
+    expect(router.currentRoute.value.query).toEqual({
+      project,
+      nci: 'true',
+      access: 'true',
+      variable_id_filter: 'tas',
+    });
+  });
+
   it('resolves the PersonalDatastoreDetail route with a name param', () => {
     const resolved = router.resolve({ name: 'PersonalDatastoreDetail', params: { name: 'my-ds' } });
     expect(resolved.path).toBe('/personal-datastore/my-ds');
