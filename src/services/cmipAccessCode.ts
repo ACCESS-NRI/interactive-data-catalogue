@@ -41,16 +41,23 @@ export function cmipDataSources(project: CmipProject) {
 
 export function buildCmipIntakeCode(filters: FilterMap, project: CmipProject): string {
   const selected = Object.fromEntries(Object.entries(filters).filter(([, values]) => values.length));
-  return `# Run on Gadi in an environment with intake and access-nri-intake-catalog.
-# Narrow the catalogue filters before opening a large selection.
-import re
+  return `# Run in a JupyterLab notebook on NCI's ARE with xp65 conda/analysis3.
+# ARE setup: https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are
+# When launching JupyterLab, use these settings:
+#   Storage: ${cmipStorageProjects(project)
+    .map((name) => `gdata/${name}`)
+    .join('+')}
+#   Module directories: /g/data/xp65/public/modules
+#   Modules: conda/analysis3
+# Choose filters on the catalogue page before copying this code to limit the data opened.
+import re  # Built into Python; matches the selected filter values exactly.
 import intake
 from dask.distributed import Client
 
 client = Client(threads_per_worker=1)
 collections = ${JSON.stringify(CMIP_COLLECTIONS[project].map(({ name }) => name))}
 selected = ${JSON.stringify(selected, null, 4)}
-# Match selected values exactly, including characters with regex meanings.
+# Match each selected value exactly: choosing "tas" should not also select "tasmax".
 filters = {key: [f"^{re.escape(value)}$" for value in values]
            for key, values in selected.items()}
 
@@ -68,8 +75,8 @@ for name in collections:
 if not catalogues:
     raise FileNotFoundError("No ${project} files at NCI match these filters")
 
-# Each collection keeps its own aggregation rules. Prefix keys so that
-# a dataset from one collection cannot overwrite one from the other.
+# Open matching files as Xarray datasets. Include the collection name in each key
+# so datasets with the same name from different collections are both kept.
 dataset_dict = {}
 for name, catalogue in catalogues.items():
     for key, dataset in catalogue.to_dataset_dict().items():

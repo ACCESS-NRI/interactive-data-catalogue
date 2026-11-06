@@ -70,7 +70,7 @@ const datastores = [
     name: 'cmip',
     project: 'CMIP',
     label: 'Explore CMIP6 and CMIP7',
-    description: 'Search data held at NCI and international data on ESGF, with shared access code across collections.',
+    description: 'Search data held at NCI or international data on ESGF, with shared access code for NCI collections.',
     kind: 'cmip',
   },
   {

@@ -4,16 +4,23 @@
     class="mb-6 rounded-xl border border-teal-200 bg-teal-50/70 p-5 dark:border-teal-800 dark:bg-teal-950/30"
   >
     <h2 :id="`${id}-heading`" class="mb-2 text-lg font-semibold text-teal-900 dark:text-teal-100">
-      Access data across collections
+      Access data on NCI
     </h2>
     <div>
       <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">
-        These examples use your {{ project }} filters across Australian submissions and ESGF replicas at NCI.
-        <template v-if="!nciOnly"
-          >Data found only on ESGF must be downloaded separately before using these local examples.</template
+        <template v-if="nciOnly"
+          >Use your current {{ project }} search filters to open matching files held on Gadi.</template
         >
+        <template v-else
+          >Your search is on ESGF. These examples apply the same {{ project }} filters to files held on Gadi; they do
+          not open or download the ESGF result list.</template
+        >
+        All examples below are for use at NCI and search the two local collections listed here.
       </p>
-      <ul aria-label="Included collections" class="mb-3 flex flex-wrap gap-2 text-xs text-teal-900 dark:text-teal-100">
+      <ul
+        aria-label="NCI collections used by the examples"
+        class="mb-3 flex flex-wrap gap-2 text-xs text-teal-900 dark:text-teal-100"
+      >
         <li
           v-for="collection in collections"
           :key="collection.name"
@@ -74,6 +81,17 @@
               :projects="cmipStorageProjects(project)"
               :show-conda-environment="active === 'intake'"
             />
+            <p v-if="tab.id === 'intake'" class="mb-3 text-sm text-gray-700 dark:text-gray-300">
+              Run this in an ARE JupyterLab notebook using the xp65 <code>conda/analysis3</code> environment. Follow the
+              <a
+                href="https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-700 underline dark:text-blue-300"
+                >ARE setup instructions</a
+              >; the launch settings are also included in the code below. Python's built-in <code>re</code> module makes
+              the filters match exact values; it needs no separate installation.
+            </p>
             <p v-if="active !== 'intake'" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
               Use a current ESMValCore / ESMValTool environment with {{ project }} support. Both NCI locations are
               configured in the examples.
@@ -210,9 +228,9 @@ const collections = computed(() => CMIP_COLLECTIONS[props.project]);
 const tabs = [
   {
     id: 'intake',
-    label: 'Intake Python',
+    label: 'Intake + Xarray',
     description:
-      'Search both collections and collect their xarray datasets in one dictionary. Each collection keeps its aggregation rules, with unique keys for every dataset.',
+      'Open matching files from both NCI collections as Xarray datasets. Store them in one Python dictionary, labelled by collection so datasets with the same name are both kept.',
   },
   {
     id: 'core',
