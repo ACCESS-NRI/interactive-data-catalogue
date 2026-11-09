@@ -45,6 +45,9 @@ describe('DatastoreFilePaths', () => {
     expect(wrapper.text()).toContain('ACCESS.tas');
     expect(wrapper.text()).toContain('120 files');
     expect(wrapper.text()).toContain('Showing datasets 1–1');
+    await button('Copy directory').trigger('click');
+    await flushPromises();
+    expect(writeText).toHaveBeenCalledWith(path);
     await button('Copy displayed paths').trigger('click');
     await flushPromises();
     expect(writeText).toHaveBeenCalledWith(path);

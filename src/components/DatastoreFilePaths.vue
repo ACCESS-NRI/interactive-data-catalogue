@@ -31,9 +31,7 @@
                 >{{ dataset.fileCount.toLocaleString() }} {{ dataset.fileCount === 1 ? 'file' : 'files' }}</span
               >
             </div>
-            <code class="block whitespace-pre-wrap break-all text-sm text-gray-900 dark:text-gray-100">{{
-              dataset.path
-            }}</code>
+            <CopyPath :path="dataset.path" kind="directory" />
           </li>
         </ul>
         <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -62,6 +60,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import CopyPath from './CopyPath.vue';
 import {
   fetchDatastorePaths,
   fetchDatasetGrouping,

@@ -15,20 +15,9 @@
           >Your search is on ESGF. These examples apply the same {{ project }} filters to files held on Gadi; they do
           not open or download the ESGF result list.</template
         >
-        All examples below are for use at NCI and search the two local collections listed here.
+        The examples use the filters for your whole search, including the ACCESS-only choice, rather than just the
+        results on this page or an expanded row.
       </p>
-      <ul
-        aria-label="NCI collections used by the examples"
-        class="mb-3 flex flex-wrap gap-2 text-xs text-teal-900 dark:text-teal-100"
-      >
-        <li
-          v-for="collection in collections"
-          :key="collection.name"
-          class="rounded-full border border-teal-200 bg-white px-3 py-1 dark:border-teal-800 dark:bg-gray-800"
-        >
-          {{ collection.label }} · <code>{{ collection.name }}</code>
-        </li>
-      </ul>
       <div
         role="tablist"
         aria-label="Access code format"
@@ -93,8 +82,8 @@
               the filters match exact values; it needs no separate installation.
             </p>
             <p v-if="active !== 'intake'" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
-              Use a current ESMValCore / ESMValTool environment with {{ project }} support. Both NCI locations are
-              configured in the examples.
+              Use a current ESMValCore / ESMValTool environment with {{ project }} support. The examples are configured
+              for files on Gadi.
             </p>
             <template v-if="tab.id === 'tool'">
               <p
@@ -220,28 +209,24 @@ import {
   buildCmipCollectionRecipe,
   cmipStorageProjects,
 } from '../services/cmipAccessCode';
-import { CMIP_COLLECTIONS } from '../services/cmipSearch';
 import type { FilterMap } from '../types/datastore';
 
 const props = defineProps<{ project: CmipProject; filters: FilterMap; nciOnly: boolean }>();
-const collections = computed(() => CMIP_COLLECTIONS[props.project]);
 const tabs = [
   {
     id: 'intake',
     label: 'Intake + Xarray',
-    description:
-      'Open matching files from both NCI collections as Xarray datasets. Store them in one Python dictionary, labelled by collection so datasets with the same name are both kept.',
+    description: 'Open matching NCI files as Xarray datasets in one Python dictionary, ready for analysis.',
   },
   {
     id: 'core',
     label: 'ESMValCore',
-    description: 'Search both NCI locations in one workflow and load all matching datasets as separate Iris cubes.',
+    description: 'Find matching data on NCI and load the datasets as separate Iris cubes.',
   },
   {
     id: 'tool',
     label: 'ESMValTool',
-    description:
-      'Use one recipe and a shared data-source configuration to preprocess matching data from both collections.',
+    description: 'Use one recipe to find and preprocess matching data on NCI.',
   },
 ] as const;
 const active = ref<(typeof tabs)[number]['id']>('intake');
