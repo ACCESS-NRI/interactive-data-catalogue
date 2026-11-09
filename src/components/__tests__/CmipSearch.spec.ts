@@ -6,6 +6,7 @@ import CmipAccessCode from '../CmipAccessCode.vue';
 import FilterSelectors from '../FilterSelectors.vue';
 import { checkNciAvailability, fetchEsgfFilterOptions, searchEsgf } from '../../services/esgfSearch';
 import { fetchCmipNciOptions, fetchCmipNciPage } from '../../services/cmipSearch';
+import { fetchCmipFilePaths } from '../../services/cmipFiles';
 import type { FilterOptions, PagedDatastoreResponse } from '../../types/datastore';
 
 vi.mock('../../services/esgfSearch', async (original) => ({
@@ -19,6 +20,7 @@ vi.mock('../../services/cmipSearch', async (original) => ({
   fetchCmipNciOptions: vi.fn(),
   fetchCmipNciPage: vi.fn(),
 }));
+vi.mock('../../services/cmipFiles', () => ({ fetchCmipFilePaths: vi.fn() }));
 
 const options: FilterOptions = { source_id: ['ACCESS-ESM1-6', 'CanESM6-0-MR'], variable_id: ['tas', 'pr'] };
 const localPage: PagedDatastoreResponse = { total: 21, records: [{ source_id: 'ACCESS-ESM1-6', variable_id: 'tas' }] };
@@ -55,6 +57,7 @@ beforeEach(() => {
   vi.mocked(fetchEsgfFilterOptions).mockResolvedValue(options);
   vi.mocked(fetchCmipNciOptions).mockResolvedValue(options);
   vi.mocked(fetchCmipNciPage).mockResolvedValue(localPage);
+  vi.mocked(fetchCmipFilePaths).mockResolvedValue({ paths: ['/g/data/example/tas.nc'], hasMore: false });
 });
 afterEach(() => {
   wrapper?.unmount();
@@ -281,9 +284,10 @@ describe('combined CMIP discovery', () => {
     expect(wrapper.findAll('table')).toHaveLength(1);
     expect(wrapper.findAll('tbody tr')).toHaveLength(2);
     expect(wrapper.findAll('tbody tr').map((row) => row.text())).toEqual([
-      expect.stringContaining('cmip7_australian'),
-      expect.stringContaining('cmip7_replicated'),
+      expect.stringContaining('ACCESS-ESM1-6'),
+      expect.stringContaining('ACCESS-ESM1-6'),
     ]);
+    expect(wrapper.get('tbody').text()).not.toContain('cmip7_');
     const pagination = wrapper.get('[aria-label="NCI result pages"]');
     await pagination
       .findAll('button')
@@ -307,6 +311,43 @@ describe('combined CMIP discovery', () => {
     );
   });
 
+  it('loads file paths inline only on expansion and clears them when the search changes', async () => {
+    await render('/cmip?access=true&variable_id_filter=tas');
+    expect(fetchCmipFilePaths).not.toHaveBeenCalled();
+    const fileButtons = () => wrapper.findAll('tbody button');
+    await fileButtons()[0]!.trigger('click');
+    await vi.dynamicImportSettled();
+    await tick();
+    expect(fetchCmipFilePaths).toHaveBeenCalledWith(
+      'cmip7_australian',
+      { variable_id: ['tas'], source_id: ['ACCESS-ESM1-6'] },
+      localPage.records[0],
+      0,
+      10,
+    );
+    expect(wrapper.get('[aria-label="Files for this result"]').text()).toContain('/g/data/example/tas.nc');
+    expect(router.currentRoute.value.path).toBe('/cmip');
+    expect(wrapper.findAllComponents(CmipAccessCode)).toHaveLength(1);
+    await wrapper.get('button[aria-expanded="true"]').trigger('click');
+    expect(wrapper.find('[aria-label="Files for this result"]').exists()).toBe(false);
+    await fileButtons()[1]!.trigger('click');
+    await tick();
+    expect(vi.mocked(fetchCmipFilePaths).mock.lastCall?.[0]).toBe('cmip7_replicated');
+    expect(wrapper.findAll('[aria-label="Files for this result"]')).toHaveLength(1);
+    wrapper.findComponent(FilterSelectors).vm.$emit('update:modelValue', { variable_id: ['pr'] });
+    await tick();
+    expect(wrapper.find('[aria-label="Files for this result"]').exists()).toBe(false);
+    expect(wrapper.findComponent(CmipAccessCode).props('filters')).toEqual({
+      variable_id: ['pr'],
+      source_id: ['ACCESS-ESM1-6'],
+    });
+    await fileButtons()[0]!.trigger('click');
+    await tick();
+    await wrapper.get('[aria-label="NCI result pages"]').findAll('button')[1]!.trigger('click');
+    await tick();
+    expect(wrapper.find('[aria-label="Files for this result"]').exists()).toBe(false);
+  });
+
   it('keeps paging the larger collection after the other runs out', async () => {
     vi.mocked(fetchCmipNciPage).mockImplementation(async (name, _filters, _signal, offset = 0) => ({
       total: name === 'cmip7_australian' ? 1 : 21,
@@ -320,7 +361,7 @@ describe('combined CMIP discovery', () => {
     await next.trigger('click');
     await tick();
     expect(wrapper.findAll('tbody tr')).toHaveLength(1);
-    expect(wrapper.get('tbody').text()).toContain('cmip7_replicated');
+    expect(wrapper.get('tbody').text()).toContain('ACCESS-ESM1-6');
     expect(wrapper.text()).toContain('Page 2 of 3');
     await next.trigger('click');
     await tick();
@@ -331,7 +372,7 @@ describe('combined CMIP discovery', () => {
   it('shows successful collection rows but blocks paging until a failed collection is retried', async () => {
     vi.mocked(fetchCmipNciPage).mockRejectedValueOnce(new Error('Submission search unavailable'));
     await render('/cmip?nci=true');
-    expect(wrapper.get('tbody').text()).toContain('cmip7_replicated');
+    expect(wrapper.get('tbody').text()).toContain('ACCESS-ESM1-6');
     expect(wrapper.text()).toContain('Results are incomplete');
     const next = wrapper
       .get('[aria-label="NCI result pages"]')

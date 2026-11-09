@@ -85,21 +85,32 @@
           </label>
         </div>
       </fieldset>
-      <label class="mt-4 flex w-fit cursor-pointer items-start gap-3">
+      <label
+        class="mt-5 flex cursor-pointer items-center gap-4 rounded-lg border-2 p-4 transition-colors"
+        :class="
+          accessOnly
+            ? 'border-teal-600 bg-teal-100 dark:border-teal-400 dark:bg-teal-950'
+            : 'border-teal-200 bg-teal-50 hover:border-teal-400 dark:border-teal-800 dark:bg-teal-950/30'
+        "
+      >
         <input
           type="checkbox"
           :checked="accessOnly"
           aria-label="Only ACCESS data"
           aria-describedby="access-help"
-          class="mt-1 h-4 w-4 rounded border-gray-400 text-blue-600 focus:ring-blue-600"
+          class="h-6 w-6 shrink-0 rounded border-teal-600 text-teal-700 focus:ring-teal-600"
           @change="setAccessOnly(($event.target as HTMLInputElement).checked)"
         />
-        <span>
-          <span class="block text-sm font-semibold">Only ACCESS data</span>
+        <span class="flex-1">
+          <span class="block font-semibold text-teal-950 dark:text-teal-100">Only ACCESS data</span>
           <span id="access-help" class="block text-sm text-gray-600 dark:text-gray-300"
-            >Limit the selected search to ACCESS models.</span
+            >Include only ACCESS models in your {{ nciOnly ? 'NCI' : 'ESGF' }} search.</span
           >
         </span>
+        <span
+          class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-teal-800 dark:bg-gray-800 dark:text-teal-200"
+          >{{ accessOnly ? 'ACCESS only' : 'All models' }}</span
+        >
       </label>
       <p aria-live="polite" class="mt-4 text-sm font-medium text-blue-900 dark:text-blue-200">
         {{
@@ -174,7 +185,15 @@
       </p>
     </div>
     <template v-else-if="effectiveFilters && (!accessOnly || (!optionsLoading && !optionsError))">
-      <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" />
+      <div class="mb-3 flex justify-end">
+        <button
+          type="button"
+          class="rounded-lg border border-teal-300 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-900 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
+          @click="showAccessCode"
+        >
+          Access code for this search <i class="pi pi-arrow-down ml-1" aria-hidden="true"></i>
+        </button>
+      </div>
       <section
         v-if="nciOnly"
         aria-label="NCI results"
@@ -184,12 +203,18 @@
           <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Local files on Gadi
         </h2>
         <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
-          Searches Australian submissions and ESGF replicas held at NCI. Open a collection for file paths and access
-          code.
+          Browse matching files on Gadi. Select View files to inspect paths and copy them without leaving this page.
         </p>
         <CmipNciResults :project="project" :filters="effectiveFilters" @search-esgf="setLocation(false)" />
       </section>
       <CmipEsgfSearch v-else standalone :model-value="true" :project="project" :filters="effectiveFilters" />
+      <div
+        ref="accessCodePanel"
+        tabindex="-1"
+        class="mt-6 scroll-mt-6 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+      >
+        <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" />
+      </div>
     </template>
   </main>
 </template>
@@ -210,6 +235,11 @@ import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
 const route = useRoute();
 const router = useRouter();
+const accessCodePanel = ref<HTMLElement>();
+function showAccessCode() {
+  accessCodePanel.value?.focus({ preventScroll: true });
+  accessCodePanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 const eras = ['CMIP6', 'CMIP7'] as const;
 const project = computed<CmipProject>(() => (route.query.project === 'CMIP6' ? 'CMIP6' : 'CMIP7'));
 function setProject(value: CmipProject) {
