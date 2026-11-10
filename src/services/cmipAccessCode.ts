@@ -1,6 +1,6 @@
 import { dump, load } from 'js-yaml';
 import type { FilterMap } from '../types/datastore';
-import { CMIP_COLLECTIONS } from './cmipSearch';
+import { cmipNciCollections } from './cmipSearch';
 import { cmipFacetChoices, getUnmappedCmipFilters, type CmipProject } from './cmipEsmvalcoreCode';
 import { buildCmipEsmvaltoolRecipe } from './cmipEsmvaltoolRecipe';
 
@@ -11,12 +11,15 @@ const ROOTS: Record<CmipProject, string[]> = {
   CMIP7: ['/g/data/im55/publications', '/g/data/ib12/replicas'],
 };
 
-export const cmipStorageProjects = (project: CmipProject) => [
+export const cmipStorageProjects = (project: CmipProject, accessOnly = false) => [
   'xp65',
-  ...ROOTS[project].map((root) => root.split('/')[3]!),
+  ...ROOTS[project].slice(0, accessOnly ? 1 : undefined).map((root) => root.split('/')[3]!),
 ];
 
-export function cmipDataSources(project: CmipProject) {
+export const cmipEsmvalEnvironment = (project: CmipProject) =>
+  `Use the xp65 conda/analysis3 environment${project === 'CMIP7' ? ' (analysis3-26.10 or later for CMIP7 support)' : ''}.`;
+
+export function cmipDataSources(project: CmipProject, accessOnly = false) {
   const dirname =
     project === 'CMIP6'
       ? '{project}/{activity}/{institute}/{dataset}/{exp}/{ensemble}/{mip}/{short_name}/{grid}/{version}'
@@ -26,7 +29,7 @@ export function cmipDataSources(project: CmipProject) {
       ? '{short_name}_{mip}_{dataset}_{exp}_{ensemble}_{grid}*.nc'
       : '{short_name}_{branding_suffix}_{frequency}_{region}_{grid}_{dataset}_{exp}_{ensemble}*.nc';
   return Object.fromEntries(
-    CMIP_COLLECTIONS[project].map(({ name }, index) => [
+    cmipNciCollections(project, accessOnly).map(({ name }, index) => [
       name,
       {
         type: 'esmvalcore.io.local.LocalDataSource',
@@ -39,23 +42,23 @@ export function cmipDataSources(project: CmipProject) {
   );
 }
 
-export function buildCmipIntakeCode(filters: FilterMap, project: CmipProject): string {
+export function buildCmipIntakeCode(filters: FilterMap, project: CmipProject, accessOnly = false): string {
   const selected = Object.fromEntries(Object.entries(filters).filter(([, values]) => values.length));
   return `# Run in a JupyterLab notebook on NCI's ARE with xp65 conda/analysis3.
 # ARE setup: https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are
 # When launching JupyterLab, use these settings:
-#   Storage: ${cmipStorageProjects(project)
+#   Storage: ${cmipStorageProjects(project, accessOnly)
     .map((name) => `gdata/${name}`)
     .join('+')}
 #   Module directories: /g/data/xp65/public/modules
 #   Modules: conda/analysis3
 # Choose filters on the catalogue page before copying this code to limit the data opened.
-import re  # Built into Python; matches the selected filter values exactly.
+import re
 import intake
 from dask.distributed import Client
 
 client = Client(threads_per_worker=1)
-collections = ${JSON.stringify(CMIP_COLLECTIONS[project].map(({ name }) => name))}
+collections = ${JSON.stringify(cmipNciCollections(project, accessOnly).map(({ name }) => name))}
 selected = ${JSON.stringify(selected, null, 4)}
 # Match each selected value exactly: choosing "tas" should not also select "tasmax".
 filters = {key: [f"^{re.escape(value)}$" for value in values]
@@ -84,16 +87,18 @@ for name, catalogue in catalogues.items():
 dataset_dict`;
 }
 
-export function buildCmipCollectionCoreCode(filters: FilterMap, project: CmipProject): string {
+export function buildCmipCollectionCoreCode(filters: FilterMap, project: CmipProject, accessOnly = false): string {
   const unsupported = getUnmappedCmipFilters(filters, project);
   const { facets, variables } = cmipFacetChoices(filters, project);
-  return `# Run on Gadi with a current ESMValCore environment supporting ${project}.
+  return `# Run in an ARE JupyterLab notebook on Gadi.
+# ${cmipEsmvalEnvironment(project)}
+# ARE setup: https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are
 from itertools import product
 from esmvalcore.config import CFG
 from esmvalcore.dataset import Dataset
 
-# Search both NCI collections, including when the first has matches.
-CFG["projects"]["${project}"]["data"] = ${JSON.stringify(cmipDataSources(project), null, 4)}
+# ${accessOnly ? 'Search ACCESS publications on NCI.' : 'Search both NCI collections, including when the first has matches.'}
+CFG["projects"]["${project}"]["data"] = ${JSON.stringify(cmipDataSources(project, accessOnly), null, 4)}
 CFG["search_data"] = "complete"
 ${unsupported.length ? `\nraise ValueError(${JSON.stringify(`Remove filters not supported by ESMValCore before running: ${unsupported.join(', ')}`)})\n` : ''}
 # Expand selected values into scalar queries, keeping branded variables paired.
@@ -115,7 +120,7 @@ cubes = [dataset.load() for dataset in datasets]
 cubes`;
 }
 
-export function buildCmipCollectionRecipe(filters: FilterMap, project: CmipProject) {
+export function buildCmipCollectionRecipe(filters: FilterMap, project: CmipProject, accessOnly = false) {
   const { variables } = cmipFacetChoices(filters, project);
   const pairedNames = variables.flatMap((variable) => (variable.short_name ? [variable.short_name] : []));
   const base = buildCmipEsmvaltoolRecipe(
@@ -144,12 +149,13 @@ export function buildCmipCollectionRecipe(filters: FilterMap, project: CmipProje
     ...base,
     ignoredFilters: [...new Set([...base.ignoredFilters, ...getUnmappedCmipFilters(filters, project)])],
     yaml:
-      '# Save as recipe_cmip.yml. Preprocesses all matching datasets across both NCI collections.\n' +
+      `# Save as recipe_cmip.yml. Preprocesses matching datasets ${accessOnly ? 'from ACCESS publications on NCI' : 'across both NCI collections'}.\n` +
+      `# ${cmipEsmvalEnvironment(project)}\n` +
       dump(recipe, { lineWidth: 110, noRefs: true, quotingType: '"', forceQuotes: true }),
     config:
       '# Save as cmip-config/data.yml (create the cmip-config directory first).\n' +
       dump(
-        { search_data: 'complete', projects: { [project]: { data: cmipDataSources(project) } } },
+        { search_data: 'complete', projects: { [project]: { data: cmipDataSources(project, accessOnly) } } },
         { lineWidth: 160, noRefs: true },
       ),
     command: 'esmvaltool run --config_dir ./cmip-config --remove_preproc_dir=False recipe_cmip.yml',

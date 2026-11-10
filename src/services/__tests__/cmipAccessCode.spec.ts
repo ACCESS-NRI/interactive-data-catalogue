@@ -55,6 +55,32 @@ sys.modules["esmvalcore.dataset"] = SimpleNamespace(Dataset=Dataset)
 
 describe('access code across CMIP collections', () => {
   it.each(['CMIP6', 'CMIP7'] as const)(
+    'uses only %s publications and storage projects for ACCESS-only examples',
+    (project) => {
+      const name = project === 'CMIP6' ? 'cmip6_fs38' : 'cmip7_australian';
+      const replica = project === 'CMIP6' ? 'cmip6_oi10' : 'cmip7_replicated';
+      const storage = project === 'CMIP6' ? 'fs38' : 'im55';
+      const filters = { source_id: ['ACCESS.CM2'], variable_id: ['tas'] };
+      const intake = buildCmipIntakeCode(filters, project, true);
+      runPython(
+        intake,
+        intakePrelude,
+        `assert collections == ["${name}"]\nassert list(dataset_dict.values()) == ["${name}"]`,
+      );
+      expect(intake).not.toContain(replica);
+      expect(cmipStorageProjects(project, true)).toEqual(['xp65', storage]);
+      const core = buildCmipCollectionCoreCode(filters, project, true);
+      runPython(core, corePrelude, `assert list(CFG["projects"]["${project}"]["data"]) == ["${name}"]`);
+      expect(core).not.toContain('replicas');
+      const recipe = buildCmipCollectionRecipe(filters, project, true);
+      const config = load(recipe.config) as { projects: Record<string, { data: Record<string, unknown> }> };
+      expect(Object.keys(config.projects[project]!.data)).toEqual([name]);
+      expect(recipe.yaml).not.toContain('both NCI collections');
+      expect(recipe.config).not.toContain('replicas');
+    },
+  );
+
+  it.each(['CMIP6', 'CMIP7'] as const)(
     'loads both %s intake collections without overwriting equal dataset keys',
     (project) => {
       runPython(

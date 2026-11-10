@@ -8,6 +8,21 @@ afterEach(() => {
 const response = (body: unknown) => Promise.resolve({ ok: true, json: async () => body });
 
 describe('CMIP scope queries', () => {
+  it.each(['CMIP6', 'CMIP7'] as const)(
+    'fetches only publication facets for %s ACCESS-only selections',
+    async (project) => {
+      const fetcher = vi
+        .fn()
+        .mockImplementation(() =>
+          response({ total: 1, records: [{}], dynamic_filter_options: { source_id: ['ACCESS-ESM1-6'] } }),
+        );
+      vi.stubGlobal('fetch', fetcher);
+      await fetchCmipNciOptions(project, new AbortController().signal, { variable_id: ['tas'] }, true);
+      expect(fetcher).toHaveBeenCalledOnce();
+      expect(fetcher.mock.lastCall![0]).toContain(project === 'CMIP6' ? 'cmip6_fs38?' : 'cmip7_australian?');
+    },
+  );
+
   it('allows longer local catalogue queries and reports a timeout separately from cancellation', async () => {
     vi.useFakeTimers();
     const fetcher = vi.fn(
@@ -80,6 +95,29 @@ describe('CMIP scope queries', () => {
       vi.fn().mockImplementation(() => response({ total: 10, records: [{}], dynamic_filter_options: {} })),
     );
     await expect(fetchCmipNciOptions('CMIP7', new AbortController().signal)).rejects.toThrow('NCI filter options');
+  });
+
+  it('gets constrained choices from both full catalogues even when one has no matching records', async () => {
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(() => response({ total: 0, records: [], dynamic_filter_options: {} }))
+      .mockImplementationOnce(() =>
+        response({
+          total: 200,
+          records: [{ variable_id: 'tas' }],
+          dynamic_filter_options: { source_id: ['OtherModel'], branded_variable: ['tas_tavg', 'tas_tmax'] },
+        }),
+      );
+    vi.stubGlobal('fetch', fetcher);
+    expect(await fetchCmipNciOptions('CMIP7', new AbortController().signal, { variable_id: ['tas'] })).toEqual({
+      source_id: ['OtherModel'],
+      branded_variable: ['tas_tavg', 'tas_tmax'],
+    });
+    for (const call of fetcher.mock.calls) {
+      const query = new URL(call[0], 'https://test.example').searchParams;
+      expect(JSON.parse(query.get('filters')!)).toEqual({ variable_id: ['tas'] });
+      expect(query.get('limit')).toBe('1');
+    }
   });
 
   it('sends filters and pagination to the catalogue rather than filtering the loaded page', async () => {

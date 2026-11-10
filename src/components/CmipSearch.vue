@@ -153,12 +153,30 @@
         </button></template
       >
     </div>
+    <p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+      Filter choices update to match your other selections. You can select multiple values within each field.
+    </p>
+    <div
+      v-if="dependent.loading.value || dependent.error.value"
+      class="mb-3 text-sm text-gray-600 dark:text-gray-300"
+      :role="dependent.error.value ? 'alert' : 'status'"
+    >
+      <template v-if="dependent.loading.value">Updating related filter choices…</template>
+      <template v-else>
+        Related filter choices could not be updated. {{ dependent.error.value }}
+        <button type="button" class="ml-2 text-blue-700 underline dark:text-blue-300" @click="dependent.retry()">
+          Retry related filter choices
+        </button>
+      </template>
+    </div>
     <FilterSelectors
       :key="project"
       v-model="currentFilters"
       compact
       :filter-options="filterOptions"
-      :dynamic-filter-options="{}"
+      :dynamic-filter-options="dynamicFilterOptions"
+      hide-unavailable-options
+      :options-pending="optionsLoading || !!optionsError || dependent.loading.value || !!dependent.error.value"
       :default-visible-columns="defaultColumns"
       analytics-context="datastore"
       @clear="currentFilters = {}"
@@ -185,36 +203,39 @@
       </p>
     </div>
     <template v-else-if="effectiveFilters && (!accessOnly || (!optionsLoading && !optionsError))">
-      <div class="mb-3 flex justify-end">
-        <button
-          type="button"
-          class="rounded-lg border border-teal-300 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-900 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
-          @click="showAccessCode"
-        >
-          Access code for this search <i class="pi pi-arrow-down ml-1" aria-hidden="true"></i>
-        </button>
-      </div>
+      <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" :access-only="accessOnly" />
       <section
         v-if="nciOnly"
         aria-label="NCI results"
         class="rounded-xl border border-sky-200 border-t-4 border-t-sky-600 bg-sky-50/50 p-4 dark:border-sky-800 dark:bg-sky-950/20"
       >
-        <h2 class="text-lg font-bold text-sky-950 dark:text-sky-100">
-          <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Local files on Gadi
-        </h2>
-        <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
-          Browse matching files on Gadi. Select View files to inspect paths and copy them without leaving this page.
-        </p>
-        <CmipNciResults :project="project" :filters="effectiveFilters" @search-esgf="setLocation(false)" />
+        <details open class="group/nci">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-4 rounded text-sky-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-600 dark:text-sky-100 [&::-webkit-details-marker]:hidden"
+          >
+            <h2 class="text-lg font-bold">
+              <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Datasets on Gadi
+            </h2>
+            <i
+              class="pi pi-chevron-right shrink-0 transition-transform group-open/nci:rotate-90"
+              aria-hidden="true"
+            ></i>
+          </summary>
+          <div class="pt-3">
+            <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
+              Browse matching datasets on Gadi. Select View files to inspect all matching time chunks and copy their
+              paths.
+            </p>
+            <CmipNciResults
+              :project="project"
+              :filters="effectiveFilters"
+              :access-only="accessOnly"
+              @search-esgf="setLocation(false)"
+            />
+          </div>
+        </details>
       </section>
       <CmipEsgfSearch v-else standalone :model-value="true" :project="project" :filters="effectiveFilters" />
-      <div
-        ref="accessCodePanel"
-        tabindex="-1"
-        class="mt-6 scroll-mt-6 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
-      >
-        <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" />
-      </div>
     </template>
   </main>
 </template>
@@ -227,6 +248,7 @@ import CmipEsgfSearch from './CmipEsgfSearch.vue';
 import CmipNciResults from './CmipNciResults.vue';
 import CmipAccessCode from './CmipAccessCode.vue';
 import { useEsgfFilterOptions } from '../composables/useEsgfFilterOptions';
+import { useCmipDependentOptions } from '../composables/useCmipDependentOptions';
 import { buildFilterQuery, parseFiltersFromQuery } from '../composables/useFilterUrlSync';
 import { getDefaultVisibleFilterColumns } from '../services/datastoreFilterDefaults';
 import { accessFilters, fetchCmipNciOptions } from '../services/cmipSearch';
@@ -235,11 +257,6 @@ import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
 const route = useRoute();
 const router = useRouter();
-const accessCodePanel = ref<HTMLElement>();
-function showAccessCode() {
-  accessCodePanel.value?.focus({ preventScroll: true });
-  accessCodePanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 const eras = ['CMIP6', 'CMIP7'] as const;
 const project = computed<CmipProject>(() => (route.query.project === 'CMIP6' ? 'CMIP6' : 'CMIP7'));
 function setProject(value: CmipProject) {
@@ -268,7 +285,8 @@ const currentFilters = computed<FilterMap>({
   },
 });
 const esgf = useEsgfFilterOptions(computed(() => (nciOnly.value ? null : project.value)));
-const nciOptions = ref<Partial<Record<CmipProject, FilterOptions>>>({});
+const nciOptions = ref<Record<string, FilterOptions>>({});
+const nciOptionsKey = computed(() => `${project.value}:${accessOnly.value}`);
 const nciLoading = ref(false);
 const nciError = ref('');
 let nciController: AbortController | undefined;
@@ -279,11 +297,14 @@ async function loadNciOptions() {
   nciLoading.value = false;
   nciError.value = '';
   const requestProject = project.value;
-  if (!nciOnly.value || nciOptions.value[requestProject]) return;
+  const key = nciOptionsKey.value;
+  if (!nciOnly.value || nciOptions.value[key]) return;
   nciLoading.value = true;
   try {
-    const options = await fetchCmipNciOptions(requestProject, request.signal);
-    if (!request.signal.aborted) nciOptions.value[requestProject] = options;
+    const options = await (accessOnly.value
+      ? fetchCmipNciOptions(requestProject, request.signal, undefined, true)
+      : fetchCmipNciOptions(requestProject, request.signal));
+    if (!request.signal.aborted) nciOptions.value[key] = options;
   } catch (cause) {
     if (!request.signal.aborted)
       nciError.value = cause instanceof Error ? cause.message : 'NCI filter options are unavailable.';
@@ -291,11 +312,11 @@ async function loadNciOptions() {
     if (!request.signal.aborted) nciLoading.value = false;
   }
 }
-watch([nciOnly, project], loadNciOptions, { immediate: true });
+watch([nciOnly, project, accessOnly], loadNciOptions, { immediate: true });
 onBeforeUnmount(() => nciController?.abort());
 const optionsLoading = computed(() => (nciOnly.value ? nciLoading.value : esgf.loading.value));
 const optionsError = computed(() => (nciOnly.value ? nciError.value : esgf.error.value));
-const options = computed(() => (nciOnly.value ? (nciOptions.value[project.value] ?? {}) : esgf.options.value));
+const options = computed(() => (nciOnly.value ? (nciOptions.value[nciOptionsKey.value] ?? {}) : esgf.options.value));
 const retryOptions = () => (nciOnly.value ? loadNciOptions() : esgf.retry());
 const defaultColumns = computed(() =>
   project.value === 'CMIP7'
@@ -320,5 +341,21 @@ const filterOptions = computed(() => {
 });
 const effectiveFilters = computed(() =>
   accessOnly.value ? accessFilters(currentFilters.value, options.value) : currentFilters.value,
+);
+const dependent = useCmipDependentOptions(
+  computed(() =>
+    optionsLoading.value || optionsError.value || !Object.keys(options.value).length
+      ? null
+      : {
+          project: project.value,
+          nci: nciOnly.value,
+          filters: currentFilters.value,
+          accessOnly: accessOnly.value,
+          baseOptions: options.value,
+        },
+  ),
+);
+const dynamicFilterOptions = computed(() =>
+  Object.fromEntries(Object.keys(filterOptions.value).map((field) => [field, dependent.options.value[field] ?? []])),
 );
 </script>

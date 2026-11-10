@@ -125,6 +125,53 @@ describe('ESGF dropdown facets', () => {
     await expect(fetchEsgfFilterOptions('CMIP7', signal())).rejects.toThrow('incomplete');
   });
 
+  it('includes dependent selections in CMIP7 facet aggregation requests', async () => {
+    const fetch = stacFacets();
+    vi.stubGlobal('fetch', fetch);
+    await fetchEsgfFilterOptions('CMIP7', signal(), {
+      variable_id: ['tas'],
+      realm: ['atmos'],
+      frequency: ['day', 'mon'],
+    });
+    const url = new URL(fetch.mock.calls[0]![0]);
+    const filter = JSON.parse(url.searchParams.get('filter')!);
+    expect(filter.args).toContainEqual({ op: '=', args: [{ property: 'properties.cmip7:variable_id' }, 'tas'] });
+    expect(filter.args).toContainEqual({ op: '=', args: [{ property: 'properties.cmip7:realm' }, 'atmos'] });
+    expect(filter.args).toContainEqual({
+      op: 'or',
+      args: [
+        { op: '=', args: [{ property: 'properties.cmip7:frequency' }, 'day'] },
+        { op: '=', args: [{ property: 'properties.cmip7:frequency' }, 'mon'] },
+      ],
+    });
+  });
+
+  it('includes dependent selections and explicit versions in CMIP6 facet requests', async () => {
+    const fetch = vi.fn(async (input: string) =>
+      json({
+        facet_counts: {
+          facet_fields: Object.fromEntries(
+            new URL(input).searchParams
+              .get('facets')!
+              .split(',')
+              .map((field) => [field, []]),
+          ),
+        },
+      }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    await fetchEsgfFilterOptions('CMIP6', signal(), {
+      realm: ['ocean'],
+      variable_id: ['tos', 'so'],
+      version: ['v20260101'],
+    });
+    const params = new URL(fetch.mock.calls[0]![0]).searchParams;
+    expect(params.get('realm')).toBe('ocean');
+    expect(params.getAll('variable_id')).toEqual(['tos', 'so']);
+    expect(params.get('version')).toBe('20260101');
+    expect(params.has('latest')).toBe(false);
+  });
+
   it.each(['CMIP6', 'CMIP7'] as const)('rejects missing %s facet metadata', async (project) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({})));
     await expect(fetchEsgfFilterOptions(project, signal())).rejects.toThrow('Invalid');
