@@ -11,6 +11,7 @@
         text
         @click="handleClear"
       />
+      <div v-if="$slots.actions" class="ml-auto"><slot name="actions" /></div>
     </div>
 
     <p v-if="esgfProject" role="status" class="mb-4 text-xs text-gray-600 dark:text-gray-300">

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import CmipAccessCode from '../CmipAccessCode.vue';
+import CmipPathDownload from '../CmipPathDownload.vue';
 
 let wrapper: VueWrapper;
 const writeText = vi.fn().mockResolvedValue(undefined);
@@ -23,6 +24,29 @@ const button = (label: string) => wrapper.findAll('button').find((item) => item.
 const tab = (label: string) => wrapper.findAll('[role=tab]').find((item) => item.text() === label)!;
 
 describe('shared CMIP access panel', () => {
+  it('provides a File paths tab only for NCI and preserves its exporter during result pagination', async () => {
+    const search = { page: vi.fn(), files: vi.fn(), exportPaths: vi.fn(), dispose: vi.fn() };
+    expect(tab('File paths')).toBeUndefined();
+    await wrapper.setProps({ nciOnly: true, pathExport: { search, total: 42, loading: false, error: '' } });
+    await tab('ESMValTool').trigger('keydown', { key: 'ArrowRight' });
+    expect(tab('File paths').attributes('aria-selected')).toBe('true');
+    const exporter = wrapper.findComponent(CmipPathDownload);
+    expect(exporter.props('search').exportPaths).toBe(search.exportPaths);
+    await wrapper.setProps({ pathExport: { search, total: 42, loading: true, error: '' } });
+    expect(wrapper.findComponent(CmipPathDownload).element).toBe(exporter.element);
+    expect(exporter.props('disabled')).toBe(true);
+    await wrapper.setProps({ pathExport: { total: 0, loading: true, error: '' } });
+    expect(wrapper.findComponent(CmipPathDownload).exists()).toBe(false);
+    await wrapper.setProps({ pathExport: { total: 0, loading: false, error: 'Unavailable' } });
+    expect(wrapper.text()).toContain('Retry it in the results section');
+    await wrapper.setProps({ pathExport: { search, total: 0, loading: false, error: '' } });
+    expect(wrapper.text()).toContain('No file paths match');
+    await wrapper.setProps({ nciOnly: false });
+    expect(tab('File paths')).toBeUndefined();
+    expect(tab('Intake + Xarray').attributes('aria-selected')).toBe('true');
+    expect(wrapper.text()).not.toContain('Copy link to search');
+  });
+
   it.each(['CMIP6', 'CMIP7'] as const)(
     'switches every %s example and storage hint with ACCESS-only scope',
     async (project) => {

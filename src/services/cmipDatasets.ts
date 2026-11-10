@@ -21,6 +21,7 @@ export interface CmipNciDataset {
   fileCount: number;
   alternatePathCount: number;
   collections: string[];
+  directories: string[];
   timeRange: string | null;
 }
 export interface CmipDatasetPage {
@@ -38,11 +39,19 @@ export interface CmipDatasetSearch {
   dispose(): Promise<void>;
 }
 
+export interface CmipPathExportState {
+  search?: CmipDatasetSearch;
+  total: number;
+  loading: boolean;
+  error: string;
+}
+
 interface DatasetRow {
   dataset_key: string;
   file_count: number | bigint;
   path_count: number | bigint;
   collections: Iterable<string>;
+  directories: Iterable<string>;
   time_start: string | null;
   time_end: string | null;
 }
@@ -96,6 +105,7 @@ function dataset(row: DatasetRow): CmipNciDataset {
     fileCount: Number(row.file_count),
     alternatePathCount: Number(row.path_count) - Number(row.file_count),
     collections: Array.from(row.collections),
+    directories: Array.from(row.directories),
     timeRange: row.time_start
       ? `${formatTime(row.time_start)}${row.time_end ? ` – ${formatTime(row.time_end)}` : ''}`
       : null,

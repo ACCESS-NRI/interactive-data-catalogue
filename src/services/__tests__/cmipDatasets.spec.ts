@@ -12,6 +12,7 @@ const row = {
   file_count: 34n,
   path_count: 68n,
   collections: ['cmip7_australian'],
+  directories: ['/g/data/im55/publications/example/v20261019/'],
   time_start: '02010101',
   time_end: '03681231',
 };
@@ -222,6 +223,7 @@ describe('CMIP dataset search lifecycle', () => {
           fileCount: 34,
           alternatePathCount: 34,
           collections: ['cmip7_australian'],
+          directories: row.directories,
           timeRange: '0201-01-01 – 0368-12-31',
         },
       ],

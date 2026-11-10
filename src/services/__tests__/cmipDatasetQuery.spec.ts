@@ -128,6 +128,7 @@ describe('CMIP aggregation in the real DuckDB WASM engine', () => {
     expect(Number(result[0].file_count)).toBe(3);
     expect(Number(result[0].path_count)).toBe(9);
     expect(Array.from(result[0].collections)).toEqual(['source0', 'source1']);
+    expect(Array.from(result[0].directories)).toEqual([`/g/data/ib12/replicas/MIP-DRS7/${drs}/v20261019/`]);
     expect(result[0].time_start).toBe('02850101');
     expect(result[0].time_end).toBe('02991231');
     expect(groups({}, 'CMIP7', 1, 1)).toHaveLength(0);
@@ -165,6 +166,21 @@ describe('CMIP aggregation in the real DuckDB WASM engine', () => {
     const result = groups();
     expect(result).toHaveLength(2);
     expect(files(result[0].dataset_key)).toEqual([path('02900101-02941231', 'files/d20261019')]);
+    expect(Array.from(result[0].directories)).toEqual([`${root}${drs}/files/d20261019/`]);
+  });
+
+  it('lists every directory needed for the chosen file paths when a dataset spans locations', () => {
+    const replicaRoot = '/g/data/ib12/replicas/MIP-DRS7/';
+    insert(path('20000101-20001231'));
+    insert(path('20000101-20001231', 'files/d20261019'));
+    insert(path('20010101-20011231').replace(root, replicaRoot), 1);
+    const result = groups();
+    expect(Array.from(result[0].directories)).toEqual([`${replicaRoot}${drs}/v20261019/`, `${root}${drs}/v20261019/`]);
+    expect(
+      files(result[0].dataset_key).every((file: string) =>
+        Array.from(result[0].directories).includes(file.slice(0, file.lastIndexOf('/') + 1)),
+      ),
+    ).toBe(true);
   });
 
   it('retains unrecognised paths independently instead of guessing an identity', () => {

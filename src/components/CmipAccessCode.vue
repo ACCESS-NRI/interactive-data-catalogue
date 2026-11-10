@@ -10,7 +10,7 @@
         <h2 :id="`${id}-heading`" class="text-lg font-semibold">
           Code examples for accessing data on NCI
           <span class="mt-1 block text-sm font-normal text-teal-800 dark:text-teal-200"
-            >Intake + Xarray · ESMValCore · ESMValTool</span
+            >Intake + Xarray · ESMValCore · ESMValTool<span v-if="nciOnly"> · File paths</span></span
           >
         </h2>
         <i class="pi pi-chevron-right shrink-0 transition-transform group-open/access:rotate-90" aria-hidden="true"></i>
@@ -24,9 +24,7 @@
             >Your search is on ESGF. These examples apply the same {{ project }} filters to files held on Gadi; they do
             not open or download the ESGF result list.</template
           >
-          The examples use the filters for your whole search, including the ACCESS-only choice, rather than just the
-          results on this page or an expanded row.
-          <template v-if="accessOnly">These examples use ACCESS publications on NCI.</template>
+          <template v-if="accessOnly">{{ ' ' }}These examples use ACCESS publications on NCI.</template>
         </p>
         <div
           role="tablist"
@@ -69,104 +67,113 @@
           tabindex="0"
         >
           <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">{{ tab.description }}</p>
-          <RequiredProjectsWarning
-            :projects="cmipStorageProjects(project, accessOnly)"
-            :show-conda-environment="active === 'intake'"
-          />
-          <p v-if="tab.id === 'intake'" class="mb-3 text-sm text-gray-700 dark:text-gray-300">
-            Run this in an ARE JupyterLab notebook using the xp65 <code>conda/analysis3</code> environment. Follow the
-            <a
-              href="https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-blue-700 underline dark:text-blue-300"
-              >ARE setup instructions</a
-            >; the launch settings are also included in the code below.
-          </p>
-          <p v-if="tab.id !== 'intake'" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
-            {{ cmipEsmvalEnvironment(project) }} The examples are configured for files on Gadi.
-          </p>
-          <template v-if="tab.id === 'tool'">
-            <p
-              v-if="recipe.missingSelections.length"
-              role="status"
-              class="mb-3 text-sm text-amber-900 dark:text-amber-200"
-            >
-              Before running, select {{ recipe.missingSelections.join(', ') }} or fill in the marked recipe values.
-            </p>
-            <p
-              v-if="recipe.ignoredFilters.length"
-              role="status"
-              class="mb-3 text-sm text-amber-900 dark:text-amber-200"
-            >
-              Remove these filters to generate a matching recipe: {{ recipe.ignoredFilters.join(', ') }}.
-            </p>
-            <p class="mb-2 text-sm">Save the recipe as <code>recipe_cmip.yml</code>.</p>
-            <div class="overflow-x-auto rounded"><highlightjs language="yaml" :code="recipe.yaml" /></div>
-            <Button
-              :label="copied === 'recipe' ? 'Recipe copied' : 'Copy recipe'"
-              class="my-3"
-              icon="pi pi-copy"
-              outlined
-              size="small"
-              :disabled="recipe.ignoredFilters.length > 0"
-              @click="copy(recipe.yaml, 'recipe')"
+          <template v-if="tab.id === 'paths'">
+            <CmipPathDownload
+              v-if="pathExport?.search && pathExport.total > 0"
+              :search="pathExport.search"
+              :filename="`${project.toLowerCase()}-nci-paths.txt`"
+              :large="pathExport.total > 1000"
+              :disabled="pathExport.loading || !!pathExport.error"
             />
-            <p class="mb-2 text-sm">
-              Create a <code>cmip-config</code> directory and save this as <code>cmip-config/data.yml</code>.
+            <p v-else-if="!pathExport || pathExport.loading" role="status" class="text-sm">Preparing the NCI search…</p>
+            <p v-else-if="pathExport.error" role="alert" class="text-sm">
+              The NCI search could not finish. Retry it in the results section below.
             </p>
-            <div class="overflow-x-auto rounded"><highlightjs language="yaml" :code="recipe.config" /></div>
-            <Button
-              :label="copied === 'config' ? 'Configuration copied' : 'Copy configuration'"
-              class="my-3"
-              icon="pi pi-copy"
-              outlined
-              size="small"
-              @click="copy(recipe.config, 'config')"
-            />
-            <p class="mb-2 text-sm">Run from the directory containing the recipe:</p>
-            <pre
-              class="overflow-x-auto rounded bg-gray-900 p-3 text-sm text-gray-100"
-            ><code>{{ recipe.command }}</code></pre>
-            <Button
-              :label="copied === 'command' ? 'Command copied' : 'Copy run command'"
-              class="mt-3"
-              icon="pi pi-copy"
-              outlined
-              size="small"
-              @click="copy(recipe.command, 'command')"
-            />
+            <p v-else role="status" class="text-sm">No file paths match your current filters.</p>
           </template>
           <template v-else>
-            <p
-              v-if="tab.id === 'core' && unmapped.length"
-              role="status"
-              class="mb-3 text-sm text-amber-900 dark:text-amber-200"
-            >
-              Remove these filters to generate matching ESMValCore code: {{ unmapped.join(', ') }}.
-            </p>
-            <div class="overflow-x-auto rounded">
-              <highlightjs language="python" :code="tab.id === 'intake' ? intakeCode : coreCode" />
-            </div>
-            <Button
-              :label="copied === tab.id ? 'Code copied' : `Copy ${tab.label} code`"
-              class="mt-3"
-              icon="pi pi-copy"
-              outlined
-              size="small"
-              :disabled="tab.id === 'core' && unmapped.length > 0"
-              @click="copy(tab.id === 'intake' ? intakeCode : coreCode, tab.id)"
+            <RequiredProjectsWarning
+              :projects="cmipStorageProjects(project, accessOnly)"
+              :show-conda-environment="active === 'intake'"
             />
+            <p v-if="tab.id === 'intake'" class="mb-3 text-sm text-gray-700 dark:text-gray-300">
+              Run this in an ARE JupyterLab notebook using the xp65 <code>conda/analysis3</code> environment. Follow the
+              <a
+                href="https://docs.access-hive.org.au/getting_started/environments/#use-the-environment-within-are"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-700 underline dark:text-blue-300"
+                >ARE setup instructions</a
+              >; the launch settings are also included in the code below.
+            </p>
+            <p v-if="tab.id !== 'intake'" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+              {{ cmipEsmvalEnvironment(project) }} The examples are configured for files on Gadi.
+            </p>
+            <template v-if="tab.id === 'tool'">
+              <p
+                v-if="recipe.missingSelections.length"
+                role="status"
+                class="mb-3 text-sm text-amber-900 dark:text-amber-200"
+              >
+                Before running, select {{ recipe.missingSelections.join(', ') }} or fill in the marked recipe values.
+              </p>
+              <p
+                v-if="recipe.ignoredFilters.length"
+                role="status"
+                class="mb-3 text-sm text-amber-900 dark:text-amber-200"
+              >
+                Remove these filters to generate a matching recipe: {{ recipe.ignoredFilters.join(', ') }}.
+              </p>
+              <p class="mb-2 text-sm">Save the recipe as <code>recipe_cmip.yml</code>.</p>
+              <div class="overflow-x-auto rounded"><highlightjs language="yaml" :code="recipe.yaml" /></div>
+              <Button
+                :label="copied === 'recipe' ? 'Recipe copied' : 'Copy recipe'"
+                class="my-3"
+                icon="pi pi-copy"
+                outlined
+                size="small"
+                :disabled="recipe.ignoredFilters.length > 0"
+                @click="copy(recipe.yaml, 'recipe')"
+              />
+              <p class="mb-2 text-sm">
+                Create a <code>cmip-config</code> directory and save this as <code>cmip-config/data.yml</code>.
+              </p>
+              <div class="overflow-x-auto rounded"><highlightjs language="yaml" :code="recipe.config" /></div>
+              <Button
+                :label="copied === 'config' ? 'Configuration copied' : 'Copy configuration'"
+                class="my-3"
+                icon="pi pi-copy"
+                outlined
+                size="small"
+                @click="copy(recipe.config, 'config')"
+              />
+              <p class="mb-2 text-sm">Run from the directory containing the recipe:</p>
+              <pre
+                class="overflow-x-auto rounded bg-gray-900 p-3 text-sm text-gray-100"
+              ><code>{{ recipe.command }}</code></pre>
+              <Button
+                :label="copied === 'command' ? 'Command copied' : 'Copy run command'"
+                class="mt-3"
+                icon="pi pi-copy"
+                outlined
+                size="small"
+                @click="copy(recipe.command, 'command')"
+              />
+            </template>
+            <template v-else>
+              <p
+                v-if="tab.id === 'core' && unmapped.length"
+                role="status"
+                class="mb-3 text-sm text-amber-900 dark:text-amber-200"
+              >
+                Remove these filters to generate matching ESMValCore code: {{ unmapped.join(', ') }}.
+              </p>
+              <div class="overflow-x-auto rounded">
+                <highlightjs language="python" :code="tab.id === 'intake' ? intakeCode : coreCode" />
+              </div>
+              <Button
+                :label="copied === tab.id ? 'Code copied' : `Copy ${tab.label} code`"
+                class="mt-3"
+                icon="pi pi-copy"
+                outlined
+                size="small"
+                :disabled="tab.id === 'core' && unmapped.length > 0"
+                @click="copy(tab.id === 'intake' ? intakeCode : coreCode, tab.id)"
+              />
+            </template>
           </template>
         </div>
         <div class="mt-3 flex flex-wrap items-center gap-3">
-          <Button
-            :label="copied === 'link' ? 'Link copied' : 'Copy link to search'"
-            icon="pi pi-link"
-            outlined
-            size="small"
-            @click="copySearchLink"
-          />
           <a
             href="https://are.nci.org.au/pun/sys/dashboard"
             target="_blank"
@@ -198,6 +205,8 @@
 import { computed, ref, useId, watch } from 'vue';
 import Button from 'primevue/button';
 import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
+import CmipPathDownload from './CmipPathDownload.vue';
+import type { CmipPathExportState } from '../services/cmipDatasets';
 import { getUnmappedCmipFilters, type CmipProject } from '../services/cmipEsmvalcoreCode';
 import {
   buildCmipIntakeCode,
@@ -208,8 +217,14 @@ import {
 } from '../services/cmipAccessCode';
 import type { FilterMap } from '../types/datastore';
 
-const props = defineProps<{ project: CmipProject; filters: FilterMap; nciOnly: boolean; accessOnly?: boolean }>();
-const tabs = [
+const props = defineProps<{
+  project: CmipProject;
+  filters: FilterMap;
+  nciOnly: boolean;
+  accessOnly?: boolean;
+  pathExport?: CmipPathExportState;
+}>();
+const allTabs = [
   {
     id: 'intake',
     label: 'Intake + Xarray',
@@ -225,8 +240,20 @@ const tabs = [
     label: 'ESMValTool',
     description: 'Use one recipe to find and preprocess matching data on NCI.',
   },
+  {
+    id: 'paths',
+    label: 'File paths',
+    description: 'Download a text file of all NCI file paths matching your search filters.',
+  },
 ] as const;
-const active = ref<(typeof tabs)[number]['id']>('intake');
+const tabs = computed(() => allTabs.filter((tab) => tab.id !== 'paths' || props.nciOnly));
+const active = ref<(typeof allTabs)[number]['id']>('intake');
+watch(
+  () => props.nciOnly,
+  (nci) => {
+    if (!nci && active.value === 'paths') active.value = 'intake';
+  },
+);
 const id = useId();
 const tabButtons = ref<HTMLButtonElement[]>([]);
 const copied = ref('');
@@ -246,9 +273,9 @@ function changeTab(event: KeyboardEvent, index: number) {
     event.key === 'Home'
       ? 0
       : event.key === 'End'
-        ? tabs.length - 1
-        : (index + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length;
-  active.value = tabs[next]!.id;
+        ? tabs.value.length - 1
+        : (index + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.value.length) % tabs.value.length;
+  active.value = tabs.value[next]!.id;
   tabButtons.value[next]?.focus();
 }
 async function copy(text: string, format: string) {
@@ -261,5 +288,4 @@ async function copy(text: string, format: string) {
     copyError.value = 'Could not copy. Select and copy the text directly.';
   }
 }
-const copySearchLink = () => copy(window.location.href, 'link');
 </script>

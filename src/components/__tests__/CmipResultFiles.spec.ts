@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import CmipResultFiles from '../CmipResultFiles.vue';
-import CopyPath from '../CopyPath.vue';
 import type { CmipFilePage } from '../../services/cmipDatasets';
 
 describe('CMIP inline file paths', () => {
@@ -24,17 +23,14 @@ describe('CMIP inline file paths', () => {
   });
   afterEach(() => wrapper?.unmount());
 
-  it('distinguishes exact filenames from their containing directory', async () => {
+  it('lists complete filenames compactly without repeated directory or copy controls', async () => {
     render();
     expect(wrapper.get('[role=status]').text()).toContain('Looking up');
     await flushPromises();
     expect(fetchPaths).toHaveBeenCalledWith(key, 0, 10);
-    expect(wrapper.findAllComponents(CopyPath).map((component) => component.props())).toEqual([
-      { path: '/g/data/tas/2000.nc', kind: 'file path' },
-      { path: '/g/data/tas/', kind: 'directory' },
-    ]);
-    expect(wrapper.get('details').element.open).toBe(false);
-    expect(wrapper.text()).toContain('may also contain files outside your filters');
+    expect(wrapper.get('li').text()).toBe('/g/data/tas/2000.nc');
+    expect(wrapper.find('details').exists()).toBe(false);
+    expect(wrapper.find('button').exists()).toBe(false);
   });
 
   it('pages filenames and returns to the first page for a different result', async () => {

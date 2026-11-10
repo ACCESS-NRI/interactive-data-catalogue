@@ -74,18 +74,23 @@ export function buildCmipDatasetQuery(project: CmipProject, sources: CmipQuerySo
 
 export const indexCmipDatasets = 'SELECT DISTINCT dataset_key FROM matching';
 
-export const aggregateCmipDatasets = `SELECT dataset_key,
-  COUNT(DISTINCT filename) AS file_count, COUNT(DISTINCT path) AS path_count,
-  list(DISTINCT collection ORDER BY collection) AS collections,
-  MIN(NULLIF(regexp_extract(filename, '_([0-9]{4,14})(?:-[0-9]{4,14})?[.]nc$', 1), '')) AS time_start,
-  MAX(NULLIF(regexp_extract(filename, '_[0-9]{4,14}-([0-9]{4,14})[.]nc$', 1), '')) AS time_end
-  FROM matching GROUP BY dataset_key`;
-
 // Prefer a versioned path only when it is actually listed. Do not manufacture a
 // vYYYYMMDD path from files/dYYYYMMDD, or fold different dates into one version.
 const preferredPath = `COALESCE(
     MIN(path) FILTER (WHERE regexp_matches(path, '/v[0-9]{8}/[^/]+[.]nc$')), MIN(path)
   )`;
+
+export const aggregateCmipDatasets = `SELECT dataset_key,
+  COUNT(DISTINCT filename) AS file_count, SUM(path_count) AS path_count,
+  list_sort(list_distinct(flatten(list(collections)))) AS collections,
+  list(DISTINCT regexp_replace(file_path, '[^/]+$', '') ORDER BY regexp_replace(file_path, '[^/]+$', '')) AS directories,
+  MIN(NULLIF(regexp_extract(filename, '_([0-9]{4,14})(?:-[0-9]{4,14})?[.]nc$', 1), '')) AS time_start,
+  MAX(NULLIF(regexp_extract(filename, '_[0-9]{4,14}-([0-9]{4,14})[.]nc$', 1), '')) AS time_end
+  FROM (
+    SELECT dataset_key, filename, ${preferredPath} AS file_path,
+      COUNT(DISTINCT path) AS path_count, list(DISTINCT collection) AS collections
+    FROM matching GROUP BY dataset_key, filename
+  ) GROUP BY dataset_key`;
 export const selectCmipFiles = `SELECT ${preferredPath} AS file_path FROM matching WHERE dataset_key = ?
   GROUP BY filename ORDER BY filename LIMIT ? OFFSET ?`;
 
