@@ -68,6 +68,10 @@
         >
           <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">{{ tab.description }}</p>
           <template v-if="tab.id === 'paths'">
+            <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">
+              You can view dataset directories in the NCI results below. Select View files on a dataset row to see its
+              individual file paths.
+            </p>
             <CmipPathDownload
               v-if="pathExport?.search && pathExport.total > 0"
               :search="pathExport.search"

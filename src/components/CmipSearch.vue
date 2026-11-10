@@ -231,11 +231,22 @@
           </summary>
           <div class="pt-3">
             <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
-              Each row is one variable for a particular model, experiment, ensemble member and grid. Matching files
-              shows how many individual files match your filters; these usually cover different time ranges. Separate
-              releases of the same dataset appear as separate rows, labelled with their publication version. Select View
-              files to see the individual file paths.
+              Each row is one variable for a particular model, experiment, ensemble member and grid. The Matching files
+              column shows how many individual files match your filters. The individual files usually cover different
+              time ranges. Select View files to see the individual file paths.
             </p>
+            <details class="mb-4 text-sm text-sky-800 dark:text-sky-200">
+              <summary class="w-fit cursor-pointer font-semibold">Which dataset version should I use?</summary>
+              <p class="mt-2">
+                Datasets may be republished to correct errors or update files. Each version is listed separately; older
+                versions may remain available or be withdrawn.
+              </p>
+              <p class="mt-2">
+                For a new analysis, normally use the latest version and check for known issues (errata). Check ESGF for
+                updates that may not yet be available on NCI. To reproduce an earlier analysis, use its recorded version
+                and review any related errata.
+              </p>
+            </details>
             <CmipNciResults
               :project="project"
               :filters="effectiveFilters"
