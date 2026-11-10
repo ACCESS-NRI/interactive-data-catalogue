@@ -11,6 +11,7 @@
         }}
       </p>
     </div>
+    <NciAccessHelp class="border-t border-sky-200 px-4 py-3 dark:border-sky-800" />
     <div v-if="error" role="alert" class="p-4 text-sm text-amber-900 dark:text-amber-200">
       {{ error }} Dataset counts require all selected NCI sources to finish successfully.
       <button type="button" class="ml-2 underline" @click="load">Retry NCI search</button>
@@ -184,6 +185,7 @@ import {
   type CmipPathExportState,
 } from '../services/cmipDatasets';
 import CopyPath from './CopyPath.vue';
+import NciAccessHelp from './NciAccessHelp.vue';
 import CmipResultFiles from './CmipResultFiles.vue';
 import CmipPathDownload from './CmipPathDownload.vue';
 import type { FilterMap } from '../types/datastore';

@@ -6,6 +6,15 @@ const createWrapper = (field: string, value: any, header = 'Header') =>
   mount(DatastoreTableCell, { props: { field, header, value } });
 
 describe('DatastoreTableCell', () => {
+  it('links supported file paths while leaving unrelated metadata as plain text', () => {
+    const path = '/g/data/oi10/replicas/CMIP6/CMIP/model/historical/v20200101/tas.nc';
+    const wrapper = createWrapper('path', path);
+    expect(wrapper.text()).toContain(path);
+    expect(wrapper.findAll('a')).toHaveLength(2);
+    expect(createWrapper('description', path).find('a').exists()).toBe(false);
+    expect(createWrapper('path', '/g/data/private/tas.nc').find('a').exists()).toBe(false);
+  });
+
   describe('variable field (array)', () => {
     it('renders up to 3 variable badges', () => {
       const wrapper = createWrapper('variable', ['tas', 'pr', 'ua']);

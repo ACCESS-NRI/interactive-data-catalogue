@@ -17,6 +17,7 @@
         <span v-if="!compact">{{ copied ? 'Copied' : `Copy ${kind}` }}</span>
       </button>
     </div>
+    <NciFileLinks :path="path" :kind="kind === 'directory' ? 'directory' : 'file'" />
     <span class="sr-only" role="status">{{
       copied ? `${kind === 'directory' ? 'Directory' : 'File path'} copied` : ''
     }}</span>
@@ -28,6 +29,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue';
+import NciFileLinks from './NciFileLinks.vue';
 
 const props = defineProps<{ path: string; kind: 'file path' | 'directory'; compact?: boolean }>();
 const copied = ref(false);

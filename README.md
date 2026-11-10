@@ -17,7 +17,7 @@ https://access-nri.github.io/interactive-data-catalogue/
 
 ## Limitations
 
-- You will still require Gadi access to get your hands on the data.
+- Reading local `/g/data` paths and running the generated code requires Gadi access. Published CMIP files can also be accessed through the THREDDS links, or transferred through Globus where available.
 
 ## Development
 
@@ -37,6 +37,23 @@ npm run build
 
 The development server proxies catalogue API requests to the hosted reporting service, so a local backend is not required.
 To use a local backend instead, run `TRACKING_SERVICES_TARGET=http://127.0.0.1:8000 npm run dev`.
+
+## THREDDS and Globus links
+
+CMIP dataset directories, inline file lists, and collection file-path cells include **THREDDS** links to NCI's file or directory catalogue. File pages offer HTTPServer download and OPeNDAP access. **Globus folder** opens the containing directory in the Globus File Manager with the source selected; it does not select files or start a transfer. The collapsed **How to download with THREDDS or Globus** guide explains sign-in, file selection, destination storage, Globus Connect Personal, and transfer monitoring, with links to the [official transfer walkthrough](https://docs.globus.org/guides/tutorials/manage-files/transfer-files/).
+
+Mappings are deliberately limited to known public CMIP roots:
+
+| Gadi root                                  | NCI THREDDS root                | Globus mapping                                              |
+| ------------------------------------------ | ------------------------------- | ----------------------------------------------------------- |
+| `/g/data/fs38/publications/CMIP6`          | `esgcet/master/CMIP6`           | Published CMIP6 collection, `/master/CMIP6`                 |
+| `/g/data/oi10/replicas/CMIP6`              | `esgcet/replica/CMIP6`          | Published CMIP6 collection, `/replica/CMIP6`                |
+| `/g/data/im55/publications/MIP-DRS7/CMIP7` | `esgcet/master/MIP-DRS7/CMIP7`  | Published CMIP7 collection, `/esgcet/master/MIP-DRS7/CMIP7` |
+| `/g/data/ib12/replicas/MIP-DRS7/CMIP7`     | `esgcet/replica/MIP-DRS7/CMIP7` | Not verified; use the guide                                 |
+
+The original path is preserved, including `vYYYYMMDD`, `files/dYYYYMMDD`, and `latest`; links never silently substitute another version. Unknown project roots receive no inferred service links. Directory listings can include files outside the active search filters. These are links to published service locations, not live availability checks; Globus authentication, permissions, and actual transfers remain in Globus.
+
+Mappings were checked on 10 November 2026 against [NCI's THREDDS catalogue](https://esgf.nci.org.au/thredds/catalog/esgcet/catalog.html), [NCI CMIP6 file records](https://esgf.nci.org.au/esg-search/search?type=File&project=CMIP6&data_node=esgf.nci.org.au&limit=1&format=application%2Fsolr%2Bjson), and the [NCI CMIP7 STAC record for ACCESS-ESM1-6 piControl zostoga v20261002](https://search.east.esgf.io/collections/CMIP7/items/MIP-DRS7.CMIP7.CMIP.ACCESS-Consortium.ACCESS-ESM1-6.piControl.r1i1p1f1.glb.mon.zostoga.tavg-u-hm-sea.g118.v20261002). CMIP6 advertises collection `2058c7d6-a79f-11e6-9ad6-22000a1e3b52`; CMIP7 Australian publications advertise `1c2cce26-f869-4c61-8cbe-7a856324a72b` with an additional `/esgcet` path prefix. Authenticated Globus access was not tested. Update `src/services/nciFileAccess.ts` only from published mappings for additional collections.
 
 ## ESGF discovery
 
