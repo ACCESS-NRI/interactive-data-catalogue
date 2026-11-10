@@ -203,41 +203,39 @@
       </p>
     </div>
     <template v-else-if="effectiveFilters && (!accessOnly || (!optionsLoading && !optionsError))">
-      <div class="mb-3 flex justify-end">
-        <button
-          type="button"
-          class="rounded-lg border border-teal-300 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-900 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-100"
-          @click="showAccessCode"
-        >
-          Access code for this search <i class="pi pi-arrow-down ml-1" aria-hidden="true"></i>
-        </button>
-      </div>
+      <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" :access-only="accessOnly" />
       <section
         v-if="nciOnly"
         aria-label="NCI results"
         class="rounded-xl border border-sky-200 border-t-4 border-t-sky-600 bg-sky-50/50 p-4 dark:border-sky-800 dark:bg-sky-950/20"
       >
-        <h2 class="text-lg font-bold text-sky-950 dark:text-sky-100">
-          <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Datasets on Gadi
-        </h2>
-        <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
-          Browse matching datasets on Gadi. Select View files to inspect all matching time chunks and copy their paths.
-        </p>
-        <CmipNciResults
-          :project="project"
-          :filters="effectiveFilters"
-          :access-only="accessOnly"
-          @search-esgf="setLocation(false)"
-        />
+        <details open class="group/nci">
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-4 rounded text-sky-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-600 dark:text-sky-100 [&::-webkit-details-marker]:hidden"
+          >
+            <h2 class="text-lg font-bold">
+              <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Datasets on Gadi
+            </h2>
+            <i
+              class="pi pi-chevron-right shrink-0 transition-transform group-open/nci:rotate-90"
+              aria-hidden="true"
+            ></i>
+          </summary>
+          <div class="pt-3">
+            <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
+              Browse matching datasets on Gadi. Select View files to inspect all matching time chunks and copy their
+              paths.
+            </p>
+            <CmipNciResults
+              :project="project"
+              :filters="effectiveFilters"
+              :access-only="accessOnly"
+              @search-esgf="setLocation(false)"
+            />
+          </div>
+        </details>
       </section>
       <CmipEsgfSearch v-else standalone :model-value="true" :project="project" :filters="effectiveFilters" />
-      <div
-        ref="accessCodePanel"
-        tabindex="-1"
-        class="mt-6 scroll-mt-6 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
-      >
-        <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" :access-only="accessOnly" />
-      </div>
     </template>
   </main>
 </template>
@@ -259,11 +257,6 @@ import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
 const route = useRoute();
 const router = useRouter();
-const accessCodePanel = ref<HTMLElement>();
-function showAccessCode() {
-  accessCodePanel.value?.focus({ preventScroll: true });
-  accessCodePanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 const eras = ['CMIP6', 'CMIP7'] as const;
 const project = computed<CmipProject>(() => (route.query.project === 'CMIP6' ? 'CMIP6' : 'CMIP7'));
 function setProject(value: CmipProject) {
