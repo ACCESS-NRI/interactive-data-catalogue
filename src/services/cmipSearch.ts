@@ -55,9 +55,13 @@ export function accessFilters(filters: FilterMap, options: FilterOptions): Filte
   return models.length ? { ...filters, source_id: models } : null;
 }
 
-export async function fetchCmipNciOptions(project: CmipProject, signal: AbortSignal): Promise<FilterOptions> {
+export async function fetchCmipNciOptions(
+  project: CmipProject,
+  signal: AbortSignal,
+  filters: FilterMap = {},
+): Promise<FilterOptions> {
   const pages = await Promise.all(
-    CMIP_COLLECTIONS[project].map(({ name }) => fetchCmipNciPage(name, {}, signal, 0, 1)),
+    CMIP_COLLECTIONS[project].map(({ name }) => fetchCmipNciPage(name, filters, signal, 0, 1)),
   );
   const options = pages.map((page) => {
     const fields = page.dynamic_filter_options;

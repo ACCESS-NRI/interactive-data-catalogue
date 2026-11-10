@@ -97,7 +97,7 @@
           :input-id="`filter-${column}`"
           :model-value="modelValue[column]"
           @update:model-value="updateFilter(column, $event)"
-          :options="getSortedOptions(combinedOptions[column] ?? [], filterValues[column], availableOptions(column))"
+          :options="getSortedOptions(displayOptions(column), filterValues[column], availableOptions(column))"
           :optionDisabled="(option) => isOptionDisabled(column, option)"
           filterMatchMode="passthrough"
           @filter="(event) => handleFilterChange(column, event.value)"
@@ -109,6 +109,7 @@
           class="w-full"
           filter
           showClear
+          :loading="optionsPending"
           autoFilterFocus
           appendTo="self"
           :placeholder="compact ? 'Choose values' : 'No filters applied'"
@@ -116,6 +117,11 @@
         >
           <template #option="{ option }">
             <span>{{ option }}</span>
+            <span
+              v-if="hideUnavailableOptions && !optionsPending && !dynamicFilterOptions[column]?.includes(option)"
+              class="ml-2 text-xs text-amber-700 dark:text-amber-300"
+              >No match with other filters</span
+            >
             <span
               v-if="esgfOptionSets[column]?.has(option) && !filterOptions[column]?.includes(option)"
               class="ml-2 rounded bg-violet-100 px-1.5 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900 dark:text-violet-200"
@@ -173,6 +179,8 @@ interface Props {
   compact?: boolean;
   defaultVisibleColumns?: string[];
   esgfProject?: CmipProject | null;
+  hideUnavailableOptions?: boolean;
+  optionsPending?: boolean;
 }
 
 interface Emits {
@@ -188,6 +196,8 @@ const props = withDefaults(defineProps<Props>(), {
   compact: false,
   defaultVisibleColumns: () => [],
   esgfProject: null,
+  hideUnavailableOptions: false,
+  optionsPending: false,
 });
 const emit = defineEmits<Emits>();
 
@@ -216,6 +226,14 @@ const combinedOptions = computed(() =>
 const availableOptions = (column: string) => {
   const local = props.dynamicFilterOptions[column];
   return local ? [...new Set([...local, ...(esgfOptions.value[column] ?? [])])] : undefined;
+};
+// Dependent CMIP facets show compatible choices plus selected values, which
+// must remain visible and removable even after a scope change or an empty search.
+const displayOptions = (column: string) => {
+  const all = combinedOptions.value[column] ?? [];
+  if (!props.hideUnavailableOptions) return all;
+  const allowed = new Set(availableOptions(column) ?? []);
+  return all.filter((value) => allowed.has(value) || props.modelValue[column]?.includes(value));
 };
 const visibleColumns = ref<string[]>([]);
 const columnSearch = ref('');

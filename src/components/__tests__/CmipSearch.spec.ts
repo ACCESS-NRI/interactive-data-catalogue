@@ -84,6 +84,27 @@ afterEach(() => {
 });
 
 describe('combined CMIP discovery', () => {
+  it('passes dependent NCI facets to the picker and broadens choices again on clear', async () => {
+    const all = { ...options, branded_variable: ['tas_tavg', 'tos_tavg'], realm: ['atmos', 'ocean'] };
+    vi.mocked(fetchCmipNciOptions).mockImplementation(async (_project, _signal, selected) =>
+      selected?.variable_id?.includes('tas')
+        ? { ...all, branded_variable: ['tas_tavg'], realm: ['atmos'], variable_id: ['tas'] }
+        : all,
+    );
+    await render('/cmip?variable_id_filter=tas');
+    const picker = wrapper.findComponent(FilterSelectors);
+    expect(picker.props('hideUnavailableOptions')).toBe(true);
+    expect(picker.props('dynamicFilterOptions')).toMatchObject({
+      branded_variable: ['tas_tavg'],
+      realm: ['atmos'],
+      variable_id: ['tas', 'pr'],
+    });
+    expect(wrapper.findComponent(CmipAccessCode).props('filters')).toEqual({ variable_id: ['tas'] });
+    picker.vm.$emit('clear');
+    await tick();
+    expect(picker.props('dynamicFilterOptions').branded_variable).toEqual(['tas_tavg', 'tos_tavg']);
+  });
+
   it('switches eras, retaining scopes and clearing incompatible selections and cached options', async () => {
     vi.mocked(fetchCmipNciOptions).mockImplementation(async (project) =>
       project === 'CMIP6'
@@ -111,7 +132,7 @@ describe('combined CMIP discovery', () => {
     });
     await wrapper.get('input[name="cmip-era"][value="CMIP7"]').setValue(true);
     await tick();
-    expect(fetchCmipNciOptions).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetchCmipNciOptions).mock.calls.filter((call) => !call[2])).toHaveLength(2);
     expect(wrapper.findComponent(CmipAccessCode).props('filters')).toEqual({ source_id: ['ACCESS-ESM1-6'] });
   });
 

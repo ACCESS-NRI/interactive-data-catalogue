@@ -66,6 +66,29 @@ describe('FilterSelectors', () => {
   };
 
   // Test that all filter columns are rendered with their formatted labels
+  it('hides incompatible choices while keeping selected conflicts removable during updates and empty searches', async () => {
+    const wrapper = createWrapper({
+      filterOptions: { branded_variable: ['tas_tavg', 'tas_tmax', 'tos_tavg'] },
+      dynamicFilterOptions: { branded_variable: ['tas_tavg', 'tas_tmax'] },
+      modelValue: { branded_variable: ['tos_tavg'] },
+      hideUnavailableOptions: true,
+    });
+    const select = wrapper.findComponent(MultiSelect);
+    expect(select.props('options')).toEqual(['tas_tavg', 'tas_tmax', 'tos_tavg']);
+    expect((select.props('optionDisabled') as (value: string) => boolean)('tos_tavg')).toBe(false);
+    await select.trigger('click');
+    expect(select.find('[role=option][aria-label="tos_tavg"]').text()).toContain('No match with other filters');
+    await wrapper.setProps({ dynamicFilterOptions: { branded_variable: [] }, optionsPending: true });
+    expect(select.props('options')).toEqual(['tos_tavg']);
+    expect((select.props('optionDisabled') as (value: string) => boolean)('tos_tavg')).toBe(false);
+    expect(select.text()).not.toContain('No match with other filters');
+    await wrapper.setProps({ modelValue: {}, optionsPending: false });
+    expect(select.props('options')).toEqual([]);
+    await wrapper.setProps({ dynamicFilterOptions: { branded_variable: ['tas_tavg', 'tas_tmax'] } });
+    expect(select.props('options')).toEqual(['tas_tavg', 'tas_tmax']);
+    wrapper.unmount();
+  });
+
   it('adds deduplicated ESGF choices to existing dropdowns only after opt-in, preserving selections on opt-out', async () => {
     vi.mocked(fetchEsgfFilterOptions).mockResolvedValue({ project: ['proj1', 'RemoteProject', 'RemoteProject'] });
     const wrapper = createWrapper();

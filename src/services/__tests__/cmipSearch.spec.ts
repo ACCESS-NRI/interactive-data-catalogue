@@ -82,6 +82,29 @@ describe('CMIP scope queries', () => {
     await expect(fetchCmipNciOptions('CMIP7', new AbortController().signal)).rejects.toThrow('NCI filter options');
   });
 
+  it('gets constrained choices from both full catalogues even when one has no matching records', async () => {
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(() => response({ total: 0, records: [], dynamic_filter_options: {} }))
+      .mockImplementationOnce(() =>
+        response({
+          total: 200,
+          records: [{ variable_id: 'tas' }],
+          dynamic_filter_options: { source_id: ['OtherModel'], branded_variable: ['tas_tavg', 'tas_tmax'] },
+        }),
+      );
+    vi.stubGlobal('fetch', fetcher);
+    expect(await fetchCmipNciOptions('CMIP7', new AbortController().signal, { variable_id: ['tas'] })).toEqual({
+      source_id: ['OtherModel'],
+      branded_variable: ['tas_tavg', 'tas_tmax'],
+    });
+    for (const call of fetcher.mock.calls) {
+      const query = new URL(call[0], 'https://test.example').searchParams;
+      expect(JSON.parse(query.get('filters')!)).toEqual({ variable_id: ['tas'] });
+      expect(query.get('limit')).toBe('1');
+    }
+  });
+
   it('sends filters and pagination to the catalogue rather than filtering the loaded page', async () => {
     const fetcher = vi.fn().mockImplementation(() => response({ total: 0, records: [] }));
     vi.stubGlobal('fetch', fetcher);

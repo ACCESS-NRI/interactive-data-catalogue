@@ -153,10 +153,14 @@ export function buildEsgfSearchUrl(project: CmipProject, filters: FilterMap, cur
   return url.toString();
 }
 
-/** Discover collection-wide choices independently of paginated dataset results. */
-export async function fetchEsgfFilterOptions(project: CmipProject, signal: AbortSignal): Promise<FilterOptions> {
+/** Discover choices across the full matching search, independently of result pages. */
+export async function fetchEsgfFilterOptions(
+  project: CmipProject,
+  signal: AbortSignal,
+  filters: FilterMap = {},
+): Promise<FilterOptions> {
   const fields = Object.entries(facetMaps[project]);
-  const url = new URL(buildEsgfSearchUrl(project, {}));
+  const url = new URL(buildEsgfSearchUrl(project, filters));
   if (project === 'CMIP6') {
     url.searchParams.set('limit', '0');
     url.searchParams.set('facets', fields.map(([, remote]) => remote).join(','));

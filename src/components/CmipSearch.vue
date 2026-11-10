@@ -153,12 +153,30 @@
         </button></template
       >
     </div>
+    <p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+      Filter choices update to match your other selections. You can select multiple values within each field.
+    </p>
+    <div
+      v-if="dependent.loading.value || dependent.error.value"
+      class="mb-3 text-sm text-gray-600 dark:text-gray-300"
+      :role="dependent.error.value ? 'alert' : 'status'"
+    >
+      <template v-if="dependent.loading.value">Updating related filter choices…</template>
+      <template v-else>
+        Related filter choices could not be updated. {{ dependent.error.value }}
+        <button type="button" class="ml-2 text-blue-700 underline dark:text-blue-300" @click="dependent.retry()">
+          Retry related filter choices
+        </button>
+      </template>
+    </div>
     <FilterSelectors
       :key="project"
       v-model="currentFilters"
       compact
       :filter-options="filterOptions"
-      :dynamic-filter-options="{}"
+      :dynamic-filter-options="dynamicFilterOptions"
+      hide-unavailable-options
+      :options-pending="optionsLoading || !!optionsError || dependent.loading.value || !!dependent.error.value"
       :default-visible-columns="defaultColumns"
       analytics-context="datastore"
       @clear="currentFilters = {}"
@@ -227,6 +245,7 @@ import CmipEsgfSearch from './CmipEsgfSearch.vue';
 import CmipNciResults from './CmipNciResults.vue';
 import CmipAccessCode from './CmipAccessCode.vue';
 import { useEsgfFilterOptions } from '../composables/useEsgfFilterOptions';
+import { useCmipDependentOptions } from '../composables/useCmipDependentOptions';
 import { buildFilterQuery, parseFiltersFromQuery } from '../composables/useFilterUrlSync';
 import { getDefaultVisibleFilterColumns } from '../services/datastoreFilterDefaults';
 import { accessFilters, fetchCmipNciOptions } from '../services/cmipSearch';
@@ -320,5 +339,21 @@ const filterOptions = computed(() => {
 });
 const effectiveFilters = computed(() =>
   accessOnly.value ? accessFilters(currentFilters.value, options.value) : currentFilters.value,
+);
+const dependent = useCmipDependentOptions(
+  computed(() =>
+    optionsLoading.value || optionsError.value || !Object.keys(options.value).length
+      ? null
+      : {
+          project: project.value,
+          nci: nciOnly.value,
+          filters: currentFilters.value,
+          accessOnly: accessOnly.value,
+          baseOptions: options.value,
+        },
+  ),
+);
+const dynamicFilterOptions = computed(() =>
+  Object.fromEntries(Object.keys(filterOptions.value).map((field) => [field, dependent.options.value[field] ?? []])),
 );
 </script>
