@@ -141,6 +141,57 @@ describe('CMIP dataset search lifecycle', () => {
     expect(exportConn.close).toHaveBeenCalledTimes(2);
   });
 
+  it('streams a large dataset in bounded chunks without dropping the final paths', async () => {
+    const search = await createCmipDatasetSearch('CMIP7', {}, new AbortController().signal);
+    const paths = Array.from({ length: 8200 }, (_, index) => `/g/data/file-${index}.nc`);
+    const statement = {
+      send: vi.fn(async function* () {
+        yield { getChild: () => paths };
+      }),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    const exportConn = {
+      prepare: vi.fn().mockResolvedValue(statement),
+      close: vi.fn().mockResolvedValue(undefined),
+      cancelSent: vi.fn().mockResolvedValue(true),
+    };
+    db.connect.mockResolvedValue(exportConn);
+    const batches: string[][] = [];
+    for await (const batch of search.exportPaths(new AbortController().signal, key)) batches.push(batch);
+    expect(batches.map((batch) => batch.length)).toEqual([4096, 4096, 8]);
+    expect(batches.flat()).toEqual(paths);
+    expect(statement.send).toHaveBeenCalledWith(key, key);
+    expect(exportConn.close).toHaveBeenCalledOnce();
+    await search.dispose();
+  });
+
+  it('retains CMIP6 member and table facets and represents unknown layouts without invented dates', async () => {
+    const search = await createCmipDatasetSearch('CMIP6', {}, new AbortController().signal);
+    const rows = [
+      {
+        ...row,
+        dataset_key: 'CMIP6/CMIP/CSIRO/ACCESS-CM2/historical/r1i1p1f1/Amon/tas/gn/v20200101',
+        collections: ['cmip6_fs38'],
+        time_start: '200001',
+        time_end: '200012',
+      },
+      { ...row, dataset_key: 'unverified:/g/data/custom.nc', time_start: null, time_end: null },
+    ];
+    conn.prepare.mockResolvedValue({
+      query: vi.fn().mockResolvedValue({ toArray: () => rows }),
+      close: vi.fn(),
+    });
+    const result = await search.page(0, 20);
+    expect(result.datasets[0]).toMatchObject({
+      facets: { source_id: 'ACCESS-CM2', member_id: 'r1i1p1f1', table_id: 'Amon', variable_id: 'tas' },
+      version: 'v20200101',
+      timeRange: '2000-01 – 2000-12',
+    });
+    expect(result.datasets[0]!.facets).not.toHaveProperty('branded_variable');
+    expect(result.datasets[1]).toMatchObject({ id: '/g/data/custom.nc', facets: {}, version: null, timeRange: null });
+    await search.dispose();
+  });
+
   it('builds one grouped index for both catalogues, reuses it for paging, and resolves all files for the selected dataset', async () => {
     const signal = new AbortController().signal;
     const search = await createCmipDatasetSearch('CMIP7', { variable_id: ['tas'] }, signal);

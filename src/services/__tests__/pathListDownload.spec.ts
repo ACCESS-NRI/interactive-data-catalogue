@@ -90,6 +90,19 @@ describe('plain text path downloads', () => {
     expect(click).toHaveBeenCalledOnce();
   });
 
+  it('aborts a writer opened after cancellation without committing an empty or partial file', async () => {
+    const controller = new AbortController();
+    createWritable.mockImplementationOnce(async () => {
+      controller.abort();
+      return { write, close, abort };
+    });
+    await expect(createPathListDownload('paths.txt', controller.signal, true)).rejects.toThrow();
+    expect(abort).toHaveBeenCalledOnce();
+    expect(write).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+    expect(click).not.toHaveBeenCalled();
+  });
+
   it('reports a buffer limit instead of saving a truncated fallback download', async () => {
     vi.spyOn(TextEncoder.prototype, 'encode').mockReturnValue({
       byteLength: 512 * 1024 * 1024 + 1,
