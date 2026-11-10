@@ -75,4 +75,24 @@ describe('CMIP inline file paths', () => {
     expect(wrapper.text()).toContain('No file paths were found for this dataset');
     expect(wrapper.find('[role=alert]').exists()).toBe(false);
   });
+
+  it('links each public file on THREDDS and opens its containing folder in Globus', async () => {
+    const directory = '/g/data/fs38/publications/CMIP6/CMIP/CSIRO/ACCESS-ESM1-5/historical/v20191115/';
+    fetchPaths.mockResolvedValue({ paths: [`${directory}first.nc`, `${directory}second.nc`], hasMore: false });
+    render();
+    await flushPromises();
+    const rows = wrapper.findAll('li');
+    expect(rows).toHaveLength(2);
+    for (const [index, file] of ['first.nc', 'second.nc'].entries()) {
+      const links = rows[index]!.findAll('a');
+      const thredds = new URL(links[0]!.attributes('href')!);
+      expect(thredds.searchParams.get('dataset')).toBe(
+        `esgcet/master/CMIP6/CMIP/CSIRO/ACCESS-ESM1-5/historical/v20191115/${file}`,
+      );
+      expect(new URL(links[1]!.attributes('href')!).searchParams.get('origin_path')).toBe(
+        '/master/CMIP6/CMIP/CSIRO/ACCESS-ESM1-5/historical/v20191115/',
+      );
+    }
+    expect(wrapper.find('button').exists()).toBe(false);
+  });
 });

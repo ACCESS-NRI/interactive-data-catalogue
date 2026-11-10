@@ -57,4 +57,24 @@ describe('CopyPath', () => {
     expect(wrapper.get('button').text()).toContain('Copy file path');
     expect(wrapper.get('[role=status]').text()).toBe('');
   });
+
+  it('shows service links alongside a directory and removes them when the path changes to an unsupported project', async () => {
+    const path = '/g/data/fs38/publications/CMIP6/CMIP/CSIRO/ACCESS-ESM1-5/historical/';
+    wrapper = mount(CopyPath, { props: { path, kind: 'directory', compact: true } });
+    expect(wrapper.get('code').text()).toBe(path);
+    const links = wrapper.findAll('a');
+    expect(links).toHaveLength(2);
+    expect(links[0]!.attributes('href')).toBe(
+      'https://esgf.nci.org.au/thredds/catalog/esgcet/master/CMIP6/CMIP/CSIRO/ACCESS-ESM1-5/historical/catalog.html',
+    );
+    for (const link of links) {
+      expect(link.attributes('target')).toBe('_blank');
+      expect(link.attributes('rel')).toBe('noopener noreferrer');
+    }
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+    expect(writeText).toHaveBeenCalledWith(path);
+    await wrapper.setProps({ path: '/g/data/private/results/' });
+    expect(wrapper.findAll('a')).toHaveLength(0);
+  });
 });

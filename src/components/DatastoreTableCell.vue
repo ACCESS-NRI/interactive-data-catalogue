@@ -1,6 +1,11 @@
 <template>
   <div class="max-w-sm overflow-x-scroll">
-    <div v-if="field === 'variable' && Array.isArray(value)">
+    <div v-if="['path', 'file_path', 'filename'].includes(field) && typeof value === 'string'">
+      <span class="text-gray-900 dark:text-gray-100">{{ displayValue }}</span>
+      <NciFileLinks :path="value" kind="file" />
+    </div>
+
+    <div v-else-if="field === 'variable' && Array.isArray(value)">
       <div class="flex flex-wrap gap-1">
         <span
           v-for="variable in value.slice(0, 3)"
@@ -97,6 +102,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { DatastoreCellValue } from '../types/datastore';
+import NciFileLinks from './NciFileLinks.vue';
 
 const props = defineProps<{
   field: string;

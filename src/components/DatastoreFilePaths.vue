@@ -18,6 +18,7 @@
         No datasets match the current selection.
       </p>
       <template v-else>
+        <NciAccessHelp v-if="hasPublicLinks" class="mb-3" />
         <p v-if="groupedByDirectory" class="mb-3 text-sm text-gray-700 dark:text-gray-300">
           This CSV has no dataset IDs. Files are grouped by parent directory.
         </p>
@@ -61,6 +62,8 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import CopyPath from './CopyPath.vue';
+import NciAccessHelp from './NciAccessHelp.vue';
+import { nciFileAccess } from '../services/nciFileAccess';
 import {
   fetchDatastorePaths,
   fetchDatasetGrouping,
@@ -82,6 +85,7 @@ const PAGE_SIZE = 25;
 const isOpen = ref(false);
 const page = ref(0);
 const datasets = ref<DatasetPath[]>([]);
+const hasPublicLinks = computed(() => datasets.value.some((dataset) => nciFileAccess(dataset.path, 'directory')));
 const groupedByDirectory = ref(false);
 const paths = computed(() => datasets.value.map((dataset) => dataset.path));
 const hasMore = ref(false);

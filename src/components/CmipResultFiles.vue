@@ -16,6 +16,7 @@
       >
         <li v-for="path in paths" :key="path" class="break-all py-1.5">
           {{ path }}
+          <NciFileLinks :path="path" kind="file" />
         </li>
       </ul>
       <nav v-if="page > 0 || hasMore" aria-label="File path pages" class="mt-3 flex items-center gap-3 text-sm">
@@ -39,6 +40,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { CmipDatasetSearch } from '../services/cmipDatasets';
+import NciFileLinks from './NciFileLinks.vue';
 
 const props = defineProps<{ search: CmipDatasetSearch; datasetKey: string }>();
 const paths = ref<string[]>([]);
