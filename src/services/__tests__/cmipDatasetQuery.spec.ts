@@ -71,6 +71,19 @@ beforeEach(() => {
 });
 
 describe('CMIP aggregation in the real DuckDB WASM engine', () => {
+  it('finds every dated version while preserving unverified paths in the NCI comparison', () => {
+    insert(path('20000101-20001231'));
+    insert(path('20000101-20001231', 'files/d20261019'));
+    insert(path('20010101-20011231', 'v20261020'));
+    insert(path('20020101-20021231', 'latest'));
+    insert('/custom/undated.nc');
+    insert(path('20030101-20031231', 'v20261021'), 0, 2900101, 'OtherModel');
+    const { cte, parameters } = buildCmipDatasetQuery('CMIP7', sources, { source_id: ['ACCESS-ESM1-6'] });
+    expect(
+      new Set(run(`${cte} SELECT DISTINCT version FROM matching`, parameters).map((row: any) => row.version)),
+    ).toEqual(new Set(['v20261019', 'v20261020', 'latest', null]));
+  });
+
   it('exports every filtered file across dataset ranges, without display-page limits or alternate paths', () => {
     const expected: string[] = [];
     for (let model = 0; model < 25; model++) {

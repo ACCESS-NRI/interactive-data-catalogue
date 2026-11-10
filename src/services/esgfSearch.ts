@@ -366,7 +366,35 @@ export async function checkNciAvailability(dataset: EsgfDataset, signal: AbortSi
   );
   const names = found.map(({ name }) => name);
   if (found.length) {
-    if (dataset.project === 'CMIP7' || !dataset.version) return { status: 'version-unverified', collections: names };
+    if (!dataset.version) return { status: 'version-unverified', collections: names };
+    if (dataset.project === 'CMIP7') {
+      // The table API omits CMIP7 versions and paths. Compare the actual paths
+      // in each matching catalogue, not just the first displayed file.
+      const { fetchCmipNciVersions } = await import('./cmipNciVersions');
+      const versions = await Promise.allSettled(
+        found.map(async ({ name }) => ({
+          name,
+          values: await fetchCmipNciVersions(dataset.project, name, filters, signal),
+        })),
+      );
+      signal.throwIfAborted();
+      const checked = versions.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+      const matching = checked.filter(({ values }) => values.includes(`v${dataset.version.replace(/^v/, '')}`));
+      if (matching.length) return { status: 'listed', collections: matching.map(({ name }) => name) };
+      if (
+        checked.length !== found.length ||
+        checked.some(({ values }) => !values.length) ||
+        results.some((result) => result.status === 'rejected')
+      ) {
+        return { status: 'unknown', collections: names };
+      }
+      return {
+        status: checked.every(({ values }) => values.every((value) => value !== null && /^v[0-9]{8}$/.test(value)))
+          ? 'different-version'
+          : 'version-unverified',
+        collections: names,
+      };
+    }
     const version = dataset.version.replace(/^v/, '');
     if (found.some(({ data }) => data.dynamic_filter_options?.version?.some((v) => v.replace(/^v/, '') === version))) {
       return { status: 'listed', collections: names };
