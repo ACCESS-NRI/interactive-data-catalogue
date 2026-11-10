@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fetchCmipNciVersions } from '../cmipNciVersions';
+vi.mock('../cmipNciVersions', () => ({ fetchCmipNciVersions: vi.fn() }));
 import {
   buildEsgfSearchUrl,
   checkNciAvailability,
@@ -54,7 +56,10 @@ const cmip7 = {
   },
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(fetchCmipNciVersions).mockReset();
+});
 
 describe('ESGF dropdown facets', () => {
   it('requests full CMIP6 facets without dataset pages and maps names and versions back to NCI fields', async () => {
@@ -349,10 +354,90 @@ describe('NCI comparison', () => {
     expect((await checkNciAvailability(item, signal())).status).toBe('different-version');
   });
 
-  it('does not claim CMIP7 version or completeness verification', async () => {
+  it.each(['20250101', 'v20250101'])('verifies a CMIP7 version %s across all local paths', async (version) => {
+    const item = await dataset('CMIP7');
+    item.version = version;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 100, records: [{}] })));
+    vi.mocked(fetchCmipNciVersions)
+      .mockResolvedValueOnce(['v20240101'])
+      .mockResolvedValueOnce(['v20240101', 'latest', 'v20250101']);
+    expect(await checkNciAvailability(item, signal())).toEqual({
+      status: 'listed',
+      collections: ['cmip7_australian'],
+    });
+    expect(fetchCmipNciVersions).toHaveBeenCalledWith(
+      'CMIP7',
+      'cmip7_australian',
+      {
+        activity_id: ['CMIP'],
+        institution_id: ['INST'],
+        source_id: ['Model'],
+        experiment_id: ['historical'],
+        variant_label: ['r1i1p1f1'],
+        region: ['glb'],
+        frequency: ['mon'],
+        branded_variable: ['tas_tavg-h2m-hxy-u'],
+        grid_label: ['gn'],
+      },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('reports a different CMIP7 version only after both catalogues and all dated paths are checked', async () => {
     const item = await dataset('CMIP7');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 1, records: [{}] })));
+    vi.mocked(fetchCmipNciVersions).mockResolvedValue(['v20240101', 'v20260101']);
+    expect((await checkNciAvailability(item, signal())).status).toBe('different-version');
+  });
+
+  it.each([null, 'latest'])('keeps undated CMIP7 paths %s unverified', async (undated) => {
+    const item = await dataset('CMIP7');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 1, records: [{}] })));
+    vi.mocked(fetchCmipNciVersions).mockResolvedValue(['v20240101', undated]);
     expect((await checkNciAvailability(item, signal())).status).toBe('version-unverified');
+  });
+
+  it.each(['failed', 'empty'])('does not infer a different version from a %s path lookup', async (mode) => {
+    const item = await dataset('CMIP7');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 1, records: [{}] })));
+    vi.mocked(fetchCmipNciVersions).mockResolvedValueOnce(['v20240101']);
+    if (mode === 'failed') vi.mocked(fetchCmipNciVersions).mockRejectedValueOnce(new Error('offline'));
+    else vi.mocked(fetchCmipNciVersions).mockResolvedValueOnce([]);
+    expect((await checkNciAvailability(item, signal())).status).toBe('unknown');
+  });
+
+  it.each(['v20250101', 'v20240101'])('handles a failed collection check when another has %s', async (version) => {
+    const item = await dataset('CMIP7');
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce(json({ total: 1, records: [{}] })),
+    );
+    vi.mocked(fetchCmipNciVersions).mockResolvedValueOnce([version]);
+    expect((await checkNciAvailability(item, signal())).status).toBe(version === 'v20250101' ? 'listed' : 'unknown');
+  });
+
+  it('does not guess an absent ESGF version or query versions for a zero-match collection', async () => {
+    const item = await dataset('CMIP7');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 0, records: [] })));
+    expect((await checkNciAvailability(item, signal())).status).toBe('missing');
+    item.version = '';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 1, records: [{}] })));
+    expect((await checkNciAvailability(item, signal())).status).toBe('version-unverified');
+    expect(fetchCmipNciVersions).not.toHaveBeenCalled();
+  });
+
+  it('discards a version result when the search was cancelled', async () => {
+    const item = await dataset('CMIP7');
+    const controller = new AbortController();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ total: 1, records: [{}] })));
+    vi.mocked(fetchCmipNciVersions).mockImplementation(async () => {
+      controller.abort();
+      return ['v20250101'];
+    });
+    await expect(checkNciAvailability(item, controller.signal)).rejects.toThrow();
   });
 
   it('reports absence only after successful zero-match checks in both collections', async () => {

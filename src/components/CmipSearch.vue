@@ -238,13 +238,14 @@
             <details class="mb-4 text-sm text-sky-800 dark:text-sky-200">
               <summary class="w-fit cursor-pointer font-semibold">Which dataset version should I use?</summary>
               <p class="mt-2">
-                Datasets may be republished to correct errors or update files. Each version is listed separately; older
-                versions may remain available or be withdrawn.
+                Sometimes, you may see multiple versions of an otherwise identical dataset. Datasets may be republished
+                to correct errors or update files. Each version is listed separately; older versions may remain
+                available or be withdrawn.
               </p>
               <p class="mt-2">
-                For a new analysis, normally use the latest version and check for known issues (errata). Check ESGF for
-                updates that may not yet be available on NCI. To reproduce an earlier analysis, use its recorded version
-                and review any related errata.
+                For a new analysis, normally use the latest version and check for known issues (errata). For
+                international data replicated to NCI, check ESGF for updates that may not yet be available on NCI. To
+                reproduce an earlier analysis, use its recorded version and review any related errata.
               </p>
             </details>
             <CmipNciResults
