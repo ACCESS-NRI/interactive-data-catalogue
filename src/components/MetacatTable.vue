@@ -380,7 +380,7 @@ const dynamicFilterOptions = useDynamicFilterOptions(catalogRows, filterOptions,
  */
 const columns = ref<TableColumn[]>([
   { field: 'name', header: 'Name' },
-  { field: 'model', header: 'Model/ Data Source' },
+  { field: 'model', header: 'Model/Data Source' },
   { field: 'description', header: 'Description' },
   { field: 'realm', header: 'Realm' },
   { field: 'frequency', header: 'Frequency' },
