@@ -200,10 +200,10 @@
         class="rounded-xl border border-sky-200 border-t-4 border-t-sky-600 bg-sky-50/50 p-4 dark:border-sky-800 dark:bg-sky-950/20"
       >
         <h2 class="text-lg font-bold text-sky-950 dark:text-sky-100">
-          <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Local files on Gadi
+          <i class="pi pi-database mr-2" aria-hidden="true"></i>NCI · Datasets on Gadi
         </h2>
         <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
-          Browse matching files on Gadi. Select View files to inspect paths and copy them without leaving this page.
+          Browse matching datasets on Gadi. Select View files to inspect all matching time chunks and copy their paths.
         </p>
         <CmipNciResults :project="project" :filters="effectiveFilters" @search-esgf="setLocation(false)" />
       </section>

@@ -6,13 +6,13 @@
       <button type="button" class="mt-2 font-semibold underline" @click="retry++">Retry file paths</button>
     </div>
     <p v-else-if="!paths.length" role="status" class="text-sm text-gray-600 dark:text-gray-300">
-      No file paths were found for this result. The catalogue may have changed; refresh the search and try again.
+      No file paths were found for this dataset. The catalogue may have changed; refresh the search and try again.
     </p>
     <template v-else>
       <p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
-        Exact files matching this result and your current filters. Use these paths on Gadi.
+        Files in this dataset matching your current filters, with alternate paths grouped. Use these paths on Gadi.
       </p>
-      <ul aria-label="File paths for this result" class="space-y-4">
+      <ul aria-label="File paths for this dataset" class="space-y-4">
         <li
           v-for="path in paths"
           :key="path"
@@ -52,10 +52,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import CopyPath from './CopyPath.vue';
-import { fetchCmipFilePaths } from '../services/cmipFiles';
-import type { DatastoreRow, FilterMap } from '../types/datastore';
+import type { CmipDatasetSearch } from '../services/cmipDatasets';
 
-const props = defineProps<{ datastoreName: string; filters: FilterMap; record: DatastoreRow }>();
+const props = defineProps<{ search: CmipDatasetSearch; datasetKey: string }>();
 const paths = ref<string[]>([]);
 const page = ref(0);
 const hasMore = ref(false);
@@ -65,14 +64,14 @@ const retry = ref(0);
 const pageSize = 10;
 const directory = (path: string) => path.slice(0, path.lastIndexOf('/') + 1);
 watch(
-  [() => props.datastoreName, () => props.filters, () => props.record],
+  [() => props.search, () => props.datasetKey],
   () => {
     page.value = 0;
   },
   { deep: true, flush: 'sync' },
 );
 watch(
-  [() => props.datastoreName, () => props.filters, () => props.record, page, retry],
+  [() => props.search, () => props.datasetKey, page, retry],
   async (_, __, onCleanup) => {
     let active = true;
     onCleanup(() => {
@@ -83,13 +82,7 @@ watch(
     hasMore.value = false;
     loading.value = true;
     try {
-      const result = await fetchCmipFilePaths(
-        props.datastoreName,
-        props.filters,
-        props.record,
-        page.value * pageSize,
-        pageSize,
-      );
+      const result = await props.search.files(props.datasetKey, page.value * pageSize, pageSize);
       if (active) {
         paths.value = result.paths;
         hasMore.value = result.hasMore;
