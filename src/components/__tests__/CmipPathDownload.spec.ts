@@ -22,10 +22,62 @@ beforeEach(() => {
     yield Array.from({ length: 30 }, (_, index) => `/g/data/${index}.nc`);
     yield ['/g/data/final.nc'];
   });
+  vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
 });
-afterEach(() => wrapper?.unmount());
+afterEach(() => {
+  wrapper?.unmount();
+  vi.restoreAllMocks();
+});
 
 describe('CMIP path-list download controls', () => {
+  it('copies every dataset path across export batches without copying just the visible page', async () => {
+    render('dataset');
+    await wrapper.setProps({ allowCopy: true });
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Copy all paths'))!
+      .trigger('click');
+    await flushPromises();
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      [...Array.from({ length: 30 }, (_, i) => `/g/data/${i}.nc`), '/g/data/final.nc'].join('\n') + '\n',
+    );
+    expect(search.exportPaths).toHaveBeenCalledWith(expect.any(AbortSignal), 'dataset');
+    expect(wrapper.text()).toContain('Copied 31 paths.');
+    expect(wrapper.text()).not.toContain('One path per line');
+    expect(createPathListDownload).not.toHaveBeenCalled();
+    expect(search.files).not.toHaveBeenCalled();
+  });
+
+  it.each(['failure', 'cancel', 'oversize'])('does not copy an incomplete path list on %s', async (mode) => {
+    let resume!: () => void;
+    const waiting = new Promise<void>((done) => {
+      resume = done;
+    });
+    search.exportPaths.mockImplementationOnce(async function* () {
+      yield ['/g/data/first.nc'];
+      if (mode === 'failure') throw new Error('Export failed');
+      if (mode === 'cancel') await waiting;
+      yield ['/g/data/last.nc'];
+    });
+    if (mode === 'oversize')
+      vi.spyOn(TextEncoder.prototype, 'encode').mockReturnValue({
+        byteLength: 17 * 1024 * 1024,
+      } as Uint8Array<ArrayBuffer>);
+    render('dataset');
+    await wrapper.setProps({ allowCopy: true });
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Copy all paths'))!
+      .trigger('click');
+    await flushPromises();
+    if (mode === 'cancel') {
+      await wrapper.setProps({ datasetKey: 'new' });
+      resume();
+      await flushPromises();
+    } else expect(wrapper.find('[role=alert]').exists()).toBe(true);
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+  });
+
   it('downloads all export batches with progress instead of the displayed file or dataset page', async () => {
     render();
     expect(wrapper.text()).toContain('every result page');
@@ -81,7 +133,7 @@ describe('CMIP path-list download controls', () => {
     expect(sink.write).not.toHaveBeenCalled();
     expect(sink.close).not.toHaveBeenCalled();
     expect(sink.abort).toHaveBeenCalledOnce();
-    if (action === 'cancel') expect(wrapper.text()).toContain('Download cancelled.');
+    if (action === 'cancel') expect(wrapper.text()).toContain('Cancelled.');
   });
 
   it('does not export before the search is ready or download an unexpected empty list', async () => {

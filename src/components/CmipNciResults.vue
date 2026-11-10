@@ -10,18 +10,6 @@
               : `${total.toLocaleString()} matching ${total === 1 ? 'dataset' : 'datasets'}`
         }}
       </p>
-      <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-        Time chunks are grouped into datasets. Each version is shown separately; alternate paths and copies of the same
-        version are grouped together.
-      </p>
-      <CmipPathDownload
-        v-if="search && total > 0"
-        class="mt-3"
-        :search="search"
-        :filename="`${project.toLowerCase()}-nci-paths.txt`"
-        :large="total > 1000"
-        :disabled="loading || !!error"
-      />
     </div>
     <div v-if="error" role="alert" class="p-4 text-sm text-amber-900 dark:text-amber-200">
       {{ error }} Dataset counts require all selected NCI sources to finish successfully.
@@ -51,7 +39,14 @@
             >
               <td class="min-w-80 max-w-xl p-3">
                 <p class="font-semibold">{{ title(dataset) }}</p>
-                <p class="mt-1 break-all font-mono text-xs text-gray-600 dark:text-gray-400">{{ dataset.id }}</p>
+                <CopyPath
+                  v-for="directory in dataset.directories"
+                  :key="directory"
+                  class="mt-2"
+                  :path="directory"
+                  kind="directory"
+                  compact
+                />
                 <div class="mt-2 flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
                   <span class="rounded bg-sky-100 px-2 py-1 dark:bg-sky-900">{{ versionLabel(dataset) }}</span>
                   <span v-if="dataset.facets.member_id || dataset.facets.variant_label" class="py-1">{{
@@ -91,11 +86,6 @@
               <td colspan="4" class="p-4">
                 <section aria-label="Files for this dataset" class="min-w-0">
                   <h3 class="mb-3 font-semibold">Files for {{ title(dataset) }} · {{ versionLabel(dataset) }}</h3>
-                  <p v-if="dataset.alternatePathCount" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
-                    {{ dataset.alternatePathCount.toLocaleString() }} alternate
-                    {{ dataset.alternatePathCount === 1 ? 'path is' : 'paths are' }} grouped with these files. A listed
-                    versioned path is preferred over its matching files/dYYYYMMDD path.
-                  </p>
                   <CmipPathDownload
                     v-if="search"
                     class="mb-4"
@@ -103,6 +93,7 @@
                     :dataset-key="dataset.key"
                     :filename="`${project.toLowerCase()}-nci-dataset-paths.txt`"
                     :large="dataset.fileCount > 100000"
+                    allow-copy
                   />
                   <CmipResultFiles v-if="search" :search="search" :dataset-key="dataset.key" />
                   <details class="mt-4 text-xs text-gray-500 dark:text-gray-400">
@@ -186,14 +177,20 @@ import { computed, onBeforeUnmount, ref, shallowRef, useId, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { buildFilterQuery } from '../composables/useFilterUrlSync';
 import { cmipNciCollections } from '../services/cmipSearch';
-import { createCmipDatasetSearch, type CmipDatasetSearch, type CmipNciDataset } from '../services/cmipDatasets';
+import {
+  createCmipDatasetSearch,
+  type CmipDatasetSearch,
+  type CmipNciDataset,
+  type CmipPathExportState,
+} from '../services/cmipDatasets';
+import CopyPath from './CopyPath.vue';
 import CmipResultFiles from './CmipResultFiles.vue';
 import CmipPathDownload from './CmipPathDownload.vue';
 import type { FilterMap } from '../types/datastore';
 import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
 const props = defineProps<{ project: CmipProject; filters: FilterMap; accessOnly?: boolean }>();
-const emit = defineEmits<{ 'search-esgf': [] }>();
+const emit = defineEmits<{ 'search-esgf': []; 'export-state': [state: CmipPathExportState] }>();
 const id = useId();
 const expanded = ref<string | null>(null);
 const collections = computed(() => cmipNciCollections(props.project, props.accessOnly));
@@ -204,6 +201,13 @@ const pageSize = 20;
 const total = ref(0);
 const loading = ref(false);
 const error = ref('');
+watch(
+  [search, total, loading, error],
+  () => {
+    emit('export-state', { search: search.value, total: total.value, loading: loading.value, error: error.value });
+  },
+  { immediate: true, flush: 'sync' },
+);
 let controller: AbortController | undefined;
 let pageRequest = 0;
 const title = (dataset: CmipNciDataset) =>
@@ -270,5 +274,6 @@ watch(page, loadPage, { flush: 'sync' });
 onBeforeUnmount(() => {
   pageRequest++;
   controller?.abort();
+  emit('export-state', { total: 0, loading: true, error: '' });
 });
 </script>

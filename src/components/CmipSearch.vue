@@ -180,7 +180,9 @@
       :default-visible-columns="defaultColumns"
       analytics-context="datastore"
       @clear="currentFilters = {}"
-    />
+    >
+      <template #actions><CopySearchLink :href="searchLink" /></template>
+    </FilterSelectors>
 
     <div
       v-if="accessOnly && !optionsLoading && !optionsError && !effectiveFilters"
@@ -203,7 +205,13 @@
       </p>
     </div>
     <template v-else-if="effectiveFilters && (!accessOnly || (!optionsLoading && !optionsError))">
-      <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" :access-only="accessOnly" />
+      <CmipAccessCode
+        :project="project"
+        :filters="effectiveFilters"
+        :nci-only="nciOnly"
+        :access-only="accessOnly"
+        :path-export="nciExport"
+      />
       <section
         v-if="nciOnly"
         aria-label="NCI results"
@@ -223,14 +231,17 @@
           </summary>
           <div class="pt-3">
             <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
-              Browse matching datasets on Gadi. Select View files to inspect all matching time chunks and copy their
-              paths.
+              Each row is one variable for a particular model, experiment, ensemble member and grid. Matching files
+              shows how many individual files match your filters; these usually cover different time ranges. Separate
+              releases of the same dataset appear as separate rows, labelled with their publication version. Select View
+              files to see the individual file paths.
             </p>
             <CmipNciResults
               :project="project"
               :filters="effectiveFilters"
               :access-only="accessOnly"
               @search-esgf="setLocation(false)"
+              @export-state="nciExport = $event"
             />
           </div>
         </details>
@@ -241,12 +252,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import FilterSelectors from './FilterSelectors.vue';
 import CmipEsgfSearch from './CmipEsgfSearch.vue';
 import CmipNciResults from './CmipNciResults.vue';
 import CmipAccessCode from './CmipAccessCode.vue';
+import CopySearchLink from './CopySearchLink.vue';
+import type { CmipPathExportState } from '../services/cmipDatasets';
 import { useEsgfFilterOptions } from '../composables/useEsgfFilterOptions';
 import { useCmipDependentOptions } from '../composables/useCmipDependentOptions';
 import { buildFilterQuery, parseFiltersFromQuery } from '../composables/useFilterUrlSync';
@@ -257,6 +270,8 @@ import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
 const route = useRoute();
 const router = useRouter();
+const searchLink = computed(() => new URL(router.resolve(route.fullPath).href, window.location.href).href);
+const nciExport = shallowRef<CmipPathExportState>({ total: 0, loading: true, error: '' });
 const eras = ['CMIP6', 'CMIP7'] as const;
 const project = computed<CmipProject>(() => (route.query.project === 'CMIP6' ? 'CMIP6' : 'CMIP7'));
 function setProject(value: CmipProject) {
@@ -341,6 +356,13 @@ const filterOptions = computed(() => {
 });
 const effectiveFilters = computed(() =>
   accessOnly.value ? accessFilters(currentFilters.value, options.value) : currentFilters.value,
+);
+watch(
+  [project, nciOnly, accessOnly, currentFilters],
+  () => {
+    nciExport.value = { total: 0, loading: true, error: '' };
+  },
+  { flush: 'sync' },
 );
 const dependent = useCmipDependentOptions(
   computed(() =>

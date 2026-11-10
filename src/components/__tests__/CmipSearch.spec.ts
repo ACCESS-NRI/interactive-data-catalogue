@@ -34,6 +34,7 @@ const dataset: CmipNciDataset = {
   fileCount: 30,
   alternatePathCount: 30,
   collections: ['cmip7_australian', 'cmip7_replicated'],
+  directories: ['/g/data/im55/publications/example/v20261019/'],
   timeRange: '200001 – 202912',
 };
 const localPage = { total: 41, datasets: [dataset] };
@@ -84,6 +85,19 @@ afterEach(() => {
 });
 
 describe('combined CMIP discovery', () => {
+  it('shares the current NCI export session with the access panel and clears it on a new search', async () => {
+    await render();
+    const panel = wrapper.findComponent(CmipAccessCode);
+    expect(panel.props('pathExport')).toMatchObject({ search: session, total: 41, loading: false, error: '' });
+    vi.mocked(createCmipDatasetSearch).mockReturnValueOnce(new Promise(() => {}));
+    wrapper.findComponent(FilterSelectors).vm.$emit('update:modelValue', { variable_id: ['tas'] });
+    await tick();
+    expect(panel.props('pathExport')!.search).toBeUndefined();
+    expect(panel.props('pathExport')!.loading).toBe(true);
+    await toggle('Search ESGF', true);
+    expect(panel.props('pathExport')!.search).toBeUndefined();
+  });
+
   it('passes dependent NCI facets to the picker and broadens choices again on clear', async () => {
     const all = { ...options, branded_variable: ['tas_tavg', 'tos_tavg'], realm: ['atmos', 'ocean'] };
     vi.mocked(fetchCmipNciOptions).mockImplementation(async (_project, _signal, selected) =>
@@ -297,7 +311,8 @@ describe('combined CMIP discovery', () => {
     await button('View files').trigger('click');
     await tick();
     expect(files).toHaveBeenCalledWith(dataset.key, 0, 10);
-    expect(wrapper.get('[aria-label="Files for this dataset"]').text()).toContain('30 alternate paths');
+    expect(wrapper.get('[aria-label="NCI results"] code').text()).toBe(dataset.directories[0]);
+    expect(wrapper.get('[aria-label="Files for this dataset"]').text()).not.toContain('alternate paths');
     expect(wrapper.get('[aria-label="Files for this dataset"]').text()).toContain('/g/data/example/tas.nc');
     expect(router.currentRoute.value.path).toBe('/cmip');
     expect(wrapper.findAllComponents(CmipAccessCode)).toHaveLength(1);
