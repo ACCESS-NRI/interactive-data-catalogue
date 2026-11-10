@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCmipDatasetSearch } from '../cmipDatasets';
 import { initializeDuckDB } from '../duckdbClient';
 vi.mock('../duckdbClient', () => ({ initializeDuckDB: vi.fn() }));
-const db = { registerFileURL: vi.fn(), terminate: vi.fn() };
+const db = { registerFileURL: vi.fn(), terminate: vi.fn(), connect: vi.fn() };
 const conn = { query: vi.fn(), prepare: vi.fn() };
 const statements: { sql: string; query: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> }[] = [];
 const key =
@@ -51,6 +51,96 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('CMIP dataset search lifecycle', () => {
+  it.each(['CMIP6', 'CMIP7'] as const)(
+    'does not open the %s replica catalogue for ACCESS-only search or exports',
+    async (project) => {
+      const search = await createCmipDatasetSearch(project, {}, new AbortController().signal, true);
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(vi.mocked(fetch).mock.lastCall![0]).toContain(
+        project === 'CMIP6' ? 'cmip6_fs38.json' : 'cmip7_australian.json',
+      );
+      expect(db.registerFileURL).toHaveBeenCalledOnce();
+      expect(db.registerFileURL.mock.lastCall![1]).toContain(
+        project === 'CMIP6' ? 'cmip6_fs38.parquet' : 'cmip7_australian.parquet',
+      );
+      expect(statements[0]!.sql).not.toContain('cmip-1.parquet');
+      await search.dispose();
+    },
+  );
+
+  it('exports successive dataset ranges without page limits, using a separate streaming connection', async () => {
+    const search = await createCmipDatasetSearch('CMIP7', { variable_id: ['tas'] }, new AbortController().signal);
+    const exportStatements: { sql: string; send: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> }[] = [];
+    const exportConn = {
+      prepare: vi.fn(async (sql: string) => {
+        const statement = {
+          sql,
+          close: vi.fn().mockResolvedValue(undefined),
+          send: vi.fn(async function* (...args: string[]) {
+            yield { getChild: () => (args[2] === 'first' ? ['/g/data/a.nc', '/g/data/b.nc'] : ['/g/data/c.nc']) };
+          }),
+        };
+        exportStatements.push(statement);
+        return statement;
+      }),
+      close: vi.fn().mockResolvedValue(undefined),
+      cancelSent: vi.fn().mockResolvedValue(true),
+    };
+    db.connect.mockResolvedValue(exportConn);
+    const keyQuery = vi.fn(async (after: string) => ({
+      toArray: () =>
+        after === ''
+          ? [{ dataset_key: 'first' }, { dataset_key: 'middle' }]
+          : after === 'middle'
+            ? [{ dataset_key: 'last' }]
+            : [],
+    }));
+    conn.prepare.mockImplementation(async (sql: string) => {
+      expect(sql).toContain('WHERE dataset_key > ? ORDER BY dataset_key LIMIT 5000');
+      return { query: keyQuery, close: vi.fn() };
+    });
+    const paths: string[] = [];
+    for await (const batch of search.exportPaths(new AbortController().signal)) paths.push(...batch);
+    expect(paths).toEqual(['/g/data/a.nc', '/g/data/b.nc', '/g/data/c.nc']);
+    expect(keyQuery.mock.calls).toEqual([[''], ['middle'], ['last']]);
+    expect(exportStatements[0]!.send).toHaveBeenCalledWith('tas', 'tas', 'first', 'middle');
+    expect(exportStatements[1]!.send).toHaveBeenCalledWith('tas', 'tas', 'last', 'last');
+    expect(exportStatements.every((s) => !s.sql.includes('LIMIT') && s.close.mock.calls.length === 1)).toBe(true);
+    expect(exportConn.close).toHaveBeenCalledOnce();
+    expect(db.terminate).not.toHaveBeenCalled();
+  });
+
+  it('cancels a dataset export without terminating the search, and closes its stream on failure', async () => {
+    const search = await createCmipDatasetSearch('CMIP7', {}, new AbortController().signal);
+    const send = vi.fn(async function* () {
+      yield { getChild: () => ['/g/data/one.nc'] };
+      yield { getChild: () => ['/g/data/two.nc'] };
+    });
+    const statement = { send, close: vi.fn().mockResolvedValue(undefined) };
+    const exportConn = {
+      prepare: vi.fn().mockResolvedValue(statement),
+      close: vi.fn().mockResolvedValue(undefined),
+      cancelSent: vi.fn().mockResolvedValue(true),
+    };
+    db.connect.mockResolvedValue(exportConn);
+    const controller = new AbortController();
+    const iterator = search.exportPaths(controller.signal, key)[Symbol.asyncIterator]();
+    expect((await iterator.next()).value).toEqual(['/g/data/one.nc']);
+    controller.abort();
+    await expect(iterator.next()).rejects.toThrow();
+    expect(exportConn.cancelSent).toHaveBeenCalled();
+    expect(exportConn.close).toHaveBeenCalledOnce();
+    expect(statement.close).toHaveBeenCalledOnce();
+    expect(db.terminate).not.toHaveBeenCalled();
+    await expect(search.page(0, 20)).resolves.toMatchObject({ total: 2 });
+    send.mockImplementationOnce(async function* () {
+      yield { getChild: () => ['/invalid\npath.nc'] };
+    });
+    const invalid = search.exportPaths(new AbortController().signal, key)[Symbol.asyncIterator]();
+    await expect(invalid.next()).rejects.toThrow('one line of text');
+    expect(exportConn.close).toHaveBeenCalledTimes(2);
+  });
+
   it('builds one grouped index for both catalogues, reuses it for paging, and resolves all files for the selected dataset', async () => {
     const signal = new AbortController().signal;
     const search = await createCmipDatasetSearch('CMIP7', { variable_id: ['tas'] }, signal);

@@ -23,6 +23,32 @@ const button = (label: string) => wrapper.findAll('button').find((item) => item.
 const tab = (label: string) => wrapper.findAll('[role=tab]').find((item) => item.text() === label)!;
 
 describe('shared CMIP access panel', () => {
+  it.each(['CMIP6', 'CMIP7'] as const)(
+    'switches every %s example and storage hint with ACCESS-only scope',
+    async (project) => {
+      await wrapper.setProps({ project, nciOnly: true, accessOnly: true });
+      const replica = project === 'CMIP6' ? 'oi10' : 'ib12';
+      expect(wrapper.text()).not.toContain(replica);
+      expect(wrapper.text()).toContain('These examples use ACCESS publications on NCI.');
+      await button('Copy Intake + Xarray code').trigger('click');
+      await flushPromises();
+      expect(writeText.mock.lastCall![0]).not.toContain(replica);
+      expect(writeText.mock.lastCall![0]).not.toContain('cmip7_replicated');
+      await tab('ESMValCore').trigger('click');
+      await button('Copy ESMValCore code').trigger('click');
+      await flushPromises();
+      expect(writeText.mock.lastCall![0]).not.toContain('/replicas');
+      await tab('ESMValTool').trigger('click');
+      await button('Copy configuration').trigger('click');
+      await flushPromises();
+      expect(writeText.mock.lastCall![0]).not.toContain('/replicas');
+      await wrapper.setProps({ accessOnly: false });
+      await button('Copy configuration').trigger('click');
+      await flushPromises();
+      expect(writeText.mock.lastCall![0]).toContain(`/g/data/${replica}/replicas`);
+    },
+  );
+
   it('copies intake code using both collections and selected filters, and explains local scope', async () => {
     expect(wrapper.text()).toContain('Your search is on ESGF.');
     await button('Copy Intake + Xarray code').trigger('click');

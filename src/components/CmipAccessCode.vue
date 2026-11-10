@@ -17,6 +17,7 @@
         >
         The examples use the filters for your whole search, including the ACCESS-only choice, rather than just the
         results on this page or an expanded row.
+        <template v-if="accessOnly">These examples use ACCESS publications on NCI.</template>
       </p>
       <div
         role="tablist"
@@ -67,7 +68,7 @@
           </summary>
           <div class="pt-4">
             <RequiredProjectsWarning
-              :projects="cmipStorageProjects(project)"
+              :projects="cmipStorageProjects(project, accessOnly)"
               :show-conda-environment="active === 'intake'"
             />
             <p v-if="tab.id === 'intake'" class="mb-3 text-sm text-gray-700 dark:text-gray-300">
@@ -78,12 +79,10 @@
                 rel="noopener noreferrer"
                 class="text-blue-700 underline dark:text-blue-300"
                 >ARE setup instructions</a
-              >; the launch settings are also included in the code below. Python's built-in <code>re</code> module makes
-              the filters match exact values; it needs no separate installation.
+              >; the launch settings are also included in the code below.
             </p>
-            <p v-if="active !== 'intake'" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
-              Use a current ESMValCore / ESMValTool environment with {{ project }} support. The examples are configured
-              for files on Gadi.
+            <p v-if="tab.id !== 'intake'" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+              {{ cmipEsmvalEnvironment(project) }} The examples are configured for files on Gadi.
             </p>
             <template v-if="tab.id === 'tool'">
               <p
@@ -179,19 +178,15 @@
       </div>
       <p class="mt-3 text-xs text-gray-600 dark:text-gray-300">
         <a
-          href="https://intake-esm.readthedocs.io/en/stable/reference/api.html"
+          href="https://access-nri-intake-catalog.readthedocs.io/"
           target="_blank"
           rel="noopener noreferrer"
           class="underline"
-          >Intake documentation ↗</a
+          >ACCESS-NRI Intake catalogue documentation ↗</a
         >
         ·
-        <a
-          href="https://docs.esmvaltool.org/projects/ESMValCore/en/latest/quickstart/configure.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline"
-          >ESMValCore data-source configuration ↗</a
+        <a href="https://docs.esmvaltool.org/" target="_blank" rel="noopener noreferrer" class="underline"
+          >ESMValTool documentation ↗</a
         >
       </p>
     </div>
@@ -208,10 +203,11 @@ import {
   buildCmipCollectionCoreCode,
   buildCmipCollectionRecipe,
   cmipStorageProjects,
+  cmipEsmvalEnvironment,
 } from '../services/cmipAccessCode';
 import type { FilterMap } from '../types/datastore';
 
-const props = defineProps<{ project: CmipProject; filters: FilterMap; nciOnly: boolean }>();
+const props = defineProps<{ project: CmipProject; filters: FilterMap; nciOnly: boolean; accessOnly?: boolean }>();
 const tabs = [
   {
     id: 'intake',
@@ -234,9 +230,9 @@ const id = useId();
 const tabButtons = ref<HTMLButtonElement[]>([]);
 const copied = ref('');
 const copyError = ref('');
-const intakeCode = computed(() => buildCmipIntakeCode(props.filters, props.project));
-const coreCode = computed(() => buildCmipCollectionCoreCode(props.filters, props.project));
-const recipe = computed(() => buildCmipCollectionRecipe(props.filters, props.project));
+const intakeCode = computed(() => buildCmipIntakeCode(props.filters, props.project, props.accessOnly));
+const coreCode = computed(() => buildCmipCollectionCoreCode(props.filters, props.project, props.accessOnly));
+const recipe = computed(() => buildCmipCollectionRecipe(props.filters, props.project, props.accessOnly));
 const unmapped = computed(() => getUnmappedCmipFilters(props.filters, props.project));
 watch([intakeCode, () => props.nciOnly], () => {
   copied.value = '';

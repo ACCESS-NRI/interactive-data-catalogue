@@ -223,7 +223,12 @@
         <p class="mb-4 mt-1 text-sm text-sky-800 dark:text-sky-200">
           Browse matching datasets on Gadi. Select View files to inspect all matching time chunks and copy their paths.
         </p>
-        <CmipNciResults :project="project" :filters="effectiveFilters" @search-esgf="setLocation(false)" />
+        <CmipNciResults
+          :project="project"
+          :filters="effectiveFilters"
+          :access-only="accessOnly"
+          @search-esgf="setLocation(false)"
+        />
       </section>
       <CmipEsgfSearch v-else standalone :model-value="true" :project="project" :filters="effectiveFilters" />
       <div
@@ -231,7 +236,7 @@
         tabindex="-1"
         class="mt-6 scroll-mt-6 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
       >
-        <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" />
+        <CmipAccessCode :project="project" :filters="effectiveFilters" :nci-only="nciOnly" :access-only="accessOnly" />
       </div>
     </template>
   </main>
@@ -287,7 +292,8 @@ const currentFilters = computed<FilterMap>({
   },
 });
 const esgf = useEsgfFilterOptions(computed(() => (nciOnly.value ? null : project.value)));
-const nciOptions = ref<Partial<Record<CmipProject, FilterOptions>>>({});
+const nciOptions = ref<Record<string, FilterOptions>>({});
+const nciOptionsKey = computed(() => `${project.value}:${accessOnly.value}`);
 const nciLoading = ref(false);
 const nciError = ref('');
 let nciController: AbortController | undefined;
@@ -298,11 +304,14 @@ async function loadNciOptions() {
   nciLoading.value = false;
   nciError.value = '';
   const requestProject = project.value;
-  if (!nciOnly.value || nciOptions.value[requestProject]) return;
+  const key = nciOptionsKey.value;
+  if (!nciOnly.value || nciOptions.value[key]) return;
   nciLoading.value = true;
   try {
-    const options = await fetchCmipNciOptions(requestProject, request.signal);
-    if (!request.signal.aborted) nciOptions.value[requestProject] = options;
+    const options = await (accessOnly.value
+      ? fetchCmipNciOptions(requestProject, request.signal, undefined, true)
+      : fetchCmipNciOptions(requestProject, request.signal));
+    if (!request.signal.aborted) nciOptions.value[key] = options;
   } catch (cause) {
     if (!request.signal.aborted)
       nciError.value = cause instanceof Error ? cause.message : 'NCI filter options are unavailable.';
@@ -310,11 +319,11 @@ async function loadNciOptions() {
     if (!request.signal.aborted) nciLoading.value = false;
   }
 }
-watch([nciOnly, project], loadNciOptions, { immediate: true });
+watch([nciOnly, project, accessOnly], loadNciOptions, { immediate: true });
 onBeforeUnmount(() => nciController?.abort());
 const optionsLoading = computed(() => (nciOnly.value ? nciLoading.value : esgf.loading.value));
 const optionsError = computed(() => (nciOnly.value ? nciError.value : esgf.error.value));
-const options = computed(() => (nciOnly.value ? (nciOptions.value[project.value] ?? {}) : esgf.options.value));
+const options = computed(() => (nciOnly.value ? (nciOptions.value[nciOptionsKey.value] ?? {}) : esgf.options.value));
 const retryOptions = () => (nciOnly.value ? loadNciOptions() : esgf.retry());
 const defaultColumns = computed(() =>
   project.value === 'CMIP7'

@@ -40,7 +40,7 @@ const localPage = { total: 41, datasets: [dataset] };
 const page = vi.fn();
 const files = vi.fn();
 const dispose = vi.fn();
-const session = { page, files, dispose };
+const session = { page, files, dispose, exportPaths: vi.fn() };
 let wrapper: VueWrapper;
 let router: Router;
 const tick = async () => {
@@ -121,6 +121,7 @@ describe('combined CMIP discovery', () => {
       'CMIP6',
       { source_id: ['ACCESS-CM2'] },
       expect.any(AbortSignal),
+      true,
     );
     const filters = wrapper.findComponent(FilterSelectors);
     expect(filters.props('defaultVisibleColumns')).toContain('member_id');
@@ -173,6 +174,7 @@ describe('combined CMIP discovery', () => {
       'CMIP7',
       { variable_id: ['tas'], source_id: ['ACCESS-ESM1-6'] },
       expect.any(AbortSignal),
+      true,
     );
     await toggle('Only ACCESS data', false);
     const localSignal = vi.mocked(createCmipDatasetSearch).mock.lastCall![2];

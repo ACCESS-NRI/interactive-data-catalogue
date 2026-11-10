@@ -5,6 +5,7 @@ import {
   indexCmipDatasets,
   buildCmipDatasetQuery,
   selectCmipFiles,
+  exportCmipFiles,
   type CmipQuerySource,
 } from '../cmipDatasetQuery';
 import type { FilterMap } from '../../types/datastore';
@@ -70,6 +71,43 @@ beforeEach(() => {
 });
 
 describe('CMIP aggregation in the real DuckDB WASM engine', () => {
+  it('exports every filtered file across dataset ranges, without display-page limits or alternate paths', () => {
+    const expected: string[] = [];
+    for (let model = 0; model < 25; model++) {
+      const identity = drs.replace('ACCESS-ESM1-6', `Model${String(model).padStart(2, '0')}`);
+      for (let year = 2000; year < 2012; year++) {
+        const time = `${year}0101-${year}1231`;
+        const versioned = path(time, 'v20261019', identity);
+        insert(versioned);
+        insert(path(time, 'files/d20261019', identity));
+        insert(versioned, 1);
+        expected.push(versioned);
+      }
+    }
+    const anotherVersion = path('20000101-20001231', 'v20261020');
+    insert(anotherVersion);
+    expected.push(anotherVersion);
+    insert(path('20000101-20001231', 'v20261021'), 0, 2900101, 'ExcludedModel');
+    const { cte, parameters } = buildCmipDatasetQuery('CMIP7', sources, { source_id: ['ACCESS-ESM1-6'] });
+    const identities = run(`${cte} ${indexCmipDatasets} ORDER BY dataset_key`, parameters).map(
+      (r: any) => r.dataset_key,
+    );
+    const all: string[] = [];
+    for (let index = 0; index < identities.length; index += 10) {
+      const range = identities.slice(index, index + 10);
+      all.push(
+        ...run(`${cte} ${exportCmipFiles}`, [...parameters, range[0], range[range.length - 1]]).map(
+          (r: any) => r.file_path,
+        ),
+      );
+    }
+    expect(all).toHaveLength(301);
+    expect(new Set(all)).toEqual(new Set(expected));
+    expect(all.every((p) => !p.includes('/files/'))).toBe(true);
+    const selected = run(`${cte} ${exportCmipFiles}`, [...parameters, identities[1], identities[1]]);
+    expect(selected).toHaveLength(12);
+  });
+
   it('groups all time chunks and replicas before dataset and file pagination, preferring listed version paths', () => {
     for (const time of ['02850101-02891231', '02900101-02941231', '02950101-02991231']) {
       insert(path(time, 'files/d20261019'));

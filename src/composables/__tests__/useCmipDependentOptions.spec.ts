@@ -101,6 +101,7 @@ describe('dependent CMIP choices', () => {
     await settle();
     expect(state.options.value.variable_id ?? []).toEqual([]);
     expect(state.options.value.source_id).toEqual(['ACCESS-ESM1-6']);
+    expect(vi.mocked(fetchCmipNciOptions).mock.calls.every((call) => call[3] === true)).toBe(true);
     expect(
       vi.mocked(fetchCmipNciOptions).mock.calls.every((call) => call[2]?.source_id?.includes('ACCESS-ESM1-6')),
     ).toBe(true);

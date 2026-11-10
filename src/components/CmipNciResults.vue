@@ -14,9 +14,17 @@
         Time chunks are grouped into datasets. Each version is shown separately; alternate paths and copies of the same
         version are grouped together.
       </p>
+      <CmipPathDownload
+        v-if="search && total > 0"
+        class="mt-3"
+        :search="search"
+        :filename="`${project.toLowerCase()}-nci-paths.txt`"
+        :large="total > 1000"
+        :disabled="loading || !!error"
+      />
     </div>
     <div v-if="error" role="alert" class="p-4 text-sm text-amber-900 dark:text-amber-200">
-      {{ error }} Dataset counts require both NCI sources to finish successfully.
+      {{ error }} Dataset counts require all selected NCI sources to finish successfully.
       <button type="button" class="ml-2 underline" @click="load">Retry NCI search</button>
     </div>
     <div v-if="datasets.length" class="overflow-x-auto">
@@ -88,6 +96,14 @@
                     {{ dataset.alternatePathCount === 1 ? 'path is' : 'paths are' }} grouped with these files. A listed
                     versioned path is preferred over its matching files/dYYYYMMDD path.
                   </p>
+                  <CmipPathDownload
+                    v-if="search"
+                    class="mb-4"
+                    :search="search"
+                    :dataset-key="dataset.key"
+                    :filename="`${project.toLowerCase()}-nci-dataset-paths.txt`"
+                    :large="dataset.fileCount > 100000"
+                  />
                   <CmipResultFiles v-if="search" :search="search" :dataset-key="dataset.key" />
                   <details class="mt-4 text-xs text-gray-500 dark:text-gray-400">
                     <summary class="w-fit cursor-pointer">Source details</summary>
@@ -124,8 +140,8 @@
     <details class="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
       <summary class="w-fit cursor-pointer">Search source details</summary>
       <p class="mt-2">
-        Datasets are grouped across both sources before pagination. File counts and time coverage describe the files
-        matching your filters; coverage does not guarantee a complete time series.
+        Datasets are grouped across the selected sources before pagination. File counts and time coverage describe the
+        files matching your filters; coverage does not guarantee a complete time series.
       </p>
       <p class="mt-1">
         Paths are matched by dataset identity, version date and filename. Undated latest paths form separate datasets
@@ -169,17 +185,18 @@
 import { computed, onBeforeUnmount, ref, shallowRef, useId, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { buildFilterQuery } from '../composables/useFilterUrlSync';
-import { CMIP_COLLECTIONS } from '../services/cmipSearch';
+import { cmipNciCollections } from '../services/cmipSearch';
 import { createCmipDatasetSearch, type CmipDatasetSearch, type CmipNciDataset } from '../services/cmipDatasets';
 import CmipResultFiles from './CmipResultFiles.vue';
+import CmipPathDownload from './CmipPathDownload.vue';
 import type { FilterMap } from '../types/datastore';
 import type { CmipProject } from '../services/cmipEsmvalcoreCode';
 
-const props = defineProps<{ project: CmipProject; filters: FilterMap }>();
+const props = defineProps<{ project: CmipProject; filters: FilterMap; accessOnly?: boolean }>();
 const emit = defineEmits<{ 'search-esgf': [] }>();
 const id = useId();
 const expanded = ref<string | null>(null);
-const collections = computed(() => CMIP_COLLECTIONS[props.project]);
+const collections = computed(() => cmipNciCollections(props.project, props.accessOnly));
 const datasets = ref<CmipNciDataset[]>([]);
 const search = shallowRef<CmipDatasetSearch>();
 const page = ref(0);
@@ -232,7 +249,9 @@ async function load() {
   loading.value = true;
   error.value = '';
   try {
-    const result = await createCmipDatasetSearch(props.project, props.filters, current.signal);
+    const result = await (props.accessOnly
+      ? createCmipDatasetSearch(props.project, props.filters, current.signal, true)
+      : createCmipDatasetSearch(props.project, props.filters, current.signal));
     if (current.signal.aborted) {
       await result.dispose();
       return;
@@ -246,7 +265,7 @@ async function load() {
     }
   }
 }
-watch([() => props.project, () => props.filters], load, { immediate: true, deep: true });
+watch([() => props.project, () => props.filters, () => props.accessOnly], load, { immediate: true, deep: true });
 watch(page, loadPage, { flush: 'sync' });
 onBeforeUnmount(() => {
   pageRequest++;

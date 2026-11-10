@@ -83,7 +83,14 @@ export const aggregateCmipDatasets = `SELECT dataset_key,
 
 // Prefer a versioned path only when it is actually listed. Do not manufacture a
 // vYYYYMMDD path from files/dYYYYMMDD, or fold different dates into one version.
-export const selectCmipFiles = `SELECT COALESCE(
+const preferredPath = `COALESCE(
     MIN(path) FILTER (WHERE regexp_matches(path, '/v[0-9]{8}/[^/]+[.]nc$')), MIN(path)
-  ) AS file_path FROM matching WHERE dataset_key = ?
+  )`;
+export const selectCmipFiles = `SELECT ${preferredPath} AS file_path FROM matching WHERE dataset_key = ?
   GROUP BY filename ORDER BY filename LIMIT ? OFFSET ?`;
+
+// Export a complete range of dataset identities, with no file/page limit.
+// Batching ranges bounds aggregation memory without splitting a dataset's aliases.
+export const exportCmipFiles = `SELECT ${preferredPath} AS file_path FROM matching
+  WHERE dataset_key BETWEEN ? AND ?
+  GROUP BY dataset_key, filename ORDER BY dataset_key, filename`;

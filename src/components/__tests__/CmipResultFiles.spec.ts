@@ -7,7 +7,7 @@ import type { CmipFilePage } from '../../services/cmipDatasets';
 describe('CMIP inline file paths', () => {
   let wrapper: VueWrapper;
   const fetchPaths = vi.fn();
-  const search = { files: fetchPaths, page: vi.fn(), dispose: vi.fn() };
+  const search = { files: fetchPaths, page: vi.fn(), dispose: vi.fn(), exportPaths: vi.fn() };
   const key = 'CMIP6/CMIP/CSIRO/ACCESS-CM2/historical/r1i1p1f1/Amon/tas/gn/v20200101';
   const render = () => {
     wrapper = mount(CmipResultFiles, {

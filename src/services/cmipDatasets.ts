@@ -1,12 +1,13 @@
 import { DuckDBDataProtocol } from '@duckdb/duckdb-wasm';
 import { buildDatastoreDescriptorUrl, buildDatastoreObjectStoreUrl } from '../config/catalogEndpoints';
 import { initializeDuckDB } from './duckdbClient';
-import { CMIP_COLLECTIONS } from './cmipSearch';
+import { cmipNciCollections } from './cmipSearch';
 import {
   aggregateCmipDatasets,
   indexCmipDatasets,
   buildCmipDatasetQuery,
   selectCmipFiles,
+  exportCmipFiles,
   type CmipQuerySource,
 } from './cmipDatasetQuery';
 import type { CmipProject } from './cmipEsmvalcoreCode';
@@ -33,6 +34,7 @@ export interface CmipFilePage {
 export interface CmipDatasetSearch {
   page(offset: number, limit: number): Promise<CmipDatasetPage>;
   files(datasetKey: string, offset: number, limit: number): Promise<CmipFilePage>;
+  exportPaths(signal: AbortSignal, datasetKey?: string): AsyncIterable<string[]>;
   dispose(): Promise<void>;
 }
 
@@ -107,10 +109,11 @@ export async function createCmipDatasetSearch(
   project: CmipProject,
   filters: FilterMap,
   signal: AbortSignal,
+  accessOnly = false,
 ): Promise<CmipDatasetSearch> {
   signal.throwIfAborted();
   const descriptors = await Promise.all(
-    CMIP_COLLECTIONS[project].map(async ({ name }) => {
+    cmipNciCollections(project, accessOnly).map(async ({ name }) => {
       const response = await fetch(buildDatastoreDescriptorUrl(name), { signal });
       if (!response.ok) throw new Error(`Unable to read ${name}: HTTP ${response.status}.`);
       const descriptor = await response.json();
@@ -179,6 +182,67 @@ export async function createCmipDatasetSearch(
       async files(key, offset, limit) {
         const rows = await query(`${cte} ${selectCmipFiles}`, [...parameters, key, limit + 1, offset]);
         return { paths: rows.slice(0, limit).map((row) => String(row.file_path)), hasMore: rows.length > limit };
+      },
+      async *exportPaths(exportSignal, datasetKey) {
+        signal.throwIfAborted();
+        exportSignal.throwIfAborted();
+        if (disposed) throw new Error('This search has been closed. Refresh the search to try again.');
+        // A separate connection keeps browsing queries from replacing the export
+        // stream. Both connections share the worker and remote file cache.
+        const exportConn = await db.connect();
+        const cancel = () => {
+          void exportConn.cancelSent().catch(() => {});
+        };
+        exportSignal.addEventListener('abort', cancel, { once: true });
+        let after = '';
+        try {
+          while (true) {
+            signal.throwIfAborted();
+            exportSignal.throwIfAborted();
+            const keys = datasetKey
+              ? [{ dataset_key: datasetKey }]
+              : await query(
+                  'SELECT dataset_key FROM cmip_datasets WHERE dataset_key > ? ORDER BY dataset_key LIMIT 5000',
+                  [after],
+                );
+            if (!keys.length) break;
+            const first = String(keys[0]!.dataset_key);
+            const last = String(keys[keys.length - 1]!.dataset_key);
+            exportSignal.throwIfAborted();
+            const statement = await exportConn.prepare(`${cte} ${exportCmipFiles}`);
+            try {
+              exportSignal.throwIfAborted();
+              const reader = await statement.send(...parameters, first, last);
+              for await (const batch of reader) {
+                signal.throwIfAborted();
+                exportSignal.throwIfAborted();
+                const column = batch.getChild('file_path');
+                if (!column) throw new Error('The catalogue did not return file paths.');
+                let paths: string[] = [];
+                for (const value of column) {
+                  if (typeof value !== 'string' || !value || /[\r\n\0]/.test(value))
+                    throw new Error('A catalogue path cannot be represented as one line of text.');
+                  paths.push(value);
+                  if (paths.length === 4096) {
+                    yield paths;
+                    paths = [];
+                  }
+                }
+                if (paths.length) yield paths;
+              }
+            } finally {
+              if (!disposed) {
+                await exportConn.cancelSent().catch(() => {});
+                await statement.close().catch(() => {});
+              }
+            }
+            if (datasetKey) break;
+            after = last;
+          }
+        } finally {
+          exportSignal.removeEventListener('abort', cancel);
+          if (!disposed) await exportConn.close().catch(() => {});
+        }
       },
       dispose,
     };

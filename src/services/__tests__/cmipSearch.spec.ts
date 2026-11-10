@@ -8,6 +8,21 @@ afterEach(() => {
 const response = (body: unknown) => Promise.resolve({ ok: true, json: async () => body });
 
 describe('CMIP scope queries', () => {
+  it.each(['CMIP6', 'CMIP7'] as const)(
+    'fetches only publication facets for %s ACCESS-only selections',
+    async (project) => {
+      const fetcher = vi
+        .fn()
+        .mockImplementation(() =>
+          response({ total: 1, records: [{}], dynamic_filter_options: { source_id: ['ACCESS-ESM1-6'] } }),
+        );
+      vi.stubGlobal('fetch', fetcher);
+      await fetchCmipNciOptions(project, new AbortController().signal, { variable_id: ['tas'] }, true);
+      expect(fetcher).toHaveBeenCalledOnce();
+      expect(fetcher.mock.lastCall![0]).toContain(project === 'CMIP6' ? 'cmip6_fs38?' : 'cmip7_australian?');
+    },
+  );
+
   it('allows longer local catalogue queries and reports a timeout separately from cancellation', async () => {
     vi.useFakeTimers();
     const fetcher = vi.fn(

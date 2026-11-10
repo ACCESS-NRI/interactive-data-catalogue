@@ -57,13 +57,16 @@ export function useCmipDependentOptions(context: Ref<CmipFacetContext | null>) {
         if (!scoped) return Promise.resolve({});
         const active = canonicalFilters(scoped);
         if (!Object.keys(active).length) return Promise.resolve(baseOptions);
-        const key = JSON.stringify([project, nci, active]);
+        const key = JSON.stringify([project, nci, accessOnly, active]);
         if (cache.has(key)) return Promise.resolve(cache.get(key)!);
         if (!pending.has(key)) {
           const fetchOptions = nci ? fetchCmipNciOptions : fetchEsgfFilterOptions;
           pending.set(
             key,
-            fetchOptions(project, request.signal, active).then((result) => {
+            (nci && accessOnly
+              ? fetchCmipNciOptions(project, request.signal, active, true)
+              : fetchOptions(project, request.signal, active)
+            ).then((result) => {
               if (!request.signal.aborted) {
                 cache.set(key, result);
                 if (cache.size > 24) cache.delete(cache.keys().next().value!);
