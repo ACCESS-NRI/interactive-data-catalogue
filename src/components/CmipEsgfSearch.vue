@@ -79,6 +79,7 @@
             and the replication queue are not checked. Errata checks apply to the displayed version; an unverified
             lookup does not mean there are no issues.
           </p>
+          <p v-if="project === 'CMIP7'" class="mb-3 text-sm"><Cmip7GuideLink topic="citation" /></p>
           <div
             v-if="error"
             role="alert"
@@ -189,6 +190,7 @@
             class="py-4 text-sm text-gray-600 dark:text-gray-300"
           >
             No ESGF datasets match these filters. Try removing a filter or choosing another value.
+            <Cmip7GuideLink v-if="project === 'CMIP7'" topic="availability" class="mt-2 block w-fit" />
           </p>
           <button
             v-if="next && !error"
@@ -206,6 +208,7 @@
 </template>
 
 <script setup lang="ts">
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
 import { toRef } from 'vue';
 import type { FilterMap } from '../types/datastore';
 import type { CmipProject } from '../services/cmipEsmvalcoreCode';

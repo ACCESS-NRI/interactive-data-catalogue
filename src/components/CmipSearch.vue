@@ -13,6 +13,10 @@
       <p class="mt-2 text-gray-600 dark:text-gray-300">
         Find CMIP data at NCI or across the international ESGF federation.
       </p>
+      <p v-if="project === 'CMIP7'" class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+        <strong>CMIP7 guidance</strong> · Learn about CMIP7, get set up on NCI, and work with the data in the
+        <Cmip7GuideLink topic="overview" />.
+      </p>
     </header>
 
     <section
@@ -193,6 +197,7 @@
         No ACCESS models match the selected filters in {{ nciOnly ? 'the NCI catalogue' : 'ESGF' }}. Remove the model
         filter or untick Only ACCESS data.
       </p>
+      <p v-if="project === 'CMIP7'" class="mt-2"><Cmip7GuideLink topic="availability" /></p>
       <p v-if="nciOnly" class="mt-2">
         Can't find it on NCI?
         <button
@@ -247,6 +252,7 @@
                 international data replicated to NCI, check ESGF for updates that may not yet be available on NCI. To
                 reproduce an earlier analysis, use its recorded version and review any related errata.
               </p>
+              <p v-if="project === 'CMIP7'" class="mt-2"><Cmip7GuideLink topic="citation" /></p>
             </details>
             <CmipNciResults
               :project="project"
@@ -264,6 +270,7 @@
 </template>
 
 <script setup lang="ts">
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import FilterSelectors from './FilterSelectors.vue';

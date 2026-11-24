@@ -5,6 +5,13 @@
       <p class="text-gray-600 dark:text-gray-300">
         Detailed view of the {{ datastoreName }} ESM datastore containing {{ totalRecords?.toLocaleString() }} records.
       </p>
+      <p
+        v-if="source !== 'personal' && getCmipProject(datastoreName) === 'CMIP7'"
+        class="mt-3 text-sm text-gray-600 dark:text-gray-300"
+      >
+        <strong>CMIP7 guidance</strong> · Learn about CMIP7, get set up on NCI, and work with the data in the
+        <Cmip7GuideLink topic="overview" />.
+      </p>
     </div>
 
     <!-- Vertical divider (hidden on mobile) -->
@@ -14,6 +21,11 @@
     <div class="flex-shrink-0">
       <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 text-right">Documentation</div>
       <div class="flex flex-col space-y-2 items-end">
+        <Cmip7GuideLink
+          v-if="source !== 'personal' && getCmipProject(datastoreName) === 'CMIP7'"
+          topic="citation"
+          class="text-sm"
+        />
         <a
           href="https://intake-esm.readthedocs.io/"
           target="_blank"
@@ -38,8 +50,12 @@
 </template>
 
 <script setup lang="ts">
+import { getCmipProject } from '../services/cmipEsmvalcoreCode';
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
+
 defineProps<{
   datastoreName: string;
   totalRecords?: number;
+  source?: 'builtin' | 'personal';
 }>();
 </script>

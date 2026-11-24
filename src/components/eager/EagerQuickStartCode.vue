@@ -18,7 +18,13 @@
       To access this data{{ hasActiveFilters ? ' with current filters' : '' }}:
     </p>
 
-    <RequiredProjectsWarning :projects="requiredProjects" />
+    <RequiredProjectsWarning
+      :projects="requiredProjects"
+      :datastore-name="source === 'personal' ? undefined : datastoreName"
+    />
+    <p v-if="source !== 'personal' && getCmipProject(datastoreName) === 'CMIP7'" class="mb-3 text-sm">
+      <Cmip7GuideLink topic="intake" />
+    </p>
 
     <MultipleCellMethodsWarning :visible="shouldShowCellMethodsWarning" />
 
@@ -70,6 +76,8 @@
 </template>
 
 <script setup lang="ts">
+import { getCmipProject } from '../../services/cmipEsmvalcoreCode';
+import Cmip7GuideLink from '../Cmip7GuideLink.vue';
 import { computed, toRef } from 'vue';
 
 import Button from 'primevue/button';

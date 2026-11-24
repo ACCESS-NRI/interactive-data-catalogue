@@ -57,6 +57,8 @@ Mappings were checked on 10 November 2026 against [NCI's THREDDS catalogue](http
 
 ## ESGF discovery
 
+CMIP7 searches and the Australian/replicated CMIP7 collection pages link to the [CMIP7 Data in Australia guide](https://cmip7.access-hive.org.au/). Contextual links cover NCI setup, the relevant Xarray/ESMValCore/ESMValTool or file-path workflow, citation and errata guidance, and data availability when a search returns no matches. Guidance opens in a new tab to preserve the current search. These links are limited to CMIP7; personal uploads and other collections keep their existing documentation.
+
 The **Explore CMIP6 and CMIP7** homepage card opens `/cmip`, defaulting to CMIP7 and **Search on NCI**. The **CMIP era** selector offers CMIP6 and CMIP7. **Search on NCI** and **Search ESGF** are mutually exclusive; the separate **Only ACCESS data** checkbox applies to either location. ESGF mode explains that files absent from NCI need downloading and recommends searching NCI first when working on Gadi. An empty NCI search offers **Try searching ESGF**, preserving the era, ACCESS choice and selected filters. Failed or pending collection queries are not treated as empty results.
 
 Changing era keeps the location and ACCESS choice but clears filters because model names and facets differ. Old `/cmip7` and `/cmip6` links redirect with their query parameters intact. `nci=false` explicitly selects ESGF; `nci=true` or an omitted `nci` parameter selects NCI. The era, search location, ACCESS choice and filters are preserved in shared URLs, and changing location cancels outstanding searches.

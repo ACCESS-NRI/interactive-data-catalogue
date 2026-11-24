@@ -46,6 +46,7 @@
         tabindex="0"
       >
         <RequiredProjectsWarning :projects="requiredProjects" :datastore-name="datastoreName" />
+        <p v-if="project === 'CMIP7'" class="mb-3 text-sm"><Cmip7GuideLink topic="core" /></p>
         <p v-if="coreMissingSelections.length" class="mb-2 text-sm text-amber-800 dark:text-amber-200">
           Before running, select {{ coreMissingSelections.join(', ') }} in the catalogue or replace the marked values in
           the code.
@@ -93,6 +94,7 @@
           :datastore-name="datastoreName"
           :show-conda-environment="false"
         />
+        <p v-if="project === 'CMIP7'" class="mb-3 text-sm"><Cmip7GuideLink topic="tool" /></p>
         <p class="mb-2 text-sm text-teal-900 dark:text-teal-100">
           Save this recipe as a .yml file and run it with ESMValTool from a Gadi shell or batch job. It keeps the
           preprocessed data; add a diagnostic script for analysis.
@@ -140,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
 import { computed, ref, useId, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
