@@ -50,11 +50,16 @@
         </span>
       </div>
     </div>
+    <p v-if="(cmipProject ?? getCmipProject(datastoreName ?? '')) === 'CMIP7'" class="mt-3 text-sm">
+      <Cmip7GuideLink topic="setup" />
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { usePostHog } from '../composables/usePosthog';
+import { getCmipProject, type CmipProject } from '../services/cmipEsmvalcoreCode';
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
 
 /**
  * Component props for RequiredProjectsWarning.
@@ -69,6 +74,7 @@ interface Props {
    */
   projects: string[];
   datastoreName?: string;
+  cmipProject?: CmipProject;
   showCondaEnvironment?: boolean;
 }
 

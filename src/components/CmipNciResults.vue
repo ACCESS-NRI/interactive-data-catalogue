@@ -117,6 +117,7 @@
     </div>
     <div v-else-if="!loading && !error" role="status" class="p-4 text-sm text-gray-600 dark:text-gray-300">
       <p>No datasets in the NCI catalogue match these filters.</p>
+      <p v-if="project === 'CMIP7'" class="mt-2"><Cmip7GuideLink topic="availability" /></p>
       <p class="mt-2">
         Can't find it on NCI?
         <button
@@ -174,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
 import { computed, onBeforeUnmount, ref, shallowRef, useId, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { buildFilterQuery } from '../composables/useFilterUrlSync';

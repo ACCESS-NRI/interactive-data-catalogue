@@ -9,6 +9,7 @@
         One directory per dataset, grouping the files matching your filters. When files span subdirectories, their
         common parent is shown. A directory may also contain other datasets or versions.
       </p>
+      <p v-if="isCmip7" class="mb-3 text-sm"><Cmip7GuideLink topic="paths" /></p>
       <p v-if="loading" role="status" class="text-sm text-gray-600 dark:text-gray-300">Loading dataset paths…</p>
       <div v-else-if="error" role="alert" class="text-sm text-red-700 dark:text-red-300">
         <p>{{ error }}</p>
@@ -16,6 +17,7 @@
       </div>
       <p v-else-if="!datasets.length" role="status" class="text-sm text-gray-600 dark:text-gray-300">
         No datasets match the current selection.
+        <Cmip7GuideLink v-if="isCmip7" topic="availability" class="mt-2 block w-fit" />
       </p>
       <template v-else>
         <NciAccessHelp v-if="hasPublicLinks" class="mb-3" />
@@ -63,6 +65,8 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import CopyPath from './CopyPath.vue';
 import NciAccessHelp from './NciAccessHelp.vue';
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
+import { getCmipProject } from '../services/cmipEsmvalcoreCode';
 import { nciFileAccess } from '../services/nciFileAccess';
 import {
   fetchDatastorePaths,
@@ -82,6 +86,7 @@ const props = defineProps<{
 }>();
 
 const PAGE_SIZE = 25;
+const isCmip7 = computed(() => props.source !== 'personal' && getCmipProject(props.datastoreName) === 'CMIP7');
 const isOpen = ref(false);
 const page = ref(0);
 const datasets = ref<DatasetPath[]>([]);

@@ -72,7 +72,7 @@
     <div v-else>
       <!-- Content -->
       <div v-if="!loading && !error">
-        <DatastoreHeader :datastore-name="datastoreName" :total-records="totalRecords" />
+        <DatastoreHeader :datastore-name="datastoreName" :total-records="totalRecords" :source="source" />
 
         <!-- Beta Warning -->
         <div

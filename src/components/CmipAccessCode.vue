@@ -67,6 +67,7 @@
           tabindex="0"
         >
           <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">{{ tab.description }}</p>
+          <p v-if="project === 'CMIP7'" class="mb-3 text-sm"><Cmip7GuideLink :topic="tab.id" /></p>
           <template v-if="tab.id === 'paths'">
             <p class="mb-3 text-sm text-gray-700 dark:text-gray-300">
               You can view dataset directories in the NCI results below. Select View files on a dataset row to see its
@@ -88,6 +89,7 @@
           <template v-else>
             <RequiredProjectsWarning
               :projects="cmipStorageProjects(project, accessOnly)"
+              :cmip-project="project"
               :show-conda-environment="active === 'intake'"
             />
             <p v-if="tab.id === 'intake'" class="mb-3 text-sm text-gray-700 dark:text-gray-300">
@@ -206,6 +208,7 @@
 </template>
 
 <script setup lang="ts">
+import Cmip7GuideLink from './Cmip7GuideLink.vue';
 import { computed, ref, useId, watch } from 'vue';
 import Button from 'primevue/button';
 import RequiredProjectsWarning from './RequiredProjectsWarning.vue';
